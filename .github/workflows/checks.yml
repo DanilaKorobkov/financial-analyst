@@ -1,0 +1,30 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+jobs:
+  check:
+    # Каждый таргет — отдельный параллельный job на своём раннере.
+    # В UI PR появляются как отдельные статусы (`check (lint-golang)` и т.п.),
+    # видно, какой именно упал, без чтения общего лога.
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [lint-golang, lint-yaml, build]
+    name: check (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # mise ставит инструменты из mise.toml.
+      # Версии — единая точка правды с локалкой разработчика.
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      # Те же таргеты, что разработчик запускает локально через `task checks`.
+      - run: task ${{ matrix.target }}
