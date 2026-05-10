@@ -7,6 +7,6 @@ tasks:
       - golangci-lint run ./...
 
   fmt:
-    desc: Format code via golangci-lint (errors suppressed)
+    desc: Run golangci-lint with autofix (errors suppressed)
     cmds:
-      - golangci-lint fmt ./... || true
+      - golangci-lint run --fix ./... || true
