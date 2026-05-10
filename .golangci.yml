@@ -1,4 +1,4 @@
-# Конфиг golangci-lint v2 для проекта на Go в стиле DDD + Clean Code (Robert Martin).
+# Конфиг golangci-lint v2 для проекта на Go.
 # Принципы:
 #   - корректность важнее стиля, стиль важнее вкусовщины;
 #   - явные ошибки, явный контекст, маленькие функции, чистые границы слоёв;
@@ -67,7 +67,7 @@ linters:
 
     # ── Импорты и зависимости ────────────────────────────────────────────────
     - depguard        # запрет нежелательных импортов (см. settings.depguard)
-    - gomoddirectives # запрет replace/exclude/retract без явной причины
+    - gomoddirectives  # запрет replace/exclude/retract без явной причины
 
     # ── Тесты ────────────────────────────────────────────────────────────────
     - testpackage     # тесты — в пакете _test, чтобы тестировать публичный API
@@ -96,7 +96,7 @@ linters:
 
     staticcheck:
       # Все проверки SA*/S*/ST*/QF* — это уже сильно отфильтрованный набор.
-      checks: ["all"]
+      checks: [all]
 
     revive:
       # Жёсткий уровень; правила перечислены явно, чтобы апгрейды не меняли
@@ -162,9 +162,9 @@ linters:
       # присваивания тривиальных констант. В бизнес-логике — ругаем.
       ignored-numbers: ["0", "1", "2", "10", "100", "1000"]
       ignored-functions:
-        - "math.*"
-        - "strconv.*"
-        - "make"
+        - math.*
+        - strconv.*
+        - make
       checks: [argument, case, condition, operation, return, assign]
 
     gocritic:
@@ -188,10 +188,10 @@ linters:
     forbidigo:
       # Запрещаем то, что почти всегда — забытый отладочный код или плохая практика.
       forbid:
-        - pattern: '^fmt\.Print.*$'      # отладочный stdout — через logger
-        - pattern: '^panic$'             # panic в проде — только в init/main
-        - pattern: '^print$'
-        - pattern: '^println$'
+        - pattern: ^fmt\.Print.*$  # отладочный stdout — через logger
+        - pattern: ^panic$         # panic в проде — только в init/main
+        - pattern: ^print$
+        - pattern: ^println$
 
     misspell:
       locale: US
@@ -206,8 +206,8 @@ linters:
       rules:
         main:
           deny:
-            - pkg: "github.com/pkg/errors"
-              desc: "use stdlib errors + fmt.Errorf %w (Go 1.13+)"
+            - pkg: github.com/pkg/errors
+              desc: use stdlib errors + fmt.Errorf %w (Go 1.13+)
 
   # ────────────────────────────────────────────────────────────────────────────
   # EXCLUSIONS — исключения только там, где это осознанно.
@@ -252,6 +252,7 @@ formatters:
         - github.com/DanilaKorobkov/financial-analyst
     gci:
       sections:
-        - standard                                                  # std lib
-        - default                                                   # внешние зависимости
-        - prefix(github.com/DanilaKorobkov/financial-analyst)       # внутренние пакеты — отдельной группой
+        - standard  # std lib
+        - default  # внешние зависимости
+        # Внутренние пакеты — отдельной группой.
+        - prefix(github.com/DanilaKorobkov/financial-analyst)

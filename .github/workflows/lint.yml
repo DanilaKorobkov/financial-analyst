@@ -1,0 +1,22 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # mise ставит ВСЕ инструменты из mise.toml: go, golangci-lint, task.
+      # Версии — единая точка правды с локалкой разработчика.
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      # Та же команда, что разработчик запускает у себя.
+      - run: task lint

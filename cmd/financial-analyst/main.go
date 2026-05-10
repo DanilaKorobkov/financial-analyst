@@ -1,3 +1,4 @@
+// Package main — точка входа CLI financial-analyst.
 package main
 
 import "fmt"
