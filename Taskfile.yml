@@ -5,3 +5,8 @@ tasks:
     desc: Run golangci-lint
     cmds:
       - golangci-lint run ./...
+
+  fmt:
+    desc: Format code via golangci-lint (errors suppressed)
+    cmds:
+      - golangci-lint fmt ./... || true
