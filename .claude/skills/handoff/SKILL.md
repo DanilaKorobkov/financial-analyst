@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Завершить работу — прогнать fmt/lint/tests, собрать коммит и запушить после подтверждения, создать PR.
+description: Завершить работу — прогнать fmt и check, собрать коммит и запушить после подтверждения, создать PR.
 user-invocable: true
 disable-model-invocation: true
 ---
