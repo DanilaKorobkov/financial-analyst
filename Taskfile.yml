@@ -1,41 +1,45 @@
 version: '3'
 
-# Версия golangci-lint пинится здесь — единственная точка правды.
-# Меняем тут → следующий `task setup` подтянет нужный бинарь.
-vars:
-  GOLANGCI_LINT_VERSION: v2.12.2
-  # Абсолютный путь к бинарю: не зависит от того, есть ли $(go env GOPATH)/bin в PATH.
-  GOLANGCI_LINT:
-    sh: echo "$(go env GOPATH)/bin/golangci-lint"
+# Версии инструментов (go, golangci-lint, task) пинятся в `mise.toml`.
+# mise сам подсовывает нужные бинари в PATH в этой директории.
 
 tasks:
-  setup:
-    desc: >-
-      Поднять окружение проекта с нуля (модули + golangci-lint нужной версии).
-      Запускать после первого клона репо или после смены версии линтера.
-    cmds:
-      # Скачать все Go-модули, включая инструменты из tool-директивы (task и пр.).
-      - go mod download
-      # Поставить golangci-lint в $(go env GOPATH)/bin строго запиненной версией.
-      # Бинарь — официально рекомендованный способ установки (go install / go tool
-      # для golangci-lint авторами не поддерживается из-за конфликтов транзитивных
-      # зависимостей в MVS). См. https://golangci-lint.run/docs/welcome/install/local/.
-      - curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b "$(go env GOPATH)/bin" {{.GOLANGCI_LINT_VERSION}}
-      # Sanity-check: установка прошла, версия совпадает с пином.
-      - "{{.GOLANGCI_LINT}} --version"
-
   lint:
-    desc: Запустить golangci-lint по всему проекту
+    desc: >-
+      Запустить все линтеры проекта параллельно (через `deps`),
+      без fail-fast — увидим все провалы за один прогон.
+      Агрегатор: при добавлении нового линтера расширяем `deps`
+      через `task: lint-<инструмент>`.
+    deps:
+      - task: lint-golang
+      - task: lint-yaml
+
+  lint-golang:
+    desc: Запустить golangci-lint по всему Go-коду проекта.
     cmds:
-      - "{{.GOLANGCI_LINT}} run ./..."
+      - golangci-lint run ./...
+
+  lint-yaml:
+    desc: Запустить yamllint по всем YAML-файлам проекта.
+    cmds:
+      - yamllint .
 
   fmt:
     desc: >-
-      Отформатировать код через golangci-lint --fix.
-      Ненулевой код выхода игнорируем (`|| true`), потому что задача — применить все доступные автофиксы,
-      а оставшиеся неисправимые замечания должен показывать `task lint`, а не ронять форматирование.
+      Запустить все форматтеры проекта параллельно (через `deps`).
+      Агрегатор: при добавлении нового форматтера расширяем `deps`
+      через `task: fmt-<инструмент>`.
+    deps:
+      - task: fmt-golang
+
+  fmt-golang:
+    desc: >-
+      Отформатировать Go-код через golangci-lint --fix.
+      Ненулевой код выхода игнорируем (`|| true`), потому что задача —
+      применить все доступные автофиксы, а оставшиеся неисправимые замечания
+      должен показывать `task lint-golang`, а не ронять форматирование.
     cmds:
-      - "{{.GOLANGCI_LINT}} run --fix ./... || true"
+      - golangci-lint run --fix ./... || true
 
   check:
     desc: >-

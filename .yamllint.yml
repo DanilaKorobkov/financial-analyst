@@ -1,0 +1,34 @@
+# Конфиг yamllint — гигиена YAML-файлов проекта.
+# Запускается через `task lint-yaml` (см. Taskfile.yml).
+# Документация правил: https://yamllint.readthedocs.io/en/stable/rules.html
+
+extends: default
+
+rules:
+  # Длинные строки бывают осмысленны (URL, многострочные команды, описания
+  # задач Taskfile). 80 — слишком жёстко, 120 — практичный компромисс.
+  line-length:
+    max: 120
+    # error: длинные строки в YAML почти всегда означают, что описание стоило
+    # разбить на несколько строк (`>-` / `|`) — это явное правило, не warning.
+    level: error
+
+  # Default: отступ 2, что нам подходит. Явно фиксируем, чтобы не зависеть
+  # от смены defaults в будущих версиях yamllint.
+  indentation:
+    spaces: 2
+    indent-sequences: true
+
+  # Комментарии должны иметь хотя бы один пробел после `#`. Помогает читаемости.
+  comments:
+    require-starting-space: true
+    min-spaces-from-content: 1
+
+  # Документ-маркер `---` не требуем (для одно-документных файлов он не нужен).
+  document-start: disable
+
+  # `true`/`false` — ок; не требуем, чтобы все booleans были lowercase. yamllint
+  # default уже это делает, но фиксируем явно.
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
