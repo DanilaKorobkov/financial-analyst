@@ -1,12 +1,46 @@
 version: '3'
 
+# Версия golangci-lint пинится здесь — единственная точка правды.
+# Меняем тут → следующий `task setup` подтянет нужный бинарь.
+vars:
+  GOLANGCI_LINT_VERSION: v2.12.2
+  # Абсолютный путь к бинарю: не зависит от того, есть ли $(go env GOPATH)/bin в PATH.
+  GOLANGCI_LINT:
+    sh: echo "$(go env GOPATH)/bin/golangci-lint"
+
 tasks:
-  lint:
-    desc: Run golangci-lint
+  setup:
+    desc: >-
+      Поднять окружение проекта с нуля (модули + golangci-lint нужной версии).
+      Запускать после первого клона репо или после смены версии линтера.
     cmds:
-      - golangci-lint run ./...
+      # Скачать все Go-модули, включая инструменты из tool-директивы (task и пр.).
+      - go mod download
+      # Поставить golangci-lint в $(go env GOPATH)/bin строго запиненной версией.
+      # Бинарь — официально рекомендованный способ установки (go install / go tool
+      # для golangci-lint авторами не поддерживается из-за конфликтов транзитивных
+      # зависимостей в MVS). См. https://golangci-lint.run/docs/welcome/install/local/.
+      - curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b "$(go env GOPATH)/bin" {{.GOLANGCI_LINT_VERSION}}
+      # Sanity-check: установка прошла, версия совпадает с пином.
+      - "{{.GOLANGCI_LINT}} --version"
+
+  lint:
+    desc: Запустить golangci-lint по всему проекту
+    cmds:
+      - "{{.GOLANGCI_LINT}} run ./..."
 
   fmt:
-    desc: Run golangci-lint with autofix (errors suppressed)
+    desc: >-
+      Отформатировать код через golangci-lint --fix.
+      Ненулевой код выхода игнорируем (`|| true`), потому что задача — применить все доступные автофиксы,
+      а оставшиеся неисправимые замечания должен показывать `task lint`, а не ронять форматирование.
     cmds:
-      - golangci-lint run --fix ./... || true
+      - "{{.GOLANGCI_LINT}} run --fix ./... || true"
+
+  check:
+    desc: >-
+      Прогнать форматирование (fmt) и затем проверку (lint) последовательно.
+      Используется как единая команда перед коммитом.
+    cmds:
+      - task: fmt
+      - task: lint
