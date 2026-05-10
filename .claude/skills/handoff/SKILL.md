@@ -1,8 +1,8 @@
 ---
 name: handoff
+description: Завершить работу — прогнать fmt/lint/tests, привести ветку к feat-<...>, собрать коммит и запушить после подтверждения.
 user-invocable: true
 disable-model-invocation: true
-description: Завершить работу — прогнать fmt/lint/tests, привести ветку к feat-<...>, собрать коммит и запушить после подтверждения.
 ---
 
 # handoff
