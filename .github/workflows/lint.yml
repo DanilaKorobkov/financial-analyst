@@ -19,4 +19,4 @@ jobs:
           cache: true
 
       # Та же команда, что разработчик запускает у себя.
-      - run: task lint
+      - run: task checks
