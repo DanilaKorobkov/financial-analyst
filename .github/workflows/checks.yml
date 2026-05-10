@@ -13,7 +13,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [lint-golang, lint-yaml, build]
+        # Каждый бинарь компилируется явно отдельным таргетом `compile-<name>`.
+        # При добавлении нового cmd/<name> расширяем этот список и одноимённый
+        # таск в `Taskfile.yml`.
+        target: [lint-golang, lint-yaml, compile-cli]
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:
