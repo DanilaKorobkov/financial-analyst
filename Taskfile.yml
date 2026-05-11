@@ -42,7 +42,9 @@ tasks:
   lint-spell:
     desc: cspell — орфография ru/en во всём репозитории (Go, MD, YAML, TOML, ...).
     # NODE_PATH указывает на установку русского словаря через mise.
-    # Без этого cspell не найдёт @cspell/dict-ru_ru, импортированный в cspell.config.yaml.
+    # Без этого cspell не найдёт @cspell/dict-ru_ru, импортированный в cspell.config.yaml
+    # (mise ставит каждый npm-пакет в свой изолированный prefix; см. подробнее
+    # README или комментарий у `npm:@cspell/dict-ru_ru` в mise.toml).
     # `mise where` возвращает каталог установки — одинаково работает локально и в CI.
     env:
       NODE_PATH:
