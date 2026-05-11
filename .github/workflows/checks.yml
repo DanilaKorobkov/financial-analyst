@@ -16,7 +16,14 @@ jobs:
         # Каждый binary компилируется явно отдельным target `compile-<name>`.
         # При добавлении нового cmd/<name> расширяем этот список и одноимённую
         # задачу в `Taskfile.yml`.
-        target: [lint-golang, lint-yaml, lint-md, lint-md-links, lint-spell, compile-cli]
+        target:
+          - lint-golang
+          - lint-yaml
+          - lint-md
+          - lint-md-fmt
+          - lint-md-links
+          - lint-spell
+          - compile-cli
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:

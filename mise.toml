@@ -50,3 +50,10 @@ node = "22.11.0"
 # lychee — быстрый чекер ссылок в Markdown (внешние URL, локальные пути, якоря).
 # Rust binary через aqua-backend mise (GitHub Releases). Конфиг — lychee.toml.
 "aqua:lycheeverse/lychee" = "0.15.1"
+
+# Prettier — де-факто стандарт форматирования Markdown в индустрии. Парный
+# инструмент к markdownlint-cli2: markdownlint проверяет структуру, Prettier
+# приводит оформление (выравнивание GFM-таблиц, нормализация пробелов и
+# переносов) к единому виду. Конфиг — .prettierrc.yaml; список игнорируемых
+# путей берётся из .gitignore автоматически (Prettier 3+).
+"npm:prettier" = "3.3.3"

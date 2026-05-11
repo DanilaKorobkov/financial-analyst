@@ -5,7 +5,6 @@ user-invocable: true
 disable-model-invocation: true
 ---
 
-
 ## 1. Синхронизация с main
 
 Обновляем локальный `main` и подмёрживаем в текущую ветку:

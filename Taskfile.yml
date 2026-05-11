@@ -13,6 +13,7 @@ tasks:
       - task: lint-golang
       - task: lint-yaml
       - task: lint-md
+      - task: lint-md-fmt
       - task: lint-md-links
       - task: lint-spell
 
@@ -33,6 +34,13 @@ tasks:
     # ignore-правилом в `.markdownlint-cli2.jsonc`.
     cmds:
       - markdownlint-cli2 "**/*.md" "**/.*/**/*.md"
+
+  lint-md-fmt:
+    desc: prettier --check — оформление Markdown (выравнивание GFM-таблиц, пробелы).
+    # Парный к lint-md: markdownlint проверяет структуру, prettier — оформление.
+    # Globs совпадают с lint-md; игнор-пути берутся из .gitignore автоматически.
+    cmds:
+      - prettier --check "**/*.md" "**/.*/**/*.md"
 
   lint-md-links:
     desc: lychee — проверка ссылок в Markdown (внешние URL, локальные пути, якоря).
@@ -56,11 +64,23 @@ tasks:
     desc: Запустить все formatters параллельно.
     deps:
       - task: fmt-golang
+      - task: fmt-md
 
   fmt-golang:
     desc: Автофиксы Go-кода через golangci-lint --fix (ошибки игнорируем — их покажет lint).
     cmds:
       - golangci-lint run --fix ./... || true
+
+  fmt-md:
+    desc: Автофиксы Markdown — markdownlint --fix + prettier --write.
+    # Сначала markdownlint правит то, что умеет (стиль пайпов, маркеры списков,
+    # тривиальные пробелы); затем Prettier нормализует оформление поверх
+    # (выравнивание таблиц, пробелы, переносы). Порядок важен — Prettier
+    # перетирает менее консистентные правки markdownlint. Ошибки игнорируем:
+    # неисправляемые проблемы покажет lint-md / lint-md-fmt в `task lint`.
+    cmds:
+      - markdownlint-cli2 --fix "**/*.md" "**/.*/**/*.md" || true
+      - prettier --write "**/*.md" "**/.*/**/*.md"
 
   compile:
     desc: Проверить, что все binaries cmd/* компилируются. Каждый — отдельная задача, в параллель.

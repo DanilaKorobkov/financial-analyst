@@ -1,0 +1,29 @@
+# Конфиг Prettier. Документация по опциям: https://prettier.io/docs/en/options
+#
+# В проекте Prettier используется только для Markdown (см. задачи
+# lint-md-fmt / fmt-md в Taskfile.yml). Парный инструмент к markdownlint-cli2:
+# markdownlint проверяет структуру, Prettier — оформление.
+
+# Не переносить прозаический текст по printWidth — MD013 (line-length) в
+# markdownlint-cli2 отключён сознательно (см. .markdownlint-cli2.jsonc),
+# и автоматический wrap ломал бы русские абзацы и diff-ы.
+proseWrap: preserve
+
+# Согласовано с yamllint (max-line-length: 100) и общим стилем проекта.
+# На прозу при proseWrap: preserve не влияет — управляет шириной embedded-кода
+# внутри fenced-блоков, которые Prettier умеет форматировать.
+printWidth: 100
+
+# Markdown-стандарт: 2 пробела. Согласуется с дефолтом MD007 (ul-indent) в
+# markdownlint-cli2, поэтому не возникает конфликтов на вложенных списках.
+tabWidth: 2
+useTabs: false
+
+# Единый EOL у разработчиков (macOS/Linux) и в CI (Linux). Защищает от шумных
+# diff и проблем cspell/markdownlint на смешанных EOL.
+endOfLine: lf
+
+# Не форматировать содержимое fenced-блоков, даже если Prettier знает язык
+# (JS/JSON/CSS/HTML/YAML). Примеры в README и skills намеренно стилизованы —
+# Prettier не должен их переписывать. Go/bash/toml он и так не трогает.
+embeddedLanguageFormatting: 'off'
