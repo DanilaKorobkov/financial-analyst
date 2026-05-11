@@ -43,6 +43,7 @@ GET /api/fm/v2/calendar?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&sor
 ## Пример ответа (реальный, 2026-05-11, `limit=1`)
 
 <!-- cspell:ignore ГОСА -->
+
 ```json
 [
   {
