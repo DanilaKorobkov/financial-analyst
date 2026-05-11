@@ -24,6 +24,7 @@ jobs:
           - lint-lychee
           - lint-cspell
           - lint-actionlint
+          - lint-govulncheck
           - compile-cli
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest

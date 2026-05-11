@@ -17,6 +17,7 @@ tasks:
       - task: lint-lychee
       - task: lint-cspell
       - task: lint-actionlint
+      - task: lint-govulncheck
 
   lint-golangci-lint:
     desc: golangci-lint по всему Go-коду.
@@ -67,6 +68,15 @@ tasks:
     # не нужен и потенциально ломает обработку reusable workflows в подкаталогах.
     cmds:
       - actionlint
+
+  lint-govulncheck:
+    desc: govulncheck — проверка известных CVE в Go-зависимостях и stdlib.
+    # Официальный сканер уязвимостей от команды Go (golang.org/x/vuln).
+    # В отличие от audit-инструментов по списку модулей анализирует call graph
+    # и репортит только реально достижимые из проекта уязвимости — меньше
+    # шума. База — https://vuln.go.dev. Exit code != 0 при findings — CI падает.
+    cmds:
+      - govulncheck ./...
 
   fmt:
     desc: Запустить все formatters.
