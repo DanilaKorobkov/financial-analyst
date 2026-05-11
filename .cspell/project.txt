@@ -188,6 +188,10 @@ okpo
 # --- Внешние сервисы ---
 Refinitiv
 
+# --- Имена инструментов разработки ---
+govulncheck       # официальный сканер CVE для Go (golang.org/x/vuln)
+gosec             # security-линтер для Go
+
 # --- ISIN / SECID для ОФЗ ---
 RMFS
 
