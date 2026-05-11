@@ -4,16 +4,22 @@ endpoint: /api/fm/v2/disclosure
 
 # `disclosure`
 
-**Назначение:** лента раскрытия корпоративной информации эмитентами (существенные факты, заседания СД и т.п.). Без `updated_in_days`.
+**Назначение:** лента **уже раскрытых** корпоративных событий эмитентов (существенные факты, заседания СД, инсайдерские сделки и т.п.).
 
 **URL:** `GET /api/fm/v2/disclosure`
 
 ## Query-параметры
-Стандартный набор пагинации (см. [SKILL.md](../SKILL.md)), кроме `updated_in_days` — этот эндпоинт его не поддерживает.
+
+| Имя | Тип | Обязательность | Описание |
+|---|---|---|---|
+| `api_token` | str | required | API-токен (см. SKILL.md → «Авторизация»). |
+| `limit` / `offset` / `sort_by` / `sort_order` | — | optional | Стандартный набор пагинации. Полезный `sort_by`: `date` (с `sort_order=desc` — свежие сверху). |
+
+> `updated_in_days` сервером **не поддерживается** для этого эндпоинта.
 
 ## Пример запроса
 ```
-GET /api/fm/v2/disclosure?limit=5&sort_by=date&sort_order=desc
+GET /api/fm/v2/disclosure?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&sort_order=desc
 ```
 
 ## Поля JSON-ответа
@@ -21,29 +27,31 @@ GET /api/fm/v2/disclosure?limit=5&sort_by=date&sort_order=desc
 
 | Поле | Тип | Смысл |
 |---|---|---|
-| `code` / `exchange` | str | Тикер и биржа |
-| `category` | str | Категория события (`EVENT`, …) |
-| `title` | str | Заголовок раскрытия |
-| `type` | str | Подтип (`NA` — не специфицирован) |
-| `period` | str | Период отчётности (`NA` для событий без периода) |
-| `year` / `month` | int | Год / месяц периода (0/0 = не задано) |
-| `date` | date | Дата события |
-| `link` | url | Ссылка на e-disclosure / источник |
+| `code` | str | Тикер эмитента, опубликовавшего раскрытие. |
+| `exchange` | str | Биржа (`MOEX`). |
+| `category` | str | Категория события: `EVENT` (существенный факт), `INSIDER_TRANSACTION` (сделка инсайдера), `REPORT` (отчётность), `BOARD_MEETING` (заседание СД, если раскрыто постфактум), и т.п. |
+| `title` | str | Заголовок раскрытия — официальная формулировка с e-disclosure (одна строка, может быть длинной). |
+| `type` | str | Подтип внутри категории. `NA` — не специфицирован. |
+| `period` | str | Период отчётности для `REPORT` (`Q`, `Y`, `H1`/`H2`). `NA` для одноразовых событий. |
+| `year` | int | Год периода (0 = не задано). |
+| `month` | int | Месяц периода (0 = не задано). |
+| `date` | date (`YYYY-MM-DD`) | Дата публикации раскрытия в e-disclosure. |
+| `link` | url | Прямая ссылка на событие/компанию на e-disclosure. |
 
-## Пример ответа
+## Пример ответа (реальный, 2026-05-11, `limit=1`)
 ```json
 [
   {
-    "code": "CNRU",
+    "category": "INSIDER_TRANSACTION",
+    "code": "AQUA",
+    "date": "2026-05-08",
     "exchange": "MOEX",
-    "category": "EVENT",
-    "title": "Проведение заседания совета директоров (наблюдательного совета) и его повестка дня",
-    "type": "NA",
-    "period": "NA",
-    "year": 0,
+    "link": "https://www.e-disclosure.ru/portal/company.aspx?id=17531",
     "month": 0,
-    "date": "2026-05-04",
-    "link": "https://www.e-disclosure.ru/portal/company.aspx?id=39286"
+    "period": "NA",
+    "title": "Прекращение у лица права распоряжаться определенным количеством голосов, приходящихся на голосующие акции (доли), составляющие уставный капитал эмитента",
+    "type": "NA",
+    "year": 0
   }
 ]
 ```
@@ -51,3 +59,5 @@ GET /api/fm/v2/disclosure?limit=5&sort_by=date&sort_order=desc
 ## Edge cases
 - В отличие от [`calendar`](calendar.md) (что **будет**), это лента уже **раскрытых** событий.
 - Для запланированных событий с известной датой проведения смотри [`calendar`](calendar.md).
+- Ключ `title` (в `disclosure`) ≠ `event` (в `calendar`) — это разные поля; не объединяй вслепую.
+- `year`/`month=0` для разовых событий (не отчётность) — это валидное значение, не пропуск.

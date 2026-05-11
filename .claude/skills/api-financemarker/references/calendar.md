@@ -4,16 +4,22 @@ endpoint: /api/fm/v2/calendar
 
 # `calendar`
 
-**Назначение:** календарь **предстоящих** корпоративных событий (заседания СД, ГОСА, отсечки и т.п.). Без `updated_in_days`.
+**Назначение:** календарь **предстоящих** корпоративных событий: заседания СД, ГОСА/ВОСА, отсечки, публикации отчётов и т.п.
 
 **URL:** `GET /api/fm/v2/calendar`
 
 ## Query-параметры
-Стандартный набор пагинации (см. [SKILL.md](../SKILL.md)), кроме `updated_in_days` — этот эндпоинт его не поддерживает.
+
+| Имя | Тип | Обязательность | Описание |
+|---|---|---|---|
+| `api_token` | str | required | API-токен (см. SKILL.md → «Авторизация»). |
+| `limit` / `offset` / `sort_by` / `sort_order` | — | optional | Стандартный набор пагинации. Полезный `sort_by`: `date` (ascending — ближайшие сверху). |
+
+> `updated_in_days` сервером **не поддерживается** для этого эндпоинта.
 
 ## Пример запроса
 ```
-GET /api/fm/v2/calendar?limit=5&sort_by=date&sort_order=asc
+GET /api/fm/v2/calendar?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&sort_order=asc
 ```
 
 ## Поля JSON-ответа
@@ -21,33 +27,37 @@ GET /api/fm/v2/calendar?limit=5&sort_by=date&sort_order=asc
 
 | Поле | Тип | Смысл |
 |---|---|---|
-| `code` / `exchange` | str | Тикер и биржа |
-| `category` | str | Категория события (`BOARD_MEETING`, …) |
-| `event` | str | Описание события (одна строка) |
-| `type` | str | Подтип (`NA` если не уточнён) |
-| `period` | str | Период (`NA` для разовых) |
-| `year` / `month` | int | Год / месяц периода (0/0 если не задано) |
-| `date` | date | Дата события |
-| `link` | url | Ссылка на источник раскрытия |
+| `code` | str | Тикер эмитента, у которого запланировано событие. |
+| `exchange` | str | Биржа (`MOEX`). |
+| `category` | str | Категория события: `BOARD_MEETING` (заседание СД), `GENERAL_MEETING` (ОСА — общее собрание акционеров), `DIVIDEND_RECORD` (отсечка), `REPORT` (плановая публикация отчёта), и т.п. |
+| `event` | str | Текст события / повестка (одна строка). |
+| `type` | str | Подтип события. `NA` если не уточнён. |
+| `period` | str | Период отчётности для `REPORT` (`Y`, `Q`, `H1`/`H2`). `NA` для разовых событий. |
+| `year` | int | Год периода (0 — не задано / разовое событие). |
+| `month` | int | Месяц периода (0 — не задано). |
+| `date` | date (`YYYY-MM-DD`) | **Дата запланированного события** (когда оно произойдёт). |
+| `link` | url | Ссылка на e-disclosure (анонс события эмитентом). |
 
-## Пример ответа
+## Пример ответа (реальный, 2026-05-11, `limit=1`)
 ```json
 [
   {
-    "code": "ZILL",
-    "exchange": "MOEX",
     "category": "BOARD_MEETING",
-    "event": "Об утверждении состава Комитета Совета директоров по аудиту",
-    "type": "NA",
-    "period": "NA",
-    "year": 0,
+    "code": "DOMRF",
+    "date": "2026-05-12",
+    "event": "О проведении ГОСА",
+    "exchange": "MOEX",
+    "link": "https://www.e-disclosure.ru/portal/event.aspx?EventId=yyQRV4T7H0qzt537lFl7BA-B-B",
     "month": 0,
-    "date": "2026-05-04",
-    "link": "https://www.e-disclosure.ru/portal/event.aspx?EventId=UhWKOg2So0KNEKzmCG4b0A-B-B"
+    "period": "NA",
+    "type": "NA",
+    "year": 0
   }
 ]
 ```
 
 ## Edge cases
 - Уже произошедшие события сюда не попадают — для них [`disclosure`](disclosure.md).
-- Ключ `event` ≠ `title` (в `disclosure`) — это разные поля; не объединяй вслепую.
+- Ключ `event` (в `calendar`) ≠ `title` (в `disclosure`) — это разные поля; не объединяй вслепую.
+- Для дивидендных отсечек, помимо `calendar`, есть специализированный [`dividends?mode=upcoming`](dividends.md) с цифрами выплаты и `last_buy_date`.
+- `year`/`month=0` для разовых событий — это валидное значение, не пропуск.

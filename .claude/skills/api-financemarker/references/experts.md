@@ -9,55 +9,72 @@ endpoint: /api/fm/v2/experts
 **URL:** `GET /api/fm/v2/experts`
 
 ## Query-параметры
-Стандартный набор пагинации (см. [SKILL.md](../SKILL.md)).
+
+| Имя | Тип | Обязательность | Описание |
+|---|---|---|---|
+| `api_token` | str | required | API-токен (см. SKILL.md → «Авторизация»). |
+| `limit` / `offset` / `sort_by` / `sort_order` / `updated_in_days` | — | optional | Стандартный набор пагинации. Полезные `sort_by`: `ranking_all`, `ranking_year`, `ranking_month`, `c_perc_profit`. |
 
 ## Пример запроса
 ```
-GET /api/fm/v2/experts?limit=10&sort_by=ranking_all&sort_order=asc
+GET /api/fm/v2/experts?api_token=$FINANCE_MARKER_TOKEN&limit=10&sort_by=ranking_all&sort_order=asc
 ```
 
 ## Поля JSON-ответа
-Массив объектов. Префиксы: `t_*` — total (за всё время), `c_*` — current (текущий год / период расчёта рейтинга).
+
+Массив объектов. Префиксы:
+- `t_*` — **total**: за всё время (cumulative).
+- `c_*` — **current**: за текущий период расчёта рейтинга (обычно последние 12 мес).
 
 | Поле | Тип | Смысл |
 |---|---|---|
-| `community` / `community_id` | str / int | Имя и ID аналитика (используется как `community_id` в [`ideas`](ideas.md)) |
-| `category` | str | `PROF` (профи) и т.п. |
-| `t_num` / `c_num` | int | Всего идей / в текущем периоде |
-| `t_num_profit` / `c_num_profit` | int | Из них прибыльных |
-| `t_perc_profit` / `c_perc_profit` | int | % прибыльных |
-| `c_perc_success` | int | % достигших target |
-| `t_av_profit` / `c_av_profit` | int | Средняя доходность по идеям (%) |
-| `t_av_duration` / `c_av_duration` | int | Средний срок жизни идеи (мес) |
-| `ranking_all` / `ranking_year` / `ranking_month` | float | Места в рейтингах |
-| `changed_at` | datetime | Время обновления |
+| `community` | str | Название аналитика/комьюнити (`Финам`, `Тинькофф Инвестиции`, `БКС`). |
+| `community_id` | int | Числовой ID — связка с полем `community_id` в [`ideas`](ideas.md). |
+| `category` | str | Категория автора: `PROF` (профессиональный брокер), `RETAIL` (розничный аналитик), и т.п. |
+| `t_num` | int | Всего идей за всё время. |
+| `t_num_profit` | int | Из них прибыльных. |
+| `t_perc_profit` | int | % прибыльных (округление до целого). |
+| `t_av_profit` | int | Средняя доходность по всем идеям, % (округление до целого). |
+| `t_av_duration` | int | Средний срок жизни идеи, месяцев. |
+| `c_num` | int | Идей за текущий период. |
+| `c_num_profit` | int | Из них прибыльных. |
+| `c_perc_profit` | int | % прибыльных в текущем периоде. |
+| `c_perc_success` | int | % идей, **достигших target** в текущем периоде (более строгий критерий, чем `c_perc_profit`). |
+| `c_av_profit` | int | Средняя доходность за текущий период, %. |
+| `c_av_duration` | int | Средний срок идеи в текущем периоде, мес. |
+| `ranking_all` | float | Место в рейтинге FM за всё время (меньше — лучше; 1.0 — топ). |
+| `ranking_year` | float | Место за последний год. |
+| `ranking_month` | float | Место за последний месяц. |
+| `changed_at` | datetime (MSK) | Время обновления записи. |
 
-## Пример ответа
+## Пример ответа (реальный, 2026-05-11, `limit=1`)
 ```json
 [
   {
-    "community": "Финам",
-    "community_id": 40581,
-    "category": "PROF",
-    "t_num": 1350,
-    "t_num_profit": 779,
-    "t_perc_profit": 58,
-    "t_av_profit": 2,
-    "t_av_duration": 9,
-    "c_num": 1312,
-    "c_num_profit": 769,
+    "c_av_duration": 8,
+    "c_av_profit": 2,
+    "c_num": 1316,
+    "c_num_profit": 770,
     "c_perc_profit": 59,
     "c_perc_success": 42,
-    "c_av_profit": 2,
-    "c_av_duration": 8,
+    "category": "PROF",
+    "changed_at": "2026-05-11T01:40:03",
+    "community": "Финам",
+    "community_id": 40581,
     "ranking_all": 3.0,
-    "ranking_year": 2.5,
     "ranking_month": 2.0,
-    "changed_at": "2026-05-01T01:40:03"
+    "ranking_year": 2.5,
+    "t_av_duration": 9,
+    "t_av_profit": 2,
+    "t_num": 1355,
+    "t_num_profit": 780,
+    "t_perc_profit": 58
   }
 ]
 ```
 
 ## Edge cases
-- `community_id` из этой выдачи можно использовать как фильтр для скрипта поверх [`ideas`](ideas.md) (FM-API не предоставляет фильтр `?community_id=` — фильтруй на стороне клиента).
-- Числовые `*_profit` округлены до целых процентов; для точных цифр используй [`ideas`](ideas.md).
+- `community_id` из этой выдачи можно использовать как фильтр для скрипта поверх [`ideas`](ideas.md) — FM-API не предоставляет серверный фильтр `?community_id=`.
+- Числовые `*_profit` округлены до целых процентов; для точных цифр считай по [`ideas`](ideas.md).
+- `c_perc_success` (`% дошли до target`) обычно ниже `c_perc_profit` (`% завершились в плюсе`) — это разные метрики, не путать.
+- Меньшее `ranking_*` = выше место (1.0 — лучший).

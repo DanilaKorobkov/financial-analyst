@@ -9,11 +9,14 @@ endpoint: /api/fm/v2/exchanges
 **URL:** `GET /api/fm/v2/exchanges`
 
 ## Query-параметры
-Нет.
+
+| Имя | Тип | Обязательность | Описание |
+|---|---|---|---|
+| `api_token` | str | required | API-токен (см. SKILL.md → «Авторизация»). |
 
 ## Пример запроса
 ```
-GET /api/fm/v2/exchanges
+GET /api/fm/v2/exchanges?api_token=$FINANCE_MARKER_TOKEN
 ```
 
 ## Поля JSON-ответа
@@ -21,26 +24,26 @@ GET /api/fm/v2/exchanges
 
 | Поле | Тип | Смысл |
 |---|---|---|
-| `exchange` | str | Код биржи (используется в `<exchange>:<code>`) |
-| `name` | str | Название биржи на русском |
-| `country` | str | ISO-код страны (`RU` и т.п.) |
-| `currency` | str | ISO-код валюты торгов биржи |
-| `mic` | str | Market Identifier Code (ISO 10383) |
+| `exchange` | str | Код биржи (`MOEX`). Используется как префикс в `<exchange>:<code>` при обращении к [`stocks/{exchange}:{code}`](stock.md). |
+| `name` | str | Полное название биржи на русском. |
+| `country` | str | ISO 3166-1 alpha-2 код страны (`RU`). |
+| `currency` | str | ISO 4217 код базовой валюты торгов биржи (`RUB`). |
+| `mic` | str | Market Identifier Code по ISO 10383 (`MISX` для MOEX) — используется для маппинга на внешние источники. |
 
-## Пример ответа
+## Пример ответа (реальный, 2026-05-11)
 На текущей подписке возвращается **только MOEX**:
 ```json
 [
   {
-    "exchange": "MOEX",
-    "name": "Московская биржа",
     "country": "RU",
     "currency": "RUB",
-    "mic": "MISX"
+    "exchange": "MOEX",
+    "mic": "MISX",
+    "name": "Московская биржа"
   }
 ]
 ```
 
 ## Edge cases
-- Если в выдаче только `MOEX` — это ограничение тарифа FM, а не баг. Зарубежные тикеры (NASDAQ, NYSE и т.п.) этим токеном не получить.
-- Перед обращением к `stocks/{exchange}:{code}` имеет смысл проверить здесь, что нужный `exchange` доступен.
+- Если в выдаче только `MOEX` — это ограничение тарифа FM, а не баг. Зарубежные тикеры (NASDAQ, NYSE, LSE, HKEX) этим токеном не получить.
+- Перед обращением к [`stocks/{exchange}:{code}`](stock.md) имеет смысл проверить здесь, что нужный `exchange` доступен.

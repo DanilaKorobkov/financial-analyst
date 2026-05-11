@@ -18,11 +18,14 @@ disable-model-invocation: false
 
 ## Авторизация
 
-Все эндпоints требуют API-токен из профиля <https://financemarker.ru/profile>.
+Все эндпоинты требуют API-токен из профиля <https://financemarker.ru/profile>.
 
-- Токен передаётся как заголовок (см. swagger) и читается Go-runtime'ом из переменной окружения `FINANCE_MARKER_TOKEN`.
+- Токен передаётся **query-параметром `api_token`** (например `?api_token=$FINANCE_MARKER_TOKEN`). Альтернативные варианты (заголовки `Authorization`, `Token`, `X-Token`, query `?token=` / `?auth_token=`) сервер отвергает с `{"code":400,"message":"token_not_found"}`.
+- Go-runtime читает токен из переменной окружения `FINANCE_MARKER_TOKEN` и подставляет в query при сборке URL.
 - В репозиторий токен не коммитим — `.env` должен быть в `.gitignore`.
 - Каждый успешный запрос-ответ списывает 1 единицу `day_limit` (см. [`token_info`](references/token_info.md)).
+
+В примерах reference-файлов токен обозначен как `$FINANCE_MARKER_TOKEN` — подставляй фактическое значение из окружения.
 
 ---
 

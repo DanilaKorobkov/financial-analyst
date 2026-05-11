@@ -4,51 +4,71 @@ endpoint: /api/fm/v2/ideas/{id}
 
 # `ideas/{id}`
 
-**Назначение:** полная карточка одной инвест-идеи по `id` — `IdeaDetails` со всеми полями [`ideas`](ideas.md) **плюс** `description` (HTML-текст идеи с тезисами автора), `link` (ссылка на источник), `update_comment`, `update_link`.
+**Назначение:** полная карточка одной инвест-идеи по `id` — все поля [`ideas`](ideas.md) **плюс** `description` (HTML-текст обоснования), `link` (первоисточник), `update_comment`, `update_link`.
 
 **URL:** `GET /api/fm/v2/ideas/{id}`
 
 ## Path-параметры
+
 | Имя | Тип | Описание |
 |---|---|---|
-| `id` | int | Идентификатор идеи (получен из [`ideas`](ideas.md) или из раздела `ideas` карточки эмитента) |
+| `id` | int | Идентификатор идеи в FM. Получен из [`ideas`](ideas.md) или из раздела `ideas` карточки эмитента. |
 
 ## Query-параметры
-Нет.
+
+| Имя | Тип | Обязательность | Описание |
+|---|---|---|---|
+| `api_token` | str | required | API-токен (см. SKILL.md → «Авторизация»). |
 
 ## Пример запроса
 ```
-GET /api/fm/v2/ideas/6226
+GET /api/fm/v2/ideas/6237?api_token=$FINANCE_MARKER_TOKEN
 ```
 
 ## Поля JSON-ответа
-Объект. Поля = поля [`ideas`](ideas.md) + дополнительно:
+Объект. Содержит **все** поля из [`ideas`](ideas.md) + дополнительно:
 
 | Поле | Тип | Смысл |
 |---|---|---|
-| `description` | HTML-string | Полный текст обоснования идеи (с разметкой `<p>`, `<strong>` и т.п.) |
-| `link` | url | Ссылка на первоисточник (Telegram-канал брокера, отчёт и т.п.) |
-| `update_comment` | str | Комментарий автора при последнем апдейте |
-| `update_link` | url | Ссылка на сам апдейт |
+| `description` | HTML-string | Полный текст обоснования идеи с разметкой (`<p>`, `<strong>`, `<h3>`, `<span style=…>`). Может быть несколько КБ. |
+| `link` | url | Ссылка на первоисточник — пост в Telegram-канале брокера, аналитический отчёт, страница на сайте и т.п. |
+| `update_comment` | str | Комментарий автора при последнем апдейте идеи (target/stop_loss). Пустая строка, если апдейтов не было. |
+| `update_link` | url | Ссылка на сам апдейт. Пустая строка, если апдейтов не было. |
 
-## Пример ответа (фрагмент)
+## Пример ответа (реальный, MOEX:SBER, идея id=6237, фрагмент)
 ```json
 {
-  "id": 6226,
+  "id": 6237,
   "code": "SBER",
-  "community": "АКБФ Инвестиции",
-  "idea": "Бизнес остается устойчивым",
-  "date_in": "2026-04-23",
-  "date_out": "2027-04-23",
-  "price_in": 323.04,
-  "price_out": 460.93,
-  "profit_potential": 43.0,
-  "description": "<h3><strong>О компании</strong></h3><p>Сбербанк России — крупнейший банк РФ ...</p>",
-  "link": "https://t.me/akbf_invest/6189",
-  "system_status": "ACTIVE"
+  "exchange": "MOEX",
+  "community": "РСХБ Инвестиции",
+  "community_id": 22888,
+  "idea": "Сбер открыл сезон охоты на прибыль",
+  "date_in": "2026-04-30",
+  "date_out": "2027-04-30",
+  "duration_in_month": 12,
+  "price_in": 319.0,
+  "price_out": 360.0,
+  "price_day": 320.39,
+  "profit_potential": 13.0,
+  "profit_actual": 0.0,
+  "stop_loss": null,
+  "system_status": "ACTIVE",
+  "close_date": "2026-05-08",
+  "close_price": 320.39,
+  "close_comment": "",
+  "close_link": "",
+  "update_date": null,
+  "update_price": null,
+  "update_comment": "",
+  "update_link": "",
+  "description": "<p><span style=\"color: rgb(0, 0, 0);\">«Сбербанк» опубликовал отчетность по МСФО за 1 квартал 2026 года, которая не оставила никого равнодушным. Банк н…",
+  "link": "https://t.me/RSHB_Invest/21997",
+  "changed_at": "2026-05-09T01:40:02"
 }
 ```
 
 ## Edge cases
-- `description` — большое HTML-поле (несколько КБ); при необходимости очисти разметку на стороне потребителя.
-- 404 → ID не найден (например, идея удалена).
+- `description` — большое HTML-поле (несколько КБ); при необходимости очисти разметку на стороне потребителя (BeautifulSoup / стрип-тегов).
+- 404 → ID не найден (например, идея удалена). 400 → невалидный формат `id`.
+- `system_status=ACTIVE` совмещён с заполненным `close_date`/`close_price` — это снимок последнего обновления цены, а не закрытие. См. edge case в [`ideas`](ideas.md).
