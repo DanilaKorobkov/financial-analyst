@@ -15,11 +15,13 @@ endpoint: /api/fm/v2/token_info
 | `api_token` | str | required | API-токен из профиля FinanceMarker. |
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/token_info?api_token=$FINANCE_MARKER_TOKEN
 ```
 
 ## Поля JSON-ответа
+
 Объект:
 
 | Поле | Тип | Смысл |
@@ -28,6 +30,7 @@ GET /api/fm/v2/token_info?api_token=$FINANCE_MARKER_TOKEN
 | `valid_to` | str (date, `YYYY-MM-DD`) | Дата окончания подписки. Начиная со следующего дня все эндпоинты возвращают 403 даже при ненулевом `day_limit`. |
 
 ## Пример ответа (реальный, 2026-05-11)
+
 ```json
 {
   "day_limit": 399,
@@ -36,6 +39,7 @@ GET /api/fm/v2/token_info?api_token=$FINANCE_MARKER_TOKEN
 ```
 
 ## Edge cases
+
 - `{"code":400,"message":"token_not_found"}` → токен невалиден, не передан, либо передан не в `api_token` (заголовок `Authorization` сервер игнорирует).
 - 401/403 → подписка просрочена либо исчерпан `day_limit`.
 - Сам вызов `token_info` **расходует** 1 единицу `day_limit` (как и любой другой). Не дёргать в цикле — кешируй на стороне Go-runtime.

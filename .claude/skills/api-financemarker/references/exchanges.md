@@ -15,11 +15,13 @@ endpoint: /api/fm/v2/exchanges
 | `api_token` | str | required | API-токен (см. SKILL.md → «Авторизация»). |
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/exchanges?api_token=$FINANCE_MARKER_TOKEN
 ```
 
 ## Поля JSON-ответа
+
 Массив объектов:
 
 | Поле | Тип | Смысл |
@@ -31,7 +33,9 @@ GET /api/fm/v2/exchanges?api_token=$FINANCE_MARKER_TOKEN
 | `mic` | str | Market Identifier Code по ISO 10383 (`MISX` для MOEX) — используется для маппинга на внешние источники. |
 
 ## Пример ответа (реальный, 2026-05-11)
+
 На текущей подписке возвращается **только MOEX**:
+
 ```json
 [
   {
@@ -45,5 +49,6 @@ GET /api/fm/v2/exchanges?api_token=$FINANCE_MARKER_TOKEN
 ```
 
 ## Edge cases
+
 - Если в выдаче только `MOEX` — это ограничение тарифа FM, а не баг. Зарубежные тикеры (NASDAQ, NYSE, LSE, HKEX) этим токеном не получить.
 - Перед обращением к [`stocks/{exchange}:{code}`](stock.md) имеет смысл проверить здесь, что нужный `exchange` доступен.

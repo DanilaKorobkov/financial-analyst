@@ -18,11 +18,13 @@ endpoint: /api/fm/v2/calendar
 > `updated_in_days` сервером **не поддерживается** для этого эндпоинта.
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/calendar?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&sort_order=asc
 ```
 
 ## Поля JSON-ответа
+
 Массив объектов:
 
 | Поле | Тип | Смысл |
@@ -39,6 +41,7 @@ GET /api/fm/v2/calendar?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&sor
 | `link` | url | Ссылка на e-disclosure (анонс события эмитентом). |
 
 ## Пример ответа (реальный, 2026-05-11, `limit=1`)
+
 ```json
 [
   {
@@ -57,6 +60,7 @@ GET /api/fm/v2/calendar?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&sor
 ```
 
 ## Edge cases
+
 - Уже произошедшие события сюда не попадают — для них [`disclosure`](disclosure.md).
 - Ключ `event` (в `calendar`) ≠ `title` (в `disclosure`) — это разные поля; не объединяй вслепую.
 - Для дивидендных отсечек, помимо `calendar`, есть специализированный [`dividends?mode=upcoming`](dividends.md) с цифрами выплаты и `last_buy_date`.

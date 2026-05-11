@@ -16,11 +16,13 @@ endpoint: /api/fm/v2/insider_transactions
 | `limit` / `offset` / `sort_by` / `sort_order` / `updated_in_days` | — | optional | Стандартный набор пагинации. Полезные `sort_by`: `transaction_date`, `filling_date`, `value`. |
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/insider_transactions?api_token=$FINANCE_MARKER_TOKEN&limit=5&updated_in_days=7
 ```
 
 ## Поля JSON-ответа
+
 Массив объектов:
 
 | Поле | Тип | Смысл |
@@ -50,6 +52,7 @@ GET /api/fm/v2/insider_transactions?api_token=$FINANCE_MARKER_TOKEN&limit=5&upda
 | `changed_at` | datetime (MSK) | Время обновления записи. |
 
 ## Пример ответа (реальный, 2026-05-11, `limit=1`)
+
 ```json
 [
   {
@@ -81,6 +84,7 @@ GET /api/fm/v2/insider_transactions?api_token=$FINANCE_MARKER_TOKEN&limit=5&upda
 ```
 
 ## Edge cases
+
 - Пары REPO часто дают эффект «купил / продал то же количество» в ленте — фильтруй по `reason` (`РЕПО`) и `market_trade=false`, если нужны только реальные покупки/продажи.
 - `amount` подписанный (`+`/`−`), `value` всегда положительный.
 - `transaction_type=P` иногда приходит даже для возвратной части REPO — смотри `reason`.

@@ -10,7 +10,7 @@ disable-model-invocation: false
 
 # FinanceMarker.ru — REST API
 
-Справочник по REST API сервиса [FinanceMarker](https://financemarker.ru). Скилл — **только описание эндпоинтов**: URL, параметры, поля JSON-ответа, edge cases. Вызовы выполняет Go-runtime проекта; никакого Python CLI и локального кеша в скилле нет.
+Справочник по REST API сервиса [FinanceMarker](https://financemarker.ru). Справочник — **только описание эндпоинтов**: URL, параметры, поля JSON-ответа, edge cases. Вызовы выполняет Go-runtime проекта; никакого Python CLI и локального кеша в справочнике нет.
 
 > **Прогрессивная загрузка.** Этот файл — каталог эндпоинтов + краткое описание. В `references/<endpoint>.md` для каждого эндпоинта лежит сигнатура (path/query-параметры) и поля JSON-ответа. **Читай reference только когда нужны детали** — для типового использования достаточно таблицы ниже.
 
@@ -22,7 +22,7 @@ disable-model-invocation: false
 
 - Токен передаётся **query-параметром `api_token`** (например `?api_token=$FINANCE_MARKER_TOKEN`). Альтернативные варианты (заголовки `Authorization`, `Token`, `X-Token`, query `?token=` / `?auth_token=`) сервер отвергает с `{"code":400,"message":"token_not_found"}`.
 - Go-runtime читает токен из переменной окружения `FINANCE_MARKER_TOKEN` и подставляет в query при сборке URL.
-- В репозиторий токен не коммитим — `.env` должен быть в `.gitignore`.
+- Токен не храним в репозитории — `.env` должен быть в `.gitignore`.
 - Каждый успешный запрос-ответ списывает 1 единицу `day_limit` (см. [`token_info`](references/token_info.md)).
 
 В примерах reference-файлов токен обозначен как `$FINANCE_MARKER_TOKEN` — подставляй фактическое значение из окружения.
@@ -60,6 +60,7 @@ disable-model-invocation: false
 ### Базовые / справочники
 
 #### `token_info`
+
 - **Reference:** [token_info.md](references/token_info.md)
 - **URL:** `GET /api/fm/v2/token_info`
 - **Назначение:** остаток `day_limit` и срок подписки. Используй перед серией тяжёлых запросов.
@@ -67,6 +68,7 @@ disable-model-invocation: false
 - **SKIP when:** разовый запрос — не трать единицу на проверку лимита.
 
 #### `exchanges`
+
 - **Reference:** [exchanges.md](references/exchanges.md)
 - **URL:** `GET /api/fm/v2/exchanges`
 - **Назначение:** список поддерживаемых бирж. **На текущей подписке — только MOEX.**
@@ -74,6 +76,7 @@ disable-model-invocation: false
 - **SKIP when:** работаешь только с MOEX.
 
 #### `operation_metrics`
+
 - **Reference:** [operation_metrics.md](references/operation_metrics.md)
 - **URL:** `GET /api/fm/v2/operation_metrics`
 - **Назначение:** справочник операционных KPI (id, название, единица, множитель). Используется как словарь для расшифровки `operation_metric_id` из раздела `operations` карточки эмитента.
@@ -83,6 +86,7 @@ disable-model-invocation: false
 ### Эмитент
 
 #### `stocks`
+
 - **Reference:** [stocks.md](references/stocks.md)
 - **URL:** `GET /api/fm/v2/stocks`
 - **Назначение:** список компаний (`StockInfo[]`) с базовой карточкой (тикер, название, сектор, отрасль). Только пагинация и сортировка — серверной фильтрации по сектору нет, фильтруй на клиенте.
@@ -90,6 +94,7 @@ disable-model-invocation: false
 - **SKIP when:** известна одна конкретная бумага — `stocks/{exchange}:{code}`.
 
 #### `stocks/{exchange}:{code}`
+
 - **Reference:** [stock.md](references/stock.md)
 - **URL:** `GET /api/fm/v2/stocks/{exchange}:{code}?include=<sections>`
 - **Назначение:** **главный эндпоинт по эмитенту**. Возвращает агрегированный объект `Stock` с разделами: `info`, `summary`, `ratios`, `reports`, `dividends`, `ideas`, `insiderTransactions`, `operations`, `owners`, `shares`. Какие разделы вернуть — задаётся query-параметром `include`.
@@ -99,6 +104,7 @@ disable-model-invocation: false
 ### Кросс-эмитентные ленты
 
 #### `dividends`
+
 - **Reference:** [dividends.md](references/dividends.md)
 - **URL:** `GET /api/fm/v2/dividends`
 - **Назначение:** календарь дивидендов по всему рынку. Поддерживает `mode=upcoming`.
@@ -106,6 +112,7 @@ disable-model-invocation: false
 - **SKIP when:** дивиденды по одной бумаге — раздел `dividends` карточки эмитента.
 
 #### `ideas`
+
 - **Reference:** [ideas.md](references/ideas.md)
 - **URL:** `GET /api/fm/v2/ideas`
 - **Назначение:** лента инвест-идей всех аналитиков (заголовок, target, потенциал, статус).
@@ -113,6 +120,7 @@ disable-model-invocation: false
 - **SKIP when:** идеи по одной бумаге — раздел `ideas` карточки эмитента; детали одной идеи — `ideas/{id}`.
 
 #### `ideas/{id}`
+
 - **Reference:** [idea.md](references/idea.md)
 - **URL:** `GET /api/fm/v2/ideas/{id}`
 - **Назначение:** полная карточка идеи по `id` с HTML-описанием тезисов автора.
@@ -120,6 +128,7 @@ disable-model-invocation: false
 - **SKIP when:** известен только тикер.
 
 #### `experts`
+
 - **Reference:** [experts.md](references/experts.md)
 - **URL:** `GET /api/fm/v2/experts`
 - **Назначение:** рейтинг аналитиков (количество идей, % успешных, средняя доходность, средний срок).
@@ -127,6 +136,7 @@ disable-model-invocation: false
 - **SKIP when:** интересуют не аналитики, а их идеи.
 
 #### `insider_transactions`
+
 - **Reference:** [insider_transactions.md](references/insider_transactions.md)
 - **URL:** `GET /api/fm/v2/insider_transactions`
 - **Назначение:** лента сделок инсайдеров **полным форматом** (~24 поля).
@@ -134,6 +144,7 @@ disable-model-invocation: false
 - **SKIP when:** нужны инсайдеры одной бумаги в коротком формате — раздел `insiderTransactions` карточки эмитента.
 
 #### `disclosure`
+
 - **Reference:** [disclosure.md](references/disclosure.md)
 - **URL:** `GET /api/fm/v2/disclosure`
 - **Назначение:** лента **уже раскрытых** корпоративных событий (существенные факты, заседания СД и т.п.).
@@ -141,6 +152,7 @@ disable-model-invocation: false
 - **SKIP when:** нужны будущие события — `calendar`.
 
 #### `calendar`
+
 - **Reference:** [calendar.md](references/calendar.md)
 - **URL:** `GET /api/fm/v2/calendar`
 - **Назначение:** календарь **предстоящих** корпоративных событий.

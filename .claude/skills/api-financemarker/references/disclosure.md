@@ -18,11 +18,13 @@ endpoint: /api/fm/v2/disclosure
 > `updated_in_days` сервером **не поддерживается** для этого эндпоинта.
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/disclosure?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&sort_order=desc
 ```
 
 ## Поля JSON-ответа
+
 Массив объектов:
 
 | Поле | Тип | Смысл |
@@ -39,6 +41,7 @@ GET /api/fm/v2/disclosure?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&s
 | `link` | url | Прямая ссылка на событие/компанию на e-disclosure. |
 
 ## Пример ответа (реальный, 2026-05-11, `limit=1`)
+
 ```json
 [
   {
@@ -57,6 +60,7 @@ GET /api/fm/v2/disclosure?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=date&s
 ```
 
 ## Edge cases
+
 - В отличие от [`calendar`](calendar.md) (что **будет**), это лента уже **раскрытых** событий.
 - Для запланированных событий с известной датой проведения смотри [`calendar`](calendar.md).
 - Ключ `title` (в `disclosure`) ≠ `event` (в `calendar`) — это разные поля; не объединяй вслепую.

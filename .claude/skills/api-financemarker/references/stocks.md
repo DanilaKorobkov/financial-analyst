@@ -18,12 +18,14 @@ endpoint: /api/fm/v2/stocks
 Серверной фильтрации по сектору/стране/отрасли нет — фильтруй на клиенте по полям `sector`, `industry`, `country`.
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/stocks?api_token=$FINANCE_MARKER_TOKEN&limit=3
 GET /api/fm/v2/stocks?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=100
 ```
 
 ## Поля JSON-ответа
+
 Массив объектов `StockInfo`:
 
 | Поле | Тип | Смысл |
@@ -48,6 +50,7 @@ GET /api/fm/v2/stocks?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=10
 | `changed_at` | datetime (ISO 8601, MSK) | Время последнего изменения карточки на стороне FM. |
 
 ## Пример ответа (реальный, 2026-05-11, `limit=2`)
+
 ```json
 [
   {
@@ -94,6 +97,7 @@ GET /api/fm/v2/stocks?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=10
 ```
 
 ## Edge cases
+
 - Привилегированные акции (`SBERP`) и обычные (`SBER`) — две отдельные записи; `primary_report_code` указывает на ту, к которой привязаны отчёты.
 - Для разовой карточки одного эмитента не вызывай этот эндпоинт — иди в [`stocks/{exchange}:{code}`](stock.md) со специфичным идентификатором.
 - `industry` и `industry_group` могут совпадать по тексту (как у Сбера), но их `*_id` всегда разной размерности (`401010` vs `4010`).

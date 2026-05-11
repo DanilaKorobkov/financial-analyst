@@ -96,7 +96,7 @@ endpoint: /api/fm/v2/stocks/{exchange}:{code}
 | `ps` | float | P/S (Price / Sales). |
 | `pcf` | float | P/CF (Price / Operating Cash Flow). |
 | `pfcf` | float | P/FCF (Price / Free Cash Flow). |
-| `pffo` | float | P/FFO — для REIT/недвижки. |
+| `pffo` | float | P/FFO — для REIT/недвижимости. |
 | `evs` | float | EV/Sales. |
 | `evebitda` | float | EV/EBITDA. |
 | `ev_ebit` | float | EV/EBIT. |
@@ -136,7 +136,7 @@ endpoint: /api/fm/v2/stocks/{exchange}:{code}
 | **баланс — капитал**: `equity` / `equity_stock_holders` / `retained_earnings` / `share_premium` / `treasury_stock` | float | Собственный капитал и его компоненты. |
 | **на акцию**: `earnings_ps` / `equity_ps` / `revenue_ps` / `ebitda_ps` / `ebitda_adjusted_ps` / `fcf_ps` / `fcf_adjusted_ps` | float | Per-share метрики. |
 | **прочее**: `depr_depl_amort` / `research_and_development` / `total_expenses` / `other_operating_income` / `ffo` | float | Амортизация, R&D, FFO (для REIT). |
-| **ссылки**: `link` / `link_press` / `link_update` | url | Исходный PDF/Excel отчёта, пресс-релиз, ссылка на апдейт. |
+| **ссылки**: `link` / `link_press` / `link_update` | url | Исходный PDF/Excel отчёта, пресс-релиз, ссылка на обновление. |
 | **служебное**: `changed_at` (datetime) | — | Время записи. |
 
 > Полный список реальных ключей (на примере SBER 2011, МСФО, Y): `accounts_payable, accounts_receivable, amount, capex, cash_and_equiv, cash_equiv_st_invesments, cash_paid_for_interest, cash_paid_for_tax, cff, cfi, cfo, changed_at, code, commission_expense, commission_income, commission_net, cost_of_sales, cur_long_debt, cur_long_lease, curr, current_assets, current_debt, current_lease, current_liabilities, depr_depl_amort, earnings, earnings_comprehensive, earnings_comprehensive_stock_holders, earnings_continuing_operations, earnings_ps, earnings_stock_holders, earnings_wo_tax, ebit, ebitda, ebitda_adjusted, ebitda_adjusted_ps, ebitda_ps, equity, equity_ps, equity_stock_holders, exchange, fcf, fcf_adjusted, fcf_adjusted_ps, fcf_ps, ffo, goodwill, goodwill_intangible_assets, gross_profit, intangible_and_tangible_assets, intangible_assets, intangibles_purchase, interest_expense, interest_income, interest_net, inventories, issuance_of_debt, link, link_press, link_update, long_term_assets, long_term_debt, long_term_investments, long_term_lease, long_term_liabilities, month, net_change_in_cash, net_debt, net_debt_adjusted, net_issuance_of_debt, operating_income, other_operating_income, other_payable, other_receivable, payments_for_dividends, payments_of_debt, period, ppe_purchase, ppe_rou, preliminary, property_plant_equipment, repurchase_of_stock, research_and_development, retained_earnings, revenue, revenue_ps, right_of_use_assets, sel_gen_adm_expenses, share_premium, short_term_investments, total_assets, total_debt, total_expenses, total_liabilities, total_payable, total_receivable, treasury_stock, type, year`.
@@ -144,6 +144,7 @@ endpoint: /api/fm/v2/stocks/{exchange}:{code}
 ## Поля `dividends[]`, `ideas[]`, `insiderTransactions[]`
 
 См. отдельные reference:
+
 - `dividends[]` — формат как у [`dividends`](dividends.md) (для одной бумаги поле `link` и `type`/`year` могут быть пустыми).
 - `ideas[]` — формат как у [`ideas`](ideas.md).
 - `insiderTransactions[]` — **узкий формат**: только `code`, `exchange`, `insider`, `insider_title`, `transaction_date`, `transaction_type`. Полный набор полей (price, value, shares_before/after и т.д.) — в [`insider_transactions`](insider_transactions.md).
@@ -163,7 +164,7 @@ endpoint: /api/fm/v2/stocks/{exchange}:{code}
 | `original_value` / `original_unit` / `original_amount` | float / str / int | Значение «как опубликовал эмитент» с его единицей (например, отчёт в `млн ₽`). |
 | `curs` | float | Курс пересчёта (если метрика в нерублёвой валюте). Для рублёвых обычно `1.0`. |
 | `link` | url | Ссылка на исходный отчёт эмитента. |
-| `link_update` | url | Ссылка на апдейт (если был). |
+| `link_update` | url | Ссылка на обновление (если был). |
 
 ## Поля `owners[]`
 
@@ -189,12 +190,14 @@ endpoint: /api/fm/v2/stocks/{exchange}:{code}
 | `num` | int | Количество акций (в штуках). |
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/stocks/MOEX:SBER?api_token=$FINANCE_MARKER_TOKEN&include=info,summary,ratios
 GET /api/fm/v2/stocks/MOEX:YDEX?api_token=$FINANCE_MARKER_TOKEN&include=dividends
 ```
 
 ## Пример ответа (`include=summary`, MOEX:SBER, реальный 2026-05-11)
+
 ```json
 {
   "summary": {
@@ -234,6 +237,7 @@ GET /api/fm/v2/stocks/MOEX:YDEX?api_token=$FINANCE_MARKER_TOKEN&include=dividend
 ```
 
 ## Пример ответа (`include=ratios`, MOEX:SBER, фрагмент — годовой 2011 МСФО)
+
 ```json
 {
   "ratios": [
@@ -263,6 +267,7 @@ GET /api/fm/v2/stocks/MOEX:YDEX?api_token=$FINANCE_MARKER_TOKEN&include=dividend
 ```
 
 ## Пример ответа (`include=owners`, MOEX:SBER, реальный)
+
 ```json
 {
   "owners": [
@@ -281,6 +286,7 @@ GET /api/fm/v2/stocks/MOEX:YDEX?api_token=$FINANCE_MARKER_TOKEN&include=dividend
 ```
 
 ## Edge cases
+
 - **`include` обязателен по смыслу**: без него `summary` — пустой объект, а все массивы — пустые. `info` возвращается всегда.
 - Раздел запрошен, но FM его не вернул (нет данных для бумаги) → ключ присутствует, но массив пустой / `summary` пустой. Это **не ошибка** API.
 - Если бумага не существует в FM (например, новый тикер) → 400/404. Перед вызовом проверь через [`stocks`](stocks.md).

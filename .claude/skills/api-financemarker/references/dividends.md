@@ -17,12 +17,14 @@ endpoint: /api/fm/v2/dividends
 | `limit` / `offset` / `sort_by` / `sort_order` / `updated_in_days` | — | optional | Стандартный набор пагинации (см. SKILL.md). |
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/dividends?api_token=$FINANCE_MARKER_TOKEN&limit=3
 GET /api/fm/v2/dividends?api_token=$FINANCE_MARKER_TOKEN&mode=upcoming&limit=5&sort_by=last_buy_date&sort_order=asc
 ```
 
 ## Поля JSON-ответа
+
 Массив объектов:
 
 | Поле | Тип | Смысл |
@@ -43,6 +45,7 @@ GET /api/fm/v2/dividends?api_token=$FINANCE_MARKER_TOKEN&mode=upcoming&limit=5&s
 > В коллекционном эндпоинте без `mode=upcoming` поля `link` / `type` / `year` / `changed_at` могут отсутствовать (см. реальный пример ниже). В разделе `dividends` карточки эмитента эти поля всегда есть.
 
 ## Пример ответа (реальный, 2026-05-11, `limit=2`)
+
 ```json
 [
   {
@@ -69,6 +72,7 @@ GET /api/fm/v2/dividends?api_token=$FINANCE_MARKER_TOKEN&mode=upcoming&limit=5&s
 ```
 
 ## Edge cases
+
 - `mode=last` → HTTP 422 (валидно только `upcoming` или отсутствие). Для прошедших выплат не задавай `mode`.
 - Доходность `div_percent` для **будущих** дивидендов считается по последней доступной цене, а не по цене на `last_buy_date` (которая ещё не наступила) — поэтому может расходиться с финальной цифрой постфактум.
 - Для одной бумаги быстрее и дешевле дёрнуть `stocks/{exchange}:{code}?include=dividends` (одна страница вместо пагинации по всему рынку).

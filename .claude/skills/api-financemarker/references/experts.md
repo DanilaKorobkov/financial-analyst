@@ -16,13 +16,15 @@ endpoint: /api/fm/v2/experts
 | `limit` / `offset` / `sort_by` / `sort_order` / `updated_in_days` | — | optional | Стандартный набор пагинации. Полезные `sort_by`: `ranking_all`, `ranking_year`, `ranking_month`, `c_perc_profit`. |
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/experts?api_token=$FINANCE_MARKER_TOKEN&limit=10&sort_by=ranking_all&sort_order=asc
 ```
 
 ## Поля JSON-ответа
 
 Массив объектов. Префиксы:
+
 - `t_*` — **total**: за всё время (cumulative).
 - `c_*` — **current**: за текущий период расчёта рейтинга (обычно последние 12 мес).
 
@@ -48,6 +50,7 @@ GET /api/fm/v2/experts?api_token=$FINANCE_MARKER_TOKEN&limit=10&sort_by=ranking_
 | `changed_at` | datetime (MSK) | Время обновления записи. |
 
 ## Пример ответа (реальный, 2026-05-11, `limit=1`)
+
 ```json
 [
   {
@@ -74,6 +77,7 @@ GET /api/fm/v2/experts?api_token=$FINANCE_MARKER_TOKEN&limit=10&sort_by=ranking_
 ```
 
 ## Edge cases
+
 - `community_id` из этой выдачи можно использовать как фильтр для скрипта поверх [`ideas`](ideas.md) — FM-API не предоставляет серверный фильтр `?community_id=`.
 - Числовые `*_profit` округлены до целых процентов; для точных цифр считай по [`ideas`](ideas.md).
 - `c_perc_success` (`% дошли до target`) обычно ниже `c_perc_profit` (`% завершились в плюсе`) — это разные метрики, не путать.

@@ -16,12 +16,14 @@ endpoint: /api/fm/v2/ideas
 | `limit` / `offset` / `sort_by` / `sort_order` / `updated_in_days` | — | optional | Стандартный набор пагинации. Полезные значения `sort_by`: `date_in`, `profit_potential`, `changed_at`. |
 
 ## Пример запроса
-```
+
+```http
 GET /api/fm/v2/ideas?api_token=$FINANCE_MARKER_TOKEN&limit=5&sort_by=profit_potential&sort_order=desc
 GET /api/fm/v2/ideas?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=20
 ```
 
 ## Поля JSON-ответа
+
 Массив объектов:
 
 | Поле | Тип | Смысл |
@@ -46,11 +48,12 @@ GET /api/fm/v2/ideas?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=20
 | `close_price` | float / null | Цена закрытия / последнего снимка. |
 | `close_comment` | str | Комментарий автора при закрытии. |
 | `close_link` | url | Ссылка на пост о закрытии. |
-| `update_date` | date / null | Дата последнего апдейта (изменение target/stop). |
-| `update_price` | float / null | Цена в момент апдейта. |
+| `update_date` | date / null | Дата последнего обновления (изменение target/stop). |
+| `update_price` | float / null | Цена в момент обновления. |
 | `changed_at` | datetime (MSK) | Время последнего изменения записи. |
 
 ## Пример ответа (реальный, 2026-05-11, `limit=1`)
+
 ```json
 [
   {
@@ -82,7 +85,8 @@ GET /api/fm/v2/ideas?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=20
 ```
 
 ## Edge cases
+
 - `close_date`/`close_price` могут быть заполнены даже для `system_status=ACTIVE` — это снимок «на дату последнего обновления цены», а не закрытие идеи.
-- Для **детального текста** идеи (`description` с тезисами, ссылка на источник, апдейты) нужен отдельный вызов [`ideas/{id}`](idea.md).
+- Для **детального текста** идеи (`description` с тезисами, ссылка на источник, обновления) нужен отдельный вызов [`ideas/{id}`](idea.md).
 - `profit_potential` для SHORT-идей может быть положительным даже при `price_out < price_in` — FM считает потенциал по абсолютной разнице (логика автора, не математика). Проверяй знак `price_out − price_in` отдельно.
 - Серверный фильтр по `community_id` отсутствует — для выборки идей одного аналитика фильтруй на клиенте.
