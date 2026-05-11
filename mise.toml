@@ -15,15 +15,38 @@ go = "1.26.1"
 # Линтер Go-кода — единая точка правды по стилю и проверкам (.golangci.yml).
 golangci-lint = "2.12.2"
 
-# Раннер задач проекта (Taskfile.yml) — единый вход для lint/fmt/test.
+# Task runner проекта (Taskfile.yml) — единый вход для lint/fmt/test.
 task = "3.49.1"
 
 # Нужен как backend для pipx-пакетов (yamllint и т.п.). Минимум 3.10.
 python = "3.14"
 
 # pipx нужен mise как backend для установки yamllint; mise тянет его через
-# aqua-backend (pypa/pipx с GitHub Releases) — без системных зависимостей.
+# aqua-backend (github.com/pypa/pipx с GitHub Releases) — без системных зависимостей.
 pipx = "latest"
 
 # yamllint — де-факто стандарт линтинга YAML; ставится через pipx-backend mise.
 "pipx:yamllint" = "1.38.0"
+
+# Node нужен как backend для npm-пакетов (markdownlint-cli2, cspell).
+# LTS-линейка — стабильность важнее свежести.
+node = "22.11.0"
+
+# markdownlint-cli2 — линтер структуры Markdown: заголовки, списки, code fences,
+# таблицы. Конфиг — .markdownlint-cli2.jsonc в корне. Версии правил см.
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+"npm:markdownlint-cli2" = "0.14.0"
+
+# cspell — code-aware spell-checker для всего репозитория (Go, MD, YAML, TOML и т.д.).
+# Понимает синтаксис языков, разбивает camelCase, пропускает code fences/URL.
+# Конфиг — cspell.config.yaml; проектный словарь — .cspell/project.txt.
+"npm:cspell" = "8.14.4"
+
+# Русский словарь для cspell (в bundle cspell его нет — только en_US/en_GB).
+# Подключается через `import` в cspell.config.yaml; путь определяется через
+# NODE_PATH, выставляемый задачей lint-spell в Taskfile.yml.
+"npm:@cspell/dict-ru_ru" = "2.3.2"
+
+# lychee — быстрый чекер ссылок в Markdown (внешние URL, локальные пути, якоря).
+# Rust binary через aqua-backend mise (GitHub Releases). Конфиг — lychee.toml.
+"aqua:lycheeverse/lychee" = "0.15.1"
