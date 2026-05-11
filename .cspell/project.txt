@@ -74,6 +74,9 @@ FinanceMarker
 golangci        # golangci-lint
 pipx            # Python CLI installer
 
+# --- GitHub-логины авторов инструментов (упоминаются в путях aqua: в mise.toml) ---
+rhysd           # автор actionlint (aqua:rhysd/actionlint)
+
 # --- MOEX ISS API термины (имена эндпоинтов / блоков / параметров) ---
 deviationcoeffs   # имя эндпоинта /iss/.../deviationcoeffs.json
 sdfi              # своп-кривые SDFI (Standard Derivatives Financial Instruments)

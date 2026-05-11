@@ -23,6 +23,7 @@ jobs:
           - lint-prettier
           - lint-lychee
           - lint-cspell
+          - lint-actionlint
           - compile-cli
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest

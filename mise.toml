@@ -57,3 +57,10 @@ node = "22.11.0"
 # переносов) к единому виду. Конфиг — .prettierrc.yaml; список игнорируемых
 # путей берётся из .gitignore автоматически (Prettier 3+).
 "npm:prettier" = "3.3.3"
+
+# actionlint — статический анализатор GitHub Actions workflows
+# (.github/workflows/*.yml): синтаксис, валидность выражений ${{ }}, корректность
+# runner labels, shell-команды внутри run (через shellcheck, если установлен),
+# использование устаревших set-output и т.п. Конфиг по умолчанию — без
+# дополнительного файла; при необходимости можно завести .github/actionlint.yaml.
+"aqua:rhysd/actionlint" = "1.7.12"
