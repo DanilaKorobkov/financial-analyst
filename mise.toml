@@ -1,0 +1,29 @@
+# Единая точка правды для версий инструментов проекта.
+# Локально и в CI берутся отсюда — `mise install` в корне поднимает всё.
+#
+# Установка mise: https://mise.jdx.dev/getting-started.html
+#   macOS:        brew install mise
+#   Linux/macOS:  curl https://mise.run | sh
+# После установки добавить shell-хук (см. ссылку выше) — иначе версии
+# не будут автоматически переключаться при `cd` в проект.
+
+[tools]
+
+# Основной рантайм проекта — весь runtime-код на Go.
+go = "1.26.1"
+
+# Линтер Go-кода — единая точка правды по стилю и проверкам (.golangci.yml).
+golangci-lint = "2.12.2"
+
+# Раннер задач проекта (Taskfile.yml) — единый вход для lint/fmt/test.
+task = "3.49.1"
+
+# Нужен как backend для pipx-пакетов (yamllint и т.п.). Минимум 3.10.
+python = "3.14"
+
+# pipx нужен mise как backend для установки yamllint; mise тянет его через
+# aqua-backend (pypa/pipx с GitHub Releases) — без системных зависимостей.
+pipx = "latest"
+
+# yamllint — де-факто стандарт линтинга YAML; ставится через pipx-backend mise.
+"pipx:yamllint" = "1.38.0"

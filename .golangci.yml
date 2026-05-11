@@ -1,0 +1,258 @@
+# Конфиг golangci-lint v2 для проекта на Go.
+# Принципы:
+#   - корректность важнее стиля, стиль важнее вкусовщины;
+#   - явные ошибки, явный контекст, маленькие функции, чистые границы слоёв;
+#   - каждый линтер и опция здесь объяснены — без "magic config".
+
+version: "2"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RUN — параметры запуска линтера в целом.
+# ──────────────────────────────────────────────────────────────────────────────
+run:
+  # Таймаут на весь запуск. На маленьком репо хватит, на большом — увеличить.
+  timeout: 5m
+  # Не падать, если go.mod слегка устарел — пусть упадёт основной build.
+  modules-download-mode: readonly
+  # Линтить все файлы, включая _test.go: тестовый код — тоже код.
+  tests: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LINTERS — какие линтеры включаем. Default: none — берём только то, что осознанно
+# выбрали, без "сюрпризов" от обновления golangci-lint.
+# ──────────────────────────────────────────────────────────────────────────────
+linters:
+  default: none
+  enable:
+    # ── Корректность (must-have) ─────────────────────────────────────────────
+    - errcheck        # запрещает молча игнорировать возвращаемые error
+    - govet           # стандартный go vet: shadow, printf, atomic alignment и т.д.
+    - staticcheck     # большой набор проверок: производительность, корректность, стиль
+    - ineffassign     # присвоения, значение которых нигде не читается
+    - unused          # неиспользуемые типы/функции/переменные/константы
+    - copyloopvar     # ловит классическую ошибку захвата loop-переменной (Go 1.22+)
+    - bodyclose       # *http.Response.Body должен быть закрыт
+    - noctx           # http-запросы должны передавать context.Context
+    - nilerr          # return nil вместо известной ошибки — почти всегда баг
+    - nilnil          # return nil, nil — двусмысленный API, заставляет звать обоих
+    - errorlint       # требует %w при оборачивании, сравнение через errors.Is/As
+    - rowserrcheck    # database/sql: проверка rows.Err() после итерации
+    - sqlclosecheck   # *sql.Rows / *sql.Stmt должны быть закрыты
+    - contextcheck    # функция должна пробрасывать ctx, а не делать context.Background()
+    - durationcheck   # подозрительные операции с time.Duration (умножение Duration на Duration)
+    - exhaustive      # switch по enum/типу должен покрывать все варианты
+
+    # ── Безопасность ─────────────────────────────────────────────────────────
+    - gosec           # типовые security-проблемы (hardcoded secrets, weak crypto, ...)
+
+    # ── Чистый код / маленькие функции / DDD-границы ─────────────────────────
+    - revive          # современная замена golint, включаем избранные правила (см. ниже)
+    - gocyclo         # цикломатическая сложность функции
+    - gocognit        # когнитивная сложность (сильнее коррелирует с "понимаемостью")
+    - funlen          # длина функции в строках/стейтментах
+    - nestif          # глубина вложенных if
+    - dupl            # дублирующиеся куски кода
+    - goconst         # повторяющиеся строки/числа — кандидаты в const
+    - mnd             # magic numbers (исключения см. в settings)
+    - gocritic        # широкий набор diagnostic/style/performance проверок
+    - prealloc        # циклы append, где можно предварительно аллоцировать срез
+    - unconvert       # бесполезные приведения типов
+    - unparam         # параметры функций, которые всегда получают одно значение
+    - predeclared     # перекрытие встроенных идентификаторов (new, len, error, ...)
+    - misspell        # опечатки в комментариях/строках
+    - dupword         # повторённое слово подряд ("the the")
+    - godot           # комментарии-предложения должны заканчиваться точкой
+    - whitespace      # лишние пустые строки в начале/конце функций
+    - wastedassign    # присвоение, переписанное до использования
+
+    # ── Импорты и зависимости ────────────────────────────────────────────────
+    - depguard        # запрет нежелательных импортов (см. settings.depguard)
+    - gomoddirectives  # запрет replace/exclude/retract без явной причины
+
+    # ── Тесты ────────────────────────────────────────────────────────────────
+    - testpackage     # тесты — в пакете _test, чтобы тестировать публичный API
+    - thelper         # хелперы тестов должны звать t.Helper()
+    - tparallel       # корректное использование t.Parallel в подтестах
+    - paralleltest    # каждый тест должен явно решать про t.Parallel()
+
+    # ── Анти-foot-gun ───────────────────────────────────────────────────────
+    - forbidigo       # запрет вызовов вроде fmt.Print*/panic в проде (см. settings)
+    - nolintlint      # //nolint должен быть конкретным: с линтером и причиной
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # SETTINGS — тонкая настройка отдельных линтеров.
+  # ────────────────────────────────────────────────────────────────────────────
+  settings:
+
+    errcheck:
+      # Проверять и присвоения через _, и type assertions: писать код "молча
+      # игнорирую ошибку" нельзя без явного `//nolint` с причиной.
+      check-type-assertions: true
+      check-blank: true
+
+    govet:
+      # Включаем все анализаторы go vet, включая shadow (перекрытие переменных).
+      enable-all: true
+
+    staticcheck:
+      # Все проверки SA*/S*/ST*/QF* — это уже сильно отфильтрованный набор.
+      checks: [all]
+
+    revive:
+      # Жёсткий уровень; правила перечислены явно, чтобы апгрейды не меняли
+      # поведение бесшумно.
+      severity: error
+      enable-all-rules: false
+      rules:
+        - name: blank-imports          # blank-импорт без объяснения — плохо
+        - name: context-as-argument    # ctx должен быть первым параметром
+        - name: context-keys-type      # ключи контекста — собственный тип, не string
+        - name: dot-imports            # запрет dot-импортов
+        - name: error-return           # error должен быть последним возвращаемым
+        - name: error-strings          # "error: ..." без капса и точки
+        - name: error-naming           # переменные ошибок: errFoo / ErrFoo
+        - name: errorf                 # fmt.Errorf вместо errors.New("..." + x)
+        - name: exported               # экспортируемые имена — с doc-комментарием
+        - name: increment-decrement    # i++ вместо i += 1
+        - name: indent-error-flow      # if err != nil { return ... } else { ... } — без else
+        - name: package-comments       # у пакета должен быть doc-комментарий
+        - name: range                  # range без значения — без _, _
+        - name: receiver-naming        # имя ресивера — короткое и единое в пакете
+        - name: redefines-builtin-id   # перекрытие builtin
+        - name: superfluous-else       # лишний else после return
+        - name: time-naming            # имена с _ms/_seconds — нет, использовать time.Duration
+        - name: unexported-return      # экспортный метод не возвращает неэкспортный тип
+        - name: unreachable-code
+        - name: var-declaration        # var x int = 0 — нет, var x int
+        - name: var-naming             # ID не Id, URL не Url и т.д.
+        - name: early-return           # ранние возвраты вместо вложенных условий
+        - name: confusing-naming       # имена, отличающиеся только регистром
+        - name: confusing-results      # одинаковые типы возврата без имён
+        - name: empty-block
+
+    gocyclo:
+      # Цикломатическая сложность ≤ 12. Выше — рефакторить.
+      min-complexity: 12
+
+    gocognit:
+      # Когнитивная сложность ≤ 15. Если функция "тяжёлая для чтения" — резать.
+      min-complexity: 15
+
+    funlen:
+      # Функция длиннее 80 строк или 50 стейтментов — почти всегда делается на части.
+      lines: 80
+      statements: 50
+      ignore-comments: true
+
+    nestif:
+      # Не больше 4 вложенных if — иначе требовать разбиения / early-return.
+      min-complexity: 4
+
+    dupl:
+      # Порог токенов для срабатывания. 100 — баланс шума и пользы.
+      threshold: 100
+
+    goconst:
+      # Минимальная длина строки и количество вхождений, чтобы предложить const.
+      min-len: 3
+      min-occurrences: 3
+
+    mnd:
+      # Magic Number Detector. Игнорируем место, где числа уместны: тесты, аргументы,
+      # присваивания тривиальных констант. В бизнес-логике — ругаем.
+      ignored-numbers: ["0", "1", "2", "10", "100", "1000"]
+      ignored-functions:
+        - math.*
+        - strconv.*
+        - make
+      checks: [argument, case, condition, operation, return, assign]
+
+    gocritic:
+      # Включаем диагностические + стилевые + производительные группы.
+      enabled-tags: [diagnostic, style, performance, opinionated]
+      disabled-checks:
+        # ifElseChain противоречит revive.early-return — отключаем во избежание шума.
+        - ifElseChain
+
+    exhaustive:
+      # default-clause считаем покрытием — иначе любой switch требует перечисления
+      # всех значений, что в DDD удобно не всегда.
+      default-signifies-exhaustive: true
+
+    nolintlint:
+      # //nolint должен указывать линтер и причину — никаких "//nolint" просто так.
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+
+    forbidigo:
+      # Запрещаем то, что почти всегда — забытый отладочный код или плохая практика.
+      forbid:
+        - pattern: ^fmt\.Print.*$  # отладочный stdout — через logger
+        - pattern: ^panic$         # panic в проде — только в init/main
+        - pattern: ^print$
+        - pattern: ^println$
+
+    misspell:
+      locale: US
+
+    godot:
+      scope: declarations
+      capital: false
+
+    depguard:
+      # Запреты на импорты по слоям: defense-in-depth для DDD.
+      # Список адаптируется по мере появления слоёв (domain/application/infrastructure).
+      rules:
+        main:
+          deny:
+            - pkg: github.com/pkg/errors
+              desc: use stdlib errors + fmt.Errorf %w (Go 1.13+)
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # EXCLUSIONS — исключения только там, где это осознанно.
+  # ────────────────────────────────────────────────────────────────────────────
+  exclusions:
+    # Не используем "стандартные" пресеты исключений golangci-lint —
+    # хотим явный контроль над тем, что игнорируем.
+    presets: []
+    rules:
+      # В тестах ослабляем правила, мешающие выразительности тестов.
+      - path: _test\.go
+        linters:
+          - funlen          # тестовые таблицы бывают длинными
+          - dupl            # тесты часто дублируют структуру осознанно
+          - gocyclo
+          - gocognit
+          - mnd             # литералы в тестах — норма
+          - goconst
+          - errcheck        # в тестах ошибки часто обрабатываются через require
+      # main.go — точка входа, допускаем чуть больше "процедурного" кода.
+      - path: cmd/.*/main\.go
+        linters:
+          - funlen
+          - gocyclo
+          - gocognit
+          - forbidigo
+
+# ──────────────────────────────────────────────────────────────────────────────
+# FORMATTERS — в v2 форматтеры вынесены отдельно от линтеров.
+# Запускаются через `golangci-lint fmt` и при `run --fix`.
+# ──────────────────────────────────────────────────────────────────────────────
+formatters:
+  enable:
+    - gofumpt    # gofmt + более строгие правила (нет лишних пустых строк и т.п.)
+    - goimports  # сортировка и группировка импортов
+    - gci        # детерминированная группировка импортов по префиксам
+  settings:
+    gofumpt:
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - github.com/DanilaKorobkov/financial-analyst
+    gci:
+      sections:
+        - standard  # std lib
+        - default  # внешние зависимости
+        # Внутренние пакеты — отдельной группой.
+        - prefix(github.com/DanilaKorobkov/financial-analyst)

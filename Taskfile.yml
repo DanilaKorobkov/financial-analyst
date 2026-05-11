@@ -1,0 +1,44 @@
+version: '3'
+
+tasks:
+  checks:
+    desc: Read-only проверки параллельно (lint + compile). fmt не входит — он мутирует файлы.
+    deps:
+      - task: lint
+      - task: compile
+
+  lint:
+    desc: Запустить все линтеры параллельно.
+    deps:
+      - task: lint-golang
+      - task: lint-yaml
+
+  lint-golang:
+    desc: golangci-lint по всему Go-коду.
+    cmds:
+      - golangci-lint run ./...
+
+  lint-yaml:
+    desc: yamllint по всем YAML-файлам.
+    cmds:
+      - yamllint .
+
+  fmt:
+    desc: Запустить все форматтеры параллельно.
+    deps:
+      - task: fmt-golang
+
+  fmt-golang:
+    desc: Автофиксы Go-кода через golangci-lint --fix (ошибки игнорируем — их покажет lint).
+    cmds:
+      - golangci-lint run --fix ./... || true
+
+  compile:
+    desc: Проверить, что все бинари cmd/* компилируются. Каждый — отдельный таск, в параллель.
+    deps:
+      - task: compile-cli
+
+  compile-cli:
+    desc: Скомпилировать cmd/cli во временную директорию.
+    cmds:
+      - go build -o "$(mktemp -d)/" ./cmd/cli

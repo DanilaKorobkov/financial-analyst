@@ -1,0 +1,140 @@
+# Конфиг yamllint — гигиена YAML-файлов проекта.
+# Запускается через `task lint-yaml` (см. Taskfile.yml).
+# Документация правил: https://yamllint.readthedocs.io/en/stable/rules.html
+#
+# Правила сгруппированы по уровням:
+#   1. Ловят реальные баги — включаем всегда.
+#   2. Стиль и читаемость — единый формат на ревью.
+#   3. Проектный выбор — обсуждаемые компромиссы.
+
+extends: default
+
+rules:
+  # ============================================================
+  # Уровень 1: предотвращение багов
+  # ============================================================
+
+  # Дубль ключа в маппинге → молчаливая перезапись последним значением.
+  # Самый ценный линтер: ловит баги, которые иначе всплывают в рантайме.
+  key-duplicates: enable
+
+  # YAML 1.1: yes/no/on/off → bool. YAML 1.2: строки. Парсеры расходятся.
+  # Разрешаем только явные true/false. check-keys: false обязательно для
+  # .github/workflows/*.yml — иначе ругается на ключ `on:` (парсится как True).
+  truthy:
+    allowed-values: ['true', 'false']
+    check-keys: false
+
+  # `0644` парсится как десятичное число, а не как права доступа.
+  # Скрытый разрушительный баг при работе с файловыми правами.
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+
+  # `key:` без значения почти всегда означает забытое поле.
+  empty-values:
+    forbid-in-block-mappings: true
+    forbid-in-flow-mappings: true
+    forbid-in-block-sequences: true
+
+  # Сломанные/дублированные/неиспользуемые &anchor / *alias —
+  # парсер либо упадёт, либо подставит мусор.
+  anchors:
+    forbid-undeclared-aliases: true
+    forbid-duplicated-anchors: true
+    forbid-unused-anchors: true
+
+  # Числовые сюрпризы: `.inf`, `.nan` и `.5` без ведущего нуля.
+  # Scientific (`1e3`) оставляем — иногда осмысленно.
+  float-values:
+    forbid-inf: true
+    forbid-nan: true
+    forbid-scientific-notation: false
+    require-numeral-before-decimal: true
+
+  # POSIX-корректность: файл должен заканчиваться `\n`.
+  new-line-at-end-of-file: enable
+
+  # Хвостовые пробелы → шум в diff'ах, ложные конфликты слияния.
+  trailing-spaces: enable
+
+  # Единый стиль переноса строк (только LF, без CRLF).
+  new-lines:
+    type: unix
+
+  # ============================================================
+  # Уровень 2: стиль и читаемость
+  # ============================================================
+
+  # Отступы: 2 пробела, элементы массива под ключом тоже отступать.
+  # Многострочные строки (`>-`, `|`) тоже проверяем.
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: true
+
+  # 100 символов — практичный компромисс. Длинные URL/идентификаторы
+  # допустимы в одной строке, чтобы не разбивать неразрывные сущности.
+  line-length:
+    max: 100
+    level: error
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+
+  # `# текст` (пробел после `#`), `key: val  # коммент` (2 пробела до `#`).
+  comments:
+    require-starting-space: true
+    min-spaces-from-content: 2
+
+  # Комментарий должен быть на уровне отступа следующей строки —
+  # иначе визуально "плавает" и теряется привязка к коду.
+  comments-indentation: enable
+
+  # `key: value` — пробел только после `:`, не до.
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+
+  # `[a, b, c]` — пробел только после `,`.
+  commas:
+    max-spaces-before: 0
+    max-spaces-after: 1
+
+  # `- item` — один пробел после `-`.
+  hyphens:
+    max-spaces-after: 1
+
+  # Пустые строки: максимум 2 подряд, без пустых в начале файла,
+  # максимум одна в конце.
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 1
+
+  # ============================================================
+  # Уровень 3: проектный выбор
+  # ============================================================
+
+  # Кавычки только когда без них YAML парсится иначе. `always` —
+  # параноидально и замусоривает; `false` — лотерея интерпретации.
+  quoted-strings:
+    quote-type: any
+    required: only-when-needed
+
+  # Маркер `---` нужен для multi-doc YAML. У нас одно-доковые файлы.
+  document-start:
+    present: false
+
+  # Маркер `...` (конец документа) почти никогда не нужен.
+  document-end:
+    present: false
+
+  # Алфавитный порядок ключей ломает логические группировки.
+  # В Taskfile порядок `desc → deps → cmds` осмысленнее алфавитного.
+  key-ordering: disable
+
+# Файлы и пути, которые не проверяем.
+ignore: |
+  .git/
+  .idea/
+  vendor/
