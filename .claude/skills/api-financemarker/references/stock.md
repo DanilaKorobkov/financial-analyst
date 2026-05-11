@@ -289,7 +289,7 @@ GET /api/fm/v2/stocks/MOEX:YDEX?api_token=$FINANCE_MARKER_TOKEN&include=dividend
 
 - **`include` обязателен по смыслу**: без него `summary` — пустой объект, а все массивы — пустые. `info` возвращается всегда.
 - Раздел запрошен, но FM его не вернул (нет данных для бумаги) → ключ присутствует, но массив пустой / `summary` пустой. Это **не ошибка** API.
-- Если бумага не существует в FM (например, новый тикер) → 400/404. Перед вызовом проверь через [`stocks`](stocks.md).
+- Перед вызовом по неизвестному тикеру проверь его наличие через [`stocks`](stocks.md).
 - `reports` — большой ответ (для SBER ~92 элемента, JSON-ответ ~360 КБ при `include=summary,ratios,reports,dividends,ideas,insiderTransactions,operations,owners,shares`). Запрашивай только нужное.
 - `operations` тоже объёмный (для SBER — 267 элементов). Если нужен один KPI, фильтруй на клиенте по `operation_metric_id`.
 - Для банков (`SBER`, `VTBR`) поля `ebitda`/`gross_margin`/`current_ratio` в `ratios` будут `null` — это специфика отчётности кредитных организаций, не баг.

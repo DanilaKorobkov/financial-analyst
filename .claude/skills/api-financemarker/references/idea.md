@@ -74,5 +74,4 @@ GET /api/fm/v2/ideas/6237?api_token=$FINANCE_MARKER_TOKEN
 ## Edge cases
 
 - `description` — большое HTML-поле (несколько КБ); при необходимости очисти разметку на стороне потребителя (BeautifulSoup / стрип-тегов).
-- 404 → ID не найден (например, идея удалена). 400 → невалидный формат `id`.
 - `system_status=ACTIVE` совмещён с заполненным `close_date`/`close_price` — это снимок последнего обновления цены, а не закрытие. См. edge case в [`ideas`](ideas.md).
