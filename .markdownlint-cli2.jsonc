@@ -2,7 +2,6 @@
 // Документация по правилам: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
 // Запуск: `markdownlint-cli2 "**/*.md"` (из Taskfile.yml -> lint-md).
 {
-  // Базовый набор правил — все включены по умолчанию, отключаем точечно ниже.
   "config": {
     // MD013 (line-length) — отключено: длинные строки нормальны в таблицах,
     // ссылках и русском прозаическом тексте. Hard-wrap на 80 символов
@@ -18,30 +17,14 @@
     // нескольких эндпоинтов в одном файле references/).
     "MD024": { "siblings_only": true },
 
-    // MD033 (no-inline-html) — разрешаем <details>, <summary>, <br>:
+    // MD033 (no-inline-html) — разрешаем <details>, <summary>, <br>, <kbd>:
     // используются в README и Claude skills для сворачиваемых блоков.
     "MD033": { "allowed_elements": ["details", "summary", "br", "kbd"] },
-
-    // MD040 (fenced-code-language) — ВКЛЮЧЕНО (значение по умолчанию).
-    // Каждый ```-блок обязан иметь язык (```go, ```bash, ```yaml).
-    // Критично для Claude skills: Claude использует язык подсветки как сигнал
-    // о типе содержимого при progressive disclosure.
-
-    // MD034 (no-bare-urls) — ВКЛЮЧЕНО. Голые URL без <> или [текст](url)
-    // плохо рендерятся и сложно читаются в diff-ах.
 
     // MD036 (no-emphasis-as-heading) — отключено: используем **жирный**
     // как мини-подзаголовок внутри списков, это сознательный стиль.
     "MD036": false
   },
-
-  // Что игнорируем при сканировании.
-  "ignores": [
-    "node_modules",
-    ".git",
-    // Скиллы Claude — внешний код, не наш стиль. Их свои авторы линтят.
-    ".claude/skills/**"
-  ],
 
   // Включаем gitignore — не трогать build-артефакты, vendor, и т.п.
   "gitignore": true

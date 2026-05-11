@@ -33,6 +33,3 @@ go.work.sum
 
 # Кеш lychee — локальный результат прошлого прогона чекера ссылок.
 .lycheecache
-
-# node_modules — на случай локальной установки npm-пакетов (cspell, markdownlint).
-node_modules/

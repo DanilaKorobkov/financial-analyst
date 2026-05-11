@@ -21,12 +21,19 @@ import:
 # Bundled-словари cspell (приезжают в самом пакете cspell, без отдельной установки).
 # Полный список: https://github.com/streetsidesoftware/cspell-dicts
 dictionaries:
-  - en_US             # Английский US
-  - go                # Go: ключевые слова, stdlib (context, errors, http и т.п.)
-  - softwareTerms     # IT-лексика: backend, runtime, struct, mutex, ...
-  - companies         # Названия компаний: GitHub, Google, JetBrains, ...
-  - filetypes         # Расширения файлов и типы: yaml, toml, dockerfile, ...
-  - project           # Наш локальный словарь (см. ниже)
+  - en_US                     # Английский US
+  - en-common-misspellings    # Типовые англ. опечатки (ловим, не пропускаем)
+  - softwareTerms             # IT-лексика: backend, runtime, struct, mutex, ...
+  - companies                 # Названия компаний: GitHub, Google, JetBrains, ...
+  - filetypes                 # Расширения файлов и типы: yaml, toml, dockerfile, ...
+  - golang                    # Go: ключевые слова, stdlib (context, errors, http, ...)
+  - bash                      # Bash: команды, builtins, ключевые слова
+  - shell                     # Shell-термины: stdout, stderr, pipe, ...
+  - git                       # Git-термины: rebase, cherry-pick, upstream, ...
+  - node                      # Node.js: API, npm-конвенции
+  - npm                       # npm-пакеты и команды
+  - docker                    # Docker: образы, команды, директивы
+  - project                   # Наш локальный словарь (см. ниже)
 
 # Локальные словари проекта.
 dictionaryDefinitions:
@@ -50,13 +57,15 @@ ignorePaths:
   - "**/testdata/**"        # Тестовые фикстуры: специально кривые данные.
   - .lycheecache            # Кеш lychee.
   - .cspell/project.txt     # Сам словарь не проверяем (рекурсия).
-  - .claude/skills/**       # Внешние Claude skills — не наш текст.
 
 # Паттерны, которые внутри файлов вырезаются ДО проверки (regex).
 # Не путать с ignorePaths: тут речь про куски содержимого.
 ignoreRegExpList:
   # URL целиком — могут содержать slugs, query, transliterated имена.
   - https?://\S+
+  # Go module paths и пути на GitHub: github.com/owner/repo — owner-логины
+  # это собственные имена, проверять их орфографически бессмысленно.
+  - \b(?:github|gitlab|bitbucket)\.com/[\w.-]+/[\w.-]+
   # Хеши commit-ов и подобное (40 hex символов).
   - \b[0-9a-f]{7,40}\b
   # Base64-подобные длинные строки (например, в YAML/JSON).

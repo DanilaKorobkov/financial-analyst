@@ -36,7 +36,7 @@ git merge main
 
 Пример:
 
-```
+```text
 Файлы:
   - path/to/file1.py
   - path/to/file2.md
@@ -55,9 +55,10 @@ git merge main
 ## 5. Pull requests
 
 ### Если открытого pull request еще нет
+
 Формируем и показываем пользователю на валидацию:
 
-```
+```text
 Название pull request: краткий заголовок
 
 Описание pull request:
