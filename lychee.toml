@@ -63,6 +63,10 @@ exclude = [
     # financemarker.ru — Cloudflare-защита блокирует lychee user-agent
     # (curl/браузер получают 200). Ссылки валидные, проверяем вручную.
     '^https?://financemarker\.ru',
+    # iss.moex.com — справочные ссылки на /iss/reference/<N> и шаблоны URL
+    # с placeholder'ами `{engine}`/`{market}`. Сервис нестабилен (часто 502),
+    # шаблонные URL по определению не разрешаются. Проверяем вручную.
+    '^https?://iss\.moex\.com',
 ]
 
 ############################

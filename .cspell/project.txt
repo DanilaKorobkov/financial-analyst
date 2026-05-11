@@ -73,3 +73,126 @@ FinanceMarker
 # --- Имена инструментов проекта (нет ни в одном bundle-словаре cspell) ---
 golangci        # golangci-lint
 pipx            # Python CLI installer
+
+# --- MOEX ISS API термины (имена эндпоинтов / блоков / параметров) ---
+deviationcoeffs   # имя эндпоинта /iss/.../deviationcoeffs.json
+sdfi              # своп-кривые SDFI (Standard Derivatives Financial Instruments)
+SDFI
+msfo              # /iss/cci/accounting/msfo-full — МСФО на латинице в URL
+скилл             # «скилл» — собственное имя артефакта Claude Code, устоявшийся транслит
+
+# --- MOEX ISS: имена полей блоков и query-параметров (часть встречается в URL) ---
+SECID
+secid
+TRADENO
+NUMTRADES
+Numtrades
+numtrades
+VALTRD
+WAPRICE
+waprice
+PREVPRICE
+PREVWAPRICE
+PREVLEGALCLOSEPRICE
+LCURRENTPRICE
+LASTCHANGEPRCNT
+WADEPSRATE
+WAREPORATE
+WAREPORATEFIXN
+WAVAL
+ISQUALIFIEDINVESTORS
+EMITENTMISMATCHCUR
+SECTORID
+CURRENCYID
+currencyid
+curveid
+indexid
+oichange
+turnoversprevdate
+TRENDCLSPR
+YIELDTOOFFER
+GSPREADBP
+ZSPREADBP
+
+# --- MOEX ISS: коды бордов, рынков, валютных инструментов ---
+TQBR
+TQOB
+TQIF
+TQTF
+EQBR
+EQOB
+SELT
+CETS
+CNGD
+SPEQ
+RPMO
+LICU
+AUCB
+RUSFARCNY
+GLDRUB
+CNYRUB
+selt
+
+# --- MOEX ISS: коды индексов и тикеров ---
+IMOEX
+MOEXBC
+MMVB
+RTSI
+HLOCV
+OHLC
+ZCYC
+zcyc
+ABIO
+AFKS
+GMKN
+NLMK
+PHOR
+TCSG
+YNDX
+
+# --- ZCYC модель Nelson-Siegel-Svensson ---
+Siegel
+Svensson
+
+# --- Прочие термины MOEX/финансы ---
+cbrf
+CBRF
+agro
+mamc
+emitent
+EMITENT
+okpo
+ОКПО
+МКПАО
+
+# --- Доменные русские термины ---
+Мосбиржа
+мульти
+парсится
+пагинирует
+пагинируются
+плейсхолдера
+плейсхолдеров
+дюрация
+Дюрация
+дюрации
+делистнутые
+делистнутых
+экспирированных
+ребрендинге
+редомицилированных
+редомициляцию
+субиндексы
+субфедеральные
+моментум
+
+# --- Внешние сервисы ---
+Refinitiv
+
+# --- ISIN / SECID для ОФЗ ---
+RMFS
+
+# --- Опечатки исходных данных, которые сохраняем для верности ---
+bencmark         # реально встречается в полях MOEX
+determinat       # имя поля MOEX
+SMAL              # boardid MOEX (Securities Market Algorithm List)
