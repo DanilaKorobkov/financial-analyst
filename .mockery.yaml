@@ -1,0 +1,25 @@
+# mockery v3 — генератор mocks по Go-интерфейсам.
+# Документация: https://vektra.github.io/mockery/latest/
+#
+# Раскладка повторяет проект service-itpd-auth (v2 + keeptree):
+#   mocks/internal_/<путь до пакета>/<имя_интерфейса>.go
+#   package <имя_исходного_пакета>_mock
+#   type <ИмяИнтерфейса> struct { ... }
+#
+# Замечания по миграции v2→v3:
+#   - keeptree, with-expecter, disable-version-string, case в v3 удалены
+#     (см. https://github.com/vektra/mockery/blob/main/docs/v3.md).
+#     EXPECT() и snake_case-имена теперь задаются шаблонами.
+#   - В v3 нет авто-переименовки `internal/` → `internal_/`, эмулируем сами.
+
+all: true
+recursive: true
+formatter: goimports
+template: testify
+# yamllint disable-line rule:line-length
+dir: mocks/{{ replaceAll "internal/" "internal_/" .InterfaceDirRelative }}
+filename: "{{ .InterfaceName | snakecase }}.go"
+pkgname: "{{ .SrcPackageName }}_mock"
+structname: "{{ .InterfaceName }}"
+packages:
+  github.com/DanilaKorobkov/financial-analyst/internal: ~

@@ -76,6 +76,18 @@ pipx            # Python CLI installer
 
 # --- GitHub-логины авторов инструментов (упоминаются в путях aqua: в mise.toml) ---
 rhysd           # автор actionlint (aqua:rhysd/actionlint)
+vektra          # автор mockery (aqua:vektra/mockery)
+caarlos         # автор github.com/caarlos0/env
+
+# --- Сгенерированные идентификаторы protobuf / Connect ---
+companyv        # пакет gen/company/v1 → companyv1 / companyv1connect
+connectrpc      # connectrpc.com/connect — runtime библиотека Connect
+Isin            # геттер сгенерированного proto-поля isin (GetIsin)
+timestamppb     # google.golang.org/protobuf/types/known/timestamppb
+pconnect        # импорт-алиас presentation/connect в композиции
+nolint          # директива golangci-lint в коде
+resty           # HTTP-клиент github.com/go-resty/resty/v2
+godotenv        # библиотека github.com/joho/godotenv (.env loader)
 
 # --- MOEX ISS API термины (имена эндпоинтов / блоков / параметров) ---
 deviationcoeffs   # имя эндпоинта /iss/.../deviationcoeffs.json
@@ -166,6 +178,10 @@ EMITENT
 okpo
 ОКПО
 МКПАО
+
+# --- Производные русские формы, отсутствующие в общем ru_ru ---
+регистронезависимы   # от «регистронезависимый» (мн.ч. кратк.)
+непустоту            # вин.п. «непустота»
 
 # --- Доменные русские термины ---
 Мосбиржа
