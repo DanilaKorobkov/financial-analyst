@@ -196,3 +196,12 @@ RMFS
 bencmark         # реально встречается в полях MOEX
 determinat       # имя поля MOEX
 SMAL              # boardid MOEX (Securities Market Algorithm List)
+редомицилированные
+Мосбиржи
+субфед
+делистнутым
+MOEXIT
+MOEXOG
+бенчмарка
+ребалансировки
+субиндексе
