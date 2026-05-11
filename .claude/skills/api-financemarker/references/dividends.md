@@ -29,7 +29,7 @@ GET /api/fm/v2/dividends?api_token=$FINANCE_MARKER_TOKEN&mode=upcoming&limit=5&s
 
 | Поле | Тип | Смысл |
 |---|---|---|
-| `code` | str | Тикер бумаги, по которой выплата (`SBER`, `SBERP` — для префов отдельная запись). |
+| `code` | str | Тикер бумаги, по которой выплата (`SBER`, `SBERP` — для привилегированных акций отдельная запись). |
 | `exchange` | str | Биржа (`MOEX`). |
 | `div_amount` | float | Размер дивиденда на 1 акцию **в `div_curr`**. |
 | `div_curr` | str (ISO 4217) | Валюта выплаты (`RUB`). |

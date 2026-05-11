@@ -42,7 +42,7 @@ GET /api/fm/v2/ideas?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=20
 | `price_day` | float | Текущая цена бумаги на момент снимка ленты. |
 | `profit_potential` | float | Потенциал к target от `price_in` в %: `(price_out − price_in) / price_in × 100`. |
 | `profit_actual` | float | Фактическая доходность от `price_in` к `price_day` (%). Может быть отрицательной. |
-| `stop_loss` | float / null | Стоп-лосс, если задан автором. |
+| `stop_loss` | float / null | Уровень stop-loss, если задан автором. |
 | `system_status` | str | Статус идеи: `ACTIVE` (открыта), `CLOSED` (закрыта), и т.п. |
 | `close_date` | date / null | Дата фактического закрытия идеи или последнего снимка цены. |
 | `close_price` | float / null | Цена закрытия / последнего снимка. |

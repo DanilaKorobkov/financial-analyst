@@ -30,7 +30,7 @@ GET /api/fm/v2/exchanges?api_token=$FINANCE_MARKER_TOKEN
 | `name` | str | Полное название биржи на русском. |
 | `country` | str | ISO 3166-1 alpha-2 код страны (`RU`). |
 | `currency` | str | ISO 4217 код базовой валюты торгов биржи (`RUB`). |
-| `mic` | str | Market Identifier Code по ISO 10383 (`MISX` для MOEX) — используется для маппинга на внешние источники. |
+| `mic` | str | Market Identifier Code по ISO 10383 (`MISX` для MOEX) — используется для mapping на внешние источники. |
 
 ## Пример ответа (реальный, 2026-05-11)
 
