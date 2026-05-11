@@ -22,7 +22,7 @@ task = "3.49.1"
 python = "3.14"
 
 # pipx нужен mise как backend для установки yamllint; mise тянет его через
-# aqua-backend (pypa/pipx с GitHub Releases) — без системных зависимостей.
+# aqua-backend (github.com/pypa/pipx с GitHub Releases) — без системных зависимостей.
 pipx = "latest"
 
 # yamllint — де-факто стандарт линтинга YAML; ставится через pipx-backend mise.

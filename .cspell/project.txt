@@ -20,9 +20,6 @@ MOEX
 # --- Имена сервисов и брендов ---
 FinanceMarker
 
-# --- Идентификаторы из URL (организации/проекты на GitHub) ---
-pypa
-
-# --- Имена инструментов проекта (часть mise.toml, недостающие в softwareTerms) ---
+# --- Имена инструментов проекта (нет ни в одном bundle-словаре cspell) ---
 golangci        # golangci-lint
 pipx            # Python CLI installer
