@@ -4,6 +4,7 @@
 #   - аббревиатуры/тикеры,
 #   - имена брендов и идентификаторы из URL.
 # Транслит англицизмов (тулинг/билд/скиллы/...) — НЕ добавляем; пишем по-английски.
+# Сокращения и жаргон в прозе — НЕ добавляем; пишем полную форму.
 # Опечатки — НЕ добавляем; исправляем в исходниках.
 #
 # Формат: одно слово на строку. Регистр не важен. # — комментарий.
@@ -12,10 +13,59 @@
 мультипликатор
 тикер
 эмитент
+мажоритарий
 
-# --- Финансовые сокращения / тикеры (EN) ---
+# --- Стандарты бухгалтерской отчётности (RU аббревиатуры) ---
+МСФО              # IFRS, International Financial Reporting Standards
+РСБУ              # Российские стандарты бухгалтерского учёта
+
+# --- Финансовые сокращения (EN) ---
 EBITDA
+EBIT
+CAPEX
+ROIC
+ROCE
+CAGR              # Compound Annual Growth Rate
+ARPC              # Average Revenue Per Client
+ARPU              # Average Revenue Per User
+GMV               # Gross Merchandise Value
+РЕПО              # сделка РЕПО
+
+# --- Биржи и MIC-коды (ISO 10383) ---
 MOEX
+HKEX              # Hong Kong Stock Exchange
+MISX              # MIC код Московской биржи
+
+# --- Тикеры MOEX (используются в примерах ответов API) ---
+SBER
+SBERP
+YDEX
+LKOH
+OZON
+VTBR
+GAZP
+SIBN
+AQUA
+DOMRF
+
+# --- Имена полей FinanceMarker API (snake_case фрагменты) ---
+pfcf              # P/FCF
+pffo              # P/FFO
+evebitda          # EV/EBITDA (в API без слешей)
+debtebitda        # Debt/EBITDA
+depr              # depreciation (в depr_depl_amort)
+depl              # depletion (в depr_depl_amort)
+invesments        # опечатка эмитента в имени поля `cash_equiv_st_invesments` — оставляем как в API
+reestr            # `reestr_close_date` — поле API (транслит «реестр»)
+perc              # `c_perc_profit` / `t_perc_profit` — поля API
+aprs              # operation_metric_id (ARPC)
+
+# --- Бренды российских эмитентов / групп ---
+Сбер              # бренд группы Сбербанка
+Сбера             # родительный падеж
+Финам             # брокер «Финам»
+АКБФ              # «АКБФ Инвестиции»
+РСХБ              # Россельхозбанк («РСХБ Инвестиции»)
 
 # --- Имена сервисов и брендов ---
 FinanceMarker

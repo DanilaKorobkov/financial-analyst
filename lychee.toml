@@ -60,6 +60,9 @@ exclude = [
     '^https?://[^/]*\.local',
     # example.com и подобные placeholders в шаблонах.
     '^https?://example\.(com|org|net)',
+    # financemarker.ru — Cloudflare-защита блокирует lychee user-agent
+    # (curl/браузер получают 200). Ссылки валидные, проверяем вручную.
+    '^https?://financemarker\.ru',
 ]
 
 ############################
