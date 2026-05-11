@@ -1,0 +1,70 @@
+# Конфиг cspell — code-aware spell-checker для всего репозитория.
+# Документация: https://cspell.org/configuration/
+# Запуск: `cspell "**/*"` (из Taskfile.yml -> lint-spell).
+
+# Версия схемы конфига cspell. Текущая стабильная — 0.2.
+version: "0.2"
+
+# Языки/locale, на которых может быть текст в репозитории.
+# Cspell включает словари из import-ов с matching locale автоматически
+# (см. languageSettings в cspell-ext.json подключённых пакетов).
+language: ru,en
+
+# Подключаемые внешние конфиги словарей.
+# `@cspell/dict-ru_ru` ставится через mise (см. mise.toml: npm:@cspell/dict-ru_ru).
+# Путь определяется через NODE_PATH, выставляемый в Taskfile.yml -> lint-spell
+# (export NODE_PATH="$(mise where npm:@cspell/dict-ru_ru)/lib/node_modules").
+# Так путь не зависит от пользователя и одинаково работает локально и в CI.
+import:
+  - "@cspell/dict-ru_ru/cspell-ext.json"
+
+# Bundled-словари cspell (приезжают в самом пакете cspell, без отдельной установки).
+# Полный список: https://github.com/streetsidesoftware/cspell-dicts
+dictionaries:
+  - en_US             # Английский US
+  - go                # Go: ключевые слова, stdlib (context, errors, http и т.п.)
+  - softwareTerms     # IT-лексика: backend, runtime, struct, mutex, ...
+  - companies         # Названия компаний: GitHub, Google, JetBrains, ...
+  - filetypes         # Расширения файлов и типы: yaml, toml, dockerfile, ...
+  - project           # Наш локальный словарь (см. ниже)
+
+# Локальные словари проекта.
+dictionaryDefinitions:
+  - name: project
+    # Один файл-словарь — одно слово на строку, # — комментарий.
+    path: ./.cspell/project.txt
+    # Слова из project можно добавлять через `cspell --words-only` + редактирование.
+    addWords: true
+
+# Минимальная длина слова для проверки. Короче 4 — почти всегда
+# аббревиатуры и переменные (id, ok, err) — шум.
+minWordLength: 4
+
+# Уважать .gitignore — не лазить в vendor/, build/, .git/ и т.п.
+useGitignore: true
+
+# Дополнительные пути, которые НЕ проверяем (поверх .gitignore).
+ignorePaths:
+  - go.sum                  # Хеши модулей, не текст.
+  - "**/*.lock"             # Lock-файлы — машинно-сгенерированы.
+  - "**/testdata/**"        # Тестовые фикстуры: специально кривые данные.
+  - .lycheecache            # Кеш lychee.
+  - .cspell/project.txt     # Сам словарь не проверяем (рекурсия).
+  - .claude/skills/**       # Внешние Claude skills — не наш текст.
+
+# Паттерны, которые внутри файлов вырезаются ДО проверки (regex).
+# Не путать с ignorePaths: тут речь про куски содержимого.
+ignoreRegExpList:
+  # URL целиком — могут содержать slugs, query, transliterated имена.
+  - https?://\S+
+  # Хеши commit-ов и подобное (40 hex символов).
+  - \b[0-9a-f]{7,40}\b
+  # Base64-подобные длинные строки (например, в YAML/JSON).
+  - \b[A-Za-z0-9+/=]{32,}\b
+  # Email — целиком, не разбивать на части.
+  - \b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b
+
+# Как обрабатывать camelCase / snake_case в идентификаторах:
+# cspell разбивает имена на части (например, fairValueCalc → fair, Value, Calc)
+# и проверяет каждое слово отдельно. Опечатка в одной части ловится точечно.
+allowCompoundWords: true

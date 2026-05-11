@@ -4,7 +4,7 @@
 
 ## Установка окружения
 
-Весь тулинг проекта (Go, golangci-lint, task, yamllint и т.д.) ставится через [mise](https://mise.jdx.dev/) — версии пинятся в [`mise.toml`](./mise.toml).
+Все инструменты проекта (Go, golangci-lint, task, yamllint и т.д.) ставятся через [mise](https://mise.jdx.dev/) — версии зафиксированы в [`mise.toml`](./mise.toml).
 
 ### 1. Поставить mise
 

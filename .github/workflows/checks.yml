@@ -7,16 +7,16 @@ on:
 
 jobs:
   check:
-    # Каждый таргет — отдельный параллельный job на своём раннере.
+    # Каждый таргет — отдельный параллельный job на своём runner.
     # В UI PR появляются как отдельные статусы (`check (lint-golang)` и т.п.),
     # видно, какой именно упал, без чтения общего лога.
     strategy:
       fail-fast: false
       matrix:
-        # Каждый бинарь компилируется явно отдельным таргетом `compile-<name>`.
-        # При добавлении нового cmd/<name> расширяем этот список и одноимённый
-        # таск в `Taskfile.yml`.
-        target: [lint-golang, lint-yaml, compile-cli]
+        # Каждый binary компилируется явно отдельным таргетом `compile-<name>`.
+        # При добавлении нового cmd/<name> расширяем этот список и одноимённую
+        # задачу в `Taskfile.yml`.
+        target: [lint-golang, lint-yaml, lint-md, lint-md-links, lint-spell, compile-cli]
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:

@@ -12,6 +12,9 @@ tasks:
     deps:
       - task: lint-golang
       - task: lint-yaml
+      - task: lint-md
+      - task: lint-md-links
+      - task: lint-spell
 
   lint-golang:
     desc: golangci-lint по всему Go-коду.
@@ -23,8 +26,29 @@ tasks:
     cmds:
       - yamllint .
 
+  lint-md:
+    desc: markdownlint-cli2 — структура Markdown (заголовки, списки, code fences).
+    cmds:
+      - markdownlint-cli2 "**/*.md"
+
+  lint-md-links:
+    desc: lychee — проверка ссылок в Markdown (внешние URL, локальные пути, якоря).
+    cmds:
+      - lychee --no-progress "**/*.md"
+
+  lint-spell:
+    desc: cspell — орфография ru/en во всём репозитории (Go, MD, YAML, TOML, ...).
+    # NODE_PATH указывает на установку русского словаря через mise.
+    # Без этого cspell не найдёт @cspell/dict-ru_ru, импортированный в cspell.config.yaml.
+    # `mise where` возвращает каталог установки — одинаково работает локально и в CI.
+    env:
+      NODE_PATH:
+        sh: echo "$(mise where npm:@cspell/dict-ru_ru)/lib/node_modules"
+    cmds:
+      - cspell --no-progress --no-summary "**/*"
+
   fmt:
-    desc: Запустить все форматтеры параллельно.
+    desc: Запустить все formatters параллельно.
     deps:
       - task: fmt-golang
 
@@ -34,7 +58,7 @@ tasks:
       - golangci-lint run --fix ./... || true
 
   compile:
-    desc: Проверить, что все бинари cmd/* компилируются. Каждый — отдельный таск, в параллель.
+    desc: Проверить, что все binaries cmd/* компилируются. Каждый — отдельная задача, в параллель.
     deps:
       - task: compile-cli
 
