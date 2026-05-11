@@ -27,21 +27,21 @@ disable-model-invocation: false
 
 В reference-файлах эти параметры **не дублируются** — ссылайся сюда:
 
-| Параметр          | Тип        | Дефолт    | Описание                                                                                      |
-| ----------------- | ---------- | --------- | --------------------------------------------------------------------------------------------- |
-| `iss.json`        | str        | `compact` | Формат payload. **Использовать `extended`** — массив `[meta, blocks]`, парсится единообразно. |
-| `iss.meta`        | `on`/`off` | `on`      | Метаданные блоков. Для агента — `off`.                                                        |
-| `iss.only`        | csv        | все блоки | Список блоков (через запятую), которые нужно вернуть. Снижает payload.                        |
-| `<block>.columns` | csv        | все поля  | Подмножество полей блока через запятую.                                                       |
-| `start`           | int        | `0`       | Смещение для пагинации.                                                                       |
-| `from` / `till`   | date       | —         | Границы диапазона (YYYY-MM-DD).                                                               |
-| `date`            | date       | —         | Срез на конкретную дату.                                                                      |
-| `interval`        | int        | `24`      | Размер свечи (1=1м, 10=10м, 60=ч, 24=день, 7=неделя, 31=месяц, 4=квартал).                    |
-| `lang`            | `ru`/`en`  | сервер    | Язык текстовых полей (где поддерживается).                                                    |
+| Параметр          | Тип        | Дефолт    | Описание                                                                                         |
+| ----------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------ |
+| `iss.json`        | str        | `compact` | Формат payload. **Использовать `extended`** — массив `[meta, blocks]`, разбирается единообразно. |
+| `iss.meta`        | `on`/`off` | `on`      | Метаданные блоков. Для агента — `off`.                                                           |
+| `iss.only`        | csv        | все блоки | Список блоков (через запятую), которые нужно вернуть. Снижает payload.                           |
+| `<block>.columns` | csv        | все поля  | Подмножество полей блока через запятую.                                                          |
+| `start`           | int        | `0`       | Смещение для пагинации.                                                                          |
+| `from` / `till`   | date       | —         | Границы диапазона (YYYY-MM-DD).                                                                  |
+| `date`            | date       | —         | Срез на конкретную дату.                                                                         |
+| `interval`        | int        | `24`      | Размер свечи (1=1м, 10=10м, 60=ч, 24=день, 7=неделя, 31=месяц, 4=квартал).                       |
+| `lang`            | `ru`/`en`  | сервер    | Язык текстовых полей (где поддерживается).                                                       |
 
 ### Пагинация
 
-Коллекционные эндпоинты пагинируются через `start=<offset>`. Признак новой страницы — блок `<name>.cursor` со строкой `{INDEX, PAGESIZE, TOTAL}`. Когда `INDEX + PAGESIZE >= TOTAL`, страниц больше нет. Часть эндпоинтов (`history`) использует `history.cursor` и требует включать его в `iss.only=history,history.cursor`.
+Коллекционные эндпоинты разбиты на страницы — следующая запрашивается через `start=<offset>`. Признак новой страницы — блок `<name>.cursor` со строкой `{INDEX, PAGESIZE, TOTAL}`. Когда `INDEX + PAGESIZE >= TOTAL`, страниц больше нет. Часть эндпоинтов (`history`) использует `history.cursor` и требует включать его в `iss.only=history,history.cursor`.
 
 ### HTTP-коды ошибок
 
@@ -322,7 +322,7 @@ disable-model-invocation: false
 - **URL:** `GET /iss/engines/{engine}/markets/{market}/boards/{board}/securities/{TICKER}/trades.json`
 - **Назначение:** последние сделки по бумаге в одном режиме — сделки строго основного режима, без шума repo/dark. Если допустимы все режимы — `get_security_trades`.
 
-> **Стаканы (orderbook) — платные** в ISS и в этот скилл не входят.
+> **Стаканы (orderbook) — платные** в ISS и в этот справочник не входят.
 
 ### Обороты
 
@@ -362,7 +362,7 @@ disable-model-invocation: false
 
 - **Reference:** [get_index_analytics.md](references/get_index_analytics.md)
 - **URL:** `GET /iss/statistics/engines/stock/markets/index/analytics/{index}.json` (paginated)
-- **Назначение:** состав индекса **с весами и факторами** (waprice, cap_index, ff_factor) — нужны фактические веса в IMOEX (для бенчмарка/peer-группировки). Если достаточно только тикеров — `get_index_tickers`.
+- **Назначение:** состав индекса **с весами и факторами** (waprice, cap_index, ff_factor) — нужны фактические веса в IMOEX (для benchmark / peer-группировки). Если достаточно только тикеров — `get_index_tickers`.
 
 #### `get_index_ticker_info`
 
@@ -376,7 +376,7 @@ disable-model-invocation: false
 
 - **Reference:** [get_splits_by_security.md](references/get_splits_by_security.md)
 - **URL:** `GET /iss/statistics/engines/stock/splits/{TICKER}.json`
-- **Назначение:** все сплиты по бумаге — обязательная корректировка для adjusted-ряда цен (иначе SMA200/моментум сломаны), проверка истории VTBR/GMKN. Для дивидендов — `get_security_dividends` или `api-financemarker`.
+- **Назначение:** все сплиты по бумаге — обязательная корректировка для adjusted-ряда цен (иначе SMA200 / momentum-индикаторы сломаны), проверка истории VTBR/GMKN. Для дивидендов — `get_security_dividends` или `api-financemarker`.
 
 #### `get_changeover`
 
@@ -558,7 +558,7 @@ disable-model-invocation: false
 - **URL:** `GET /iss/cci/reference/rating-levels.json` (paginated)
 - **Назначение:** уровни рейтингов с описаниями (~800 записей) — расшифровка уровней AAA/AA/A/BBB по агентствам. Сам рейтинг конкретного эмитента в публичном ISS не отдаётся — см. предупреждение ниже.
 
-> **Рейтинги конкретных эмитентов / выпусков** (`/iss/cci/rating/companies`, `/cci/rating/issues`) — платные, в этот скилл не входят.
+> **Рейтинги конкретных эмитентов / выпусков** (`/iss/cci/rating/companies`, `/cci/rating/issues`) — платные, в этот справочник не входят.
 
 ### Своп-кривые
 

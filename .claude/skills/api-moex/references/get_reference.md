@@ -4,7 +4,7 @@ endpoint: /iss/index.json
 
 # `get_reference`
 
-**Назначение:** получить перечень допустимых значений плейсхолдера в URL ISS — нужно когда строишь произвольный путь и не помнишь, какие `engine` / `market` / `board` существуют.
+**Назначение:** получить перечень допустимых значений `PLACEHOLDER` в URL ISS — нужно когда строишь произвольный путь и не помнишь, какие `engine` / `market` / `board` существуют.
 
 **Reference ISS:** <https://iss.moex.com/iss/reference/28>
 
@@ -46,7 +46,7 @@ GET https://iss.moex.com/iss/index.json
 | `has_candles`    | int | да          | 1 = есть свечи                 |
 | `is_primary`     | int | да          | 1 = основной режим для рынка   |
 
-Для остальных плейсхолдеров (`engines`, `markets`, …) набор полей другой — смотри пример вывода CLI.
+Для остальных значений `PLACEHOLDER` (`engines`, `markets`, …) набор полей другой.
 
 ## Пример ответа (`boards`)
 
