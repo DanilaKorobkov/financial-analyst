@@ -10,10 +10,10 @@ endpoint: /api/fm/v2/ideas
 
 ## Query-параметры
 
-| Имя | Тип | Обязательность | Описание |
-|---|---|---|---|
-| `api_token` | str | required | API-токен (см. SKILL.md → «Авторизация»). |
-| `limit` / `offset` / `sort_by` / `sort_order` / `updated_in_days` | — | optional | Стандартный набор пагинации. Полезные значения `sort_by`: `date_in`, `profit_potential`, `changed_at`. |
+| Имя                                                               | Тип | Обязательность | Описание                                                                                               |
+| ----------------------------------------------------------------- | --- | -------------- | ------------------------------------------------------------------------------------------------------ |
+| `api_token`                                                       | str | required       | API-токен (см. SKILL.md → «Авторизация»).                                                              |
+| `limit` / `offset` / `sort_by` / `sort_order` / `updated_in_days` | —   | optional       | Стандартный набор пагинации. Полезные значения `sort_by`: `date_in`, `profit_potential`, `changed_at`. |
 
 ## Пример запроса
 
@@ -26,31 +26,31 @@ GET /api/fm/v2/ideas?api_token=$FINANCE_MARKER_TOKEN&updated_in_days=7&limit=20
 
 Массив объектов:
 
-| Поле | Тип | Смысл |
-|---|---|---|
-| `id` | int | Идентификатор идеи в FM. Нужен для [`ideas/{id}`](idea.md). |
-| `code` | str | Тикер бумаги, по которой выставлена идея. |
-| `exchange` | str | Биржа (`MOEX`). |
-| `community` | str | Имя автора-аналитика / брокера (`Финам`, `Велес Капитал`, `АКБФ Инвестиции`). |
-| `community_id` | int | Числовой ID автора (`40581` = Финам). Используется как ключ связи с [`experts`](experts.md). |
-| `idea` | str | Краткий заголовок идеи (одна строка). |
-| `date_in` | date (`YYYY-MM-DD`) | Дата публикации идеи (вход). |
-| `date_out` | date (`YYYY-MM-DD`) | Дата, к которой автор ожидает достижения цели (плановый выход). |
-| `duration_in_month` | int | Срок идеи в полных месяцах (`date_out − date_in`). |
-| `price_in` | float | Цена входа, заявленная автором (в валюте `code`). |
-| `price_out` | float | Целевая цена (`target price`). |
-| `price_day` | float | Текущая цена бумаги на момент снимка ленты. |
-| `profit_potential` | float | Потенциал к target от `price_in` в %: `(price_out − price_in) / price_in × 100`. |
-| `profit_actual` | float | Фактическая доходность от `price_in` к `price_day` (%). Может быть отрицательной. |
-| `stop_loss` | float / null | Уровень stop-loss, если задан автором. |
-| `system_status` | str | Статус идеи: `ACTIVE` (открыта), `CLOSED` (закрыта), и т.п. |
-| `close_date` | date / null | Дата фактического закрытия идеи или последнего снимка цены. |
-| `close_price` | float / null | Цена закрытия / последнего снимка. |
-| `close_comment` | str | Комментарий автора при закрытии. |
-| `close_link` | url | Ссылка на пост о закрытии. |
-| `update_date` | date / null | Дата последнего обновления (изменение target/stop). |
-| `update_price` | float / null | Цена в момент обновления. |
-| `changed_at` | datetime (MSK) | Время последнего изменения записи. |
+| Поле                | Тип                 | Смысл                                                                                        |
+| ------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| `id`                | int                 | Идентификатор идеи в FM. Нужен для [`ideas/{id}`](idea.md).                                  |
+| `code`              | str                 | Тикер бумаги, по которой выставлена идея.                                                    |
+| `exchange`          | str                 | Биржа (`MOEX`).                                                                              |
+| `community`         | str                 | Имя автора-аналитика / брокера (`Финам`, `Велес Капитал`, `АКБФ Инвестиции`).                |
+| `community_id`      | int                 | Числовой ID автора (`40581` = Финам). Используется как ключ связи с [`experts`](experts.md). |
+| `idea`              | str                 | Краткий заголовок идеи (одна строка).                                                        |
+| `date_in`           | date (`YYYY-MM-DD`) | Дата публикации идеи (вход).                                                                 |
+| `date_out`          | date (`YYYY-MM-DD`) | Дата, к которой автор ожидает достижения цели (плановый выход).                              |
+| `duration_in_month` | int                 | Срок идеи в полных месяцах (`date_out − date_in`).                                           |
+| `price_in`          | float               | Цена входа, заявленная автором (в валюте `code`).                                            |
+| `price_out`         | float               | Целевая цена (`target price`).                                                               |
+| `price_day`         | float               | Текущая цена бумаги на момент снимка ленты.                                                  |
+| `profit_potential`  | float               | Потенциал к target от `price_in` в %: `(price_out − price_in) / price_in × 100`.             |
+| `profit_actual`     | float               | Фактическая доходность от `price_in` к `price_day` (%). Может быть отрицательной.            |
+| `stop_loss`         | float / null        | Уровень stop-loss, если задан автором.                                                       |
+| `system_status`     | str                 | Статус идеи: `ACTIVE` (открыта), `CLOSED` (закрыта), и т.п.                                  |
+| `close_date`        | date / null         | Дата фактического закрытия идеи или последнего снимка цены.                                  |
+| `close_price`       | float / null        | Цена закрытия / последнего снимка.                                                           |
+| `close_comment`     | str                 | Комментарий автора при закрытии.                                                             |
+| `close_link`        | url                 | Ссылка на пост о закрытии.                                                                   |
+| `update_date`       | date / null         | Дата последнего обновления (изменение target/stop).                                          |
+| `update_price`      | float / null        | Цена в момент обновления.                                                                    |
+| `changed_at`        | datetime (MSK)      | Время последнего изменения записи.                                                           |
 
 ## Пример ответа (реальный, 2026-05-11, `limit=1`)
 
