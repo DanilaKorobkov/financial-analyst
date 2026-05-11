@@ -17,12 +17,12 @@ jobs:
         # При добавлении нового cmd/<name> расширяем этот список и одноимённую
         # задачу в `Taskfile.yml`.
         target:
-          - lint-golang
-          - lint-yaml
-          - lint-md
-          - lint-md-fmt
-          - lint-md-links
-          - lint-spell
+          - lint-golangci-lint
+          - lint-yamllint
+          - lint-markdownlint
+          - lint-prettier
+          - lint-lychee
+          - lint-cspell
           - compile-cli
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
