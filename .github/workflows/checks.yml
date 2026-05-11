@@ -7,13 +7,13 @@ on:
 
 jobs:
   check:
-    # Каждый таргет — отдельный параллельный job на своём runner.
+    # Каждый target — отдельный параллельный job на своём runner.
     # В UI PR появляются как отдельные статусы (`check (lint-golang)` и т.п.),
     # видно, какой именно упал, без чтения общего лога.
     strategy:
       fail-fast: false
       matrix:
-        # Каждый binary компилируется явно отдельным таргетом `compile-<name>`.
+        # Каждый binary компилируется явно отдельным target `compile-<name>`.
         # При добавлении нового cmd/<name> расширяем этот список и одноимённую
         # задачу в `Taskfile.yml`.
         target: [lint-golang, lint-yaml, lint-md, lint-md-links, lint-spell, compile-cli]
@@ -23,11 +23,11 @@ jobs:
       - uses: actions/checkout@v4
 
       # mise ставит инструменты из mise.toml.
-      # Версии — единая точка правды с локалкой разработчика.
+      # Версии — единая точка правды с локальной машиной разработчика.
       - uses: jdx/mise-action@v2
         with:
           install: true
           cache: true
 
-      # Те же таргеты, что разработчик запускает локально через `task checks`.
+      # Те же targets, что разработчик запускает локально через `task checks`.
       - run: task ${{ matrix.target }}

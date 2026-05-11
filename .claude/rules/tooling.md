@@ -6,7 +6,7 @@
 **Запрещено:**
 
 - `go install`, `go tool`, `brew install`, `curl | sh`, `apt install` для проектных утилит.
-- Задачи `setup` / инсталляторы бинарей в `Taskfile.yml`.
-- Дублирование версий в CI-воркфлоу (CI ставит через `jdx/mise-action@v2`).
+- Задачи `setup` / инсталляторы binaries в `Taskfile.yml`.
+- Дублирование версий в CI workflow (CI ставит через `jdx/mise-action@v2`).
 
 **Исключения** допустимы только для того, что mise поставить не может (сам mise как пример)

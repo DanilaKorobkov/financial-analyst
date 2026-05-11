@@ -28,13 +28,16 @@ tasks:
 
   lint-md:
     desc: markdownlint-cli2 — структура Markdown (заголовки, списки, code fences).
+    # `**/*.md` — обычные пути; `**/.*/**/*.md` — dot-каталоги на ЛЮБОМ уровне
+    # (`.claude/`, `foo/.bar/baz.md`, `.github/workflows/...`). `.git` режется
+    # ignore-правилом в `.markdownlint-cli2.jsonc`.
     cmds:
-      - markdownlint-cli2 "**/*.md"
+      - markdownlint-cli2 "**/*.md" "**/.*/**/*.md"
 
   lint-md-links:
     desc: lychee — проверка ссылок в Markdown (внешние URL, локальные пути, якоря).
     cmds:
-      - lychee --no-progress "**/*.md"
+      - lychee --no-progress "**/*.md" "**/.*/**/*.md"
 
   lint-spell:
     desc: cspell — орфография ru/en во всём репозитории (Go, MD, YAML, TOML, ...).
@@ -45,7 +48,7 @@ tasks:
       NODE_PATH:
         sh: echo "$(mise where npm:@cspell/dict-ru_ru)/lib/node_modules"
     cmds:
-      - cspell --no-progress --no-summary "**/*"
+      - cspell --no-progress --no-summary "**/*" "**/.*/**/*"
 
   fmt:
     desc: Запустить все formatters параллельно.

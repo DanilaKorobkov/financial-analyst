@@ -27,5 +27,9 @@
   },
 
   // Включаем gitignore — не трогать build-артефакты, vendor, и т.п.
-  "gitignore": true
+  "gitignore": true,
+
+  // Глобы исключений. Применяются поверх gitignore.
+  // `**/.git/**` режет служебный каталог git на любом уровне (включая submodules).
+  "ignores": ["**/.git/**"]
 }
