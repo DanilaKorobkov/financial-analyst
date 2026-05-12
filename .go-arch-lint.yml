@@ -25,11 +25,12 @@ components:
   services:
     in: internal/domain/services
 
-  # Адаптеры внешних источников данных. Каждый провайдер — отдельный
-  # компонент, чтобы запретить их перекрёстные импорты. Provider знает
-  # только domain entities и нужные ему vendor-пакеты.
-  infra_moex:
-    in: internal/infra/moex
+  # Адаптеры внешних источников данных. Все провайдеры — один компонент,
+  # потому что правила одинаковые: знают только domain entities и свои
+  # vendor-пакеты. Запрет на «провайдер X импортирует провайдер Y» можно
+  # будет добавить, когда это станет нужно (отдельные подкомпоненты).
+  infra:
+    in: internal/infra/**
 
   # Транспортный слой. Знает domain и сгенерированный proto-код (generated).
   presentation:
@@ -66,10 +67,10 @@ deps:
       - services
     anyVendorDeps: true
 
-  infra_moex:
+  infra:
     mayDependOn:
       - entities
-      - infra_moex
+      - infra
     anyVendorDeps: true
 
   presentation:
@@ -95,7 +96,7 @@ deps:
     mayDependOn:
       - entities
       - services
-      - infra_moex
+      - infra
       - presentation
     anyVendorDeps: true
 
