@@ -23,10 +23,10 @@ func New(cfg *Config) http.Handler {
 		cfg.FinanceMarker.Token,
 		cfg.FinanceMarker.Timeout,
 	)
-	companyMetricsRepo := financemarker.NewCompanyMetricsRepository(fmClient)
-	companyMetrics := services.NewCompanyMetrics(companyMetricsRepo)
+	cardRepo := financemarker.NewCompanyCardRepository(fmClient)
+	companyCard := services.NewCompanyCard(cardRepo)
 
-	srv := pconnect.NewServer(companyInfo, companyMetrics)
+	srv := pconnect.NewServer(companyInfo, companyCard)
 
 	mux := http.NewServeMux()
 	path, handler := companyv1connect.NewCompanyServiceHandler(srv)

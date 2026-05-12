@@ -9,14 +9,14 @@ type CompanyRepository interface {
 	FindByTicker(ctx context.Context, ticker string) (Company, error)
 }
 
-// CompanyMetricsRepository — порт доступа к расширенной карточке эмитента
-// (классификация, сводные метрики, дивиденды, темпы роста, консенсусы).
-type CompanyMetricsRepository interface {
-	// FindByTicker возвращает расширенную карточку эмитента по тикеру.
+// CompanyCardRepository — порт доступа к карточке эмитента: идентификация,
+// классификация (сектор / отрасль / страна / валюта), описание и ссылки.
+type CompanyCardRepository interface {
+	// FindByTicker возвращает карточку эмитента по тикеру.
 	//
 	// Возвращает ErrNotFound, если эмитента с таким тикером нет.
 	// Возвращает ErrUnauthorized, если источник отверг запрос по доступу
-	// (токен отсутствует/невалиден).
+	// (токен отсутствует или невалиден).
 	// Возвращает ErrQuotaExceeded, если у источника исчерпана квота.
-	FindByTicker(ctx context.Context, ticker string) (CompanyMetrics, error)
+	FindByTicker(ctx context.Context, ticker string) (CompanyCard, error)
 }

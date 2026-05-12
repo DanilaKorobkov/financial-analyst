@@ -1,8 +1,9 @@
 // Схема Connect-сервиса CompanyService.
 //
 // Возвращает справочную карточку эмитента по тикеру: имя, ISIN,
-// тип бумаги, уровень листинга. Дополнительно отдаёт расширенную карточку
-// со сводными метриками и классификацией эмитента.
+// тип бумаги, уровень листинга. Дополнительно отдаёт карточку эмитента
+// c классификацией (сектор / отрасль / страна / валюта), описанием и
+// ссылками на корпоративный сайт и страницу раскрытия.
 
 syntax = "proto3";
 
@@ -10,11 +11,9 @@ package company.v1;
 
 option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
 
-import "google/protobuf/timestamp.proto";
-
 service CompanyService {
   rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
-  rpc GetCompanyMetrics(GetCompanyMetricsRequest) returns (GetCompanyMetricsResponse);
+  rpc GetCompanyCard(GetCompanyCardRequest) returns (GetCompanyCardResponse);
 }
 
 message GetCompanyRequest {
@@ -51,33 +50,17 @@ message Company {
   ListingLevel listing_level = 5;
 }
 
-message GetCompanyMetricsRequest {
+message GetCompanyCardRequest {
   // Тикер бумаги (например, SBER, GAZP, LKOH).
   string ticker = 1;
 }
 
-message GetCompanyMetricsResponse {
-  CompanyMetrics metrics = 1;
+message GetCompanyCardResponse {
+  CompanyCard card = 1;
 }
 
-// IdeaConsensus — агрегированный консенсус активных инвестидей по бумаге.
-enum IdeaConsensus {
-  IDEA_CONSENSUS_UNSPECIFIED = 0;
-  IDEA_CONSENSUS_BUY = 1;
-  IDEA_CONSENSUS_HOLD = 2;
-  IDEA_CONSENSUS_SELL = 3;
-}
-
-// InsiderConsensus — агрегированный перекос сделок инсайдеров по бумаге.
-enum InsiderConsensus {
-  INSIDER_CONSENSUS_UNSPECIFIED = 0;
-  INSIDER_CONSENSUS_BUYS = 1;
-  INSIDER_CONSENSUS_SELLS = 2;
-  INSIDER_CONSENSUS_MIXED = 3;
-}
-
-// CompanyCard — лёгкая карточка эмитента: идентификация и классификация
-// (страна, валюта, сектор/отрасль).
+// CompanyCard — карточка эмитента: идентификация и классификация
+// (страна, валюта, сектор / отрасль), описание и ссылки.
 message CompanyCard {
   string ticker = 1;
   string exchange = 2;
@@ -92,52 +75,7 @@ message CompanyCard {
   string currency = 11;
   string primary_report_ticker = 12;
   string primary_report_exchange = 13;
-}
-
-// CompanyMetrics — расширенная карточка эмитента: классификация, описание,
-// сводные метрики, статистика дивидендов, темпы роста, консенсус инвестидей
-// и инсайдерских сделок.
-message CompanyMetrics {
-  CompanyCard card = 1;
-  string description = 2;
-  string site = 3;
-  string disc_link = 4;
-  double capital = 5;
-  double eps = 6;
-  double peg = 7;
-  double peter_lynch_target = 8;
-  double graham_target = 9;
-  int32 dividend_frequency = 10;
-  int32 dividend_strike = 11;
-  int32 dividend_growth = 12;
-  double dividend_index = 13;
-  double dividend_yield_12m = 14;
-  double dividend_yield_3y = 15;
-  double dividend_yield_5y = 16;
-  int32 dividend_gap_last = 17;
-  int32 dividend_gap_average = 18;
-  double growth_revenue_3y = 19;
-  double growth_revenue_5y = 20;
-  double growth_earnings_3y = 21;
-  double growth_earnings_5y = 22;
-  double growth_ebitda_3y = 23;
-  double growth_ebitda_5y = 24;
-  double growth_assets_3y = 25;
-  double growth_assets_5y = 26;
-  double growth_equity_3y = 27;
-  double growth_equity_5y = 28;
-  double growth_fcf_3y = 29;
-  double growth_fcf_5y = 30;
-  double growth_netdebt_3y = 31;
-  double growth_netdebt_5y = 32;
-  double growth_operation_3y = 33;
-  double growth_operation_5y = 34;
-  int32 idea_buy = 35;
-  int32 idea_hold = 36;
-  int32 idea_sell = 37;
-  IdeaConsensus idea_consensus = 38;
-  double idea_target = 39;
-  double idea_potential = 40;
-  InsiderConsensus insider_consensus = 41;
-  google.protobuf.Timestamp changed_at = 42;
+  string description = 14;
+  string site = 15;
+  string disc_link = 16;
 }

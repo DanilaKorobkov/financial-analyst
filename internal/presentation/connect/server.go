@@ -13,18 +13,18 @@ import (
 
 // Server реализует companyv1connect.CompanyServiceHandler поверх domain-сервисов.
 type Server struct {
-	companyInfo    *services.CompanyInfo
-	companyMetrics *services.CompanyMetrics
+	companyInfo *services.CompanyInfo
+	companyCard *services.CompanyCard
 }
 
 // NewServer собирает Connect-сервер вокруг доменных сервисов.
 func NewServer(
 	companyInfo *services.CompanyInfo,
-	companyMetrics *services.CompanyMetrics,
+	companyCard *services.CompanyCard,
 ) *Server {
 	return &Server{
-		companyInfo:    companyInfo,
-		companyMetrics: companyMetrics,
+		companyInfo: companyInfo,
+		companyCard: companyCard,
 	}
 }
 
@@ -42,17 +42,17 @@ func (s *Server) GetCompany(
 	}), nil
 }
 
-// GetCompanyMetrics — unary-метод CompanyService.GetCompanyMetrics.
-func (s *Server) GetCompanyMetrics(
+// GetCompanyCard — unary-метод CompanyService.GetCompanyCard.
+func (s *Server) GetCompanyCard(
 	ctx context.Context,
-	req *connectrpc.Request[companyv1.GetCompanyMetricsRequest],
-) (*connectrpc.Response[companyv1.GetCompanyMetricsResponse], error) {
-	metrics, err := s.companyMetrics.FindByTicker(ctx, req.Msg.GetTicker())
+	req *connectrpc.Request[companyv1.GetCompanyCardRequest],
+) (*connectrpc.Response[companyv1.GetCompanyCardResponse], error) {
+	card, err := s.companyCard.FindByTicker(ctx, req.Msg.GetTicker())
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
-	return connectrpc.NewResponse(&companyv1.GetCompanyMetricsResponse{
-		Metrics: toProtoCompanyMetrics(&metrics),
+	return connectrpc.NewResponse(&companyv1.GetCompanyCardResponse{
+		Card: toProtoCompanyCard(&card),
 	}), nil
 }
 

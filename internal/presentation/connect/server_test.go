@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	connectrpc "connectrpc.com/connect"
 	"github.com/stretchr/testify/mock"
@@ -23,10 +22,10 @@ import (
 type serverSuite struct {
 	suite.Suite
 
-	companies      *entities_mock.CompanyRepository
-	companyMetrics *entities_mock.CompanyMetricsRepository
-	server         *httptest.Server
-	client         companyv1connect.CompanyServiceClient
+	companies *entities_mock.CompanyRepository
+	cards     *entities_mock.CompanyCardRepository
+	server    *httptest.Server
+	client    companyv1connect.CompanyServiceClient
 }
 
 func TestServerSuite(t *testing.T) {
@@ -36,10 +35,10 @@ func TestServerSuite(t *testing.T) {
 
 func (s *serverSuite) SetupTest() {
 	s.companies = entities_mock.NewCompanyRepository(s.T())
-	s.companyMetrics = entities_mock.NewCompanyMetricsRepository(s.T())
+	s.cards = entities_mock.NewCompanyCardRepository(s.T())
 	srv := pconnect.NewServer(
 		services.NewCompanyInfo(s.companies),
-		services.NewCompanyMetrics(s.companyMetrics),
+		services.NewCompanyCard(s.cards),
 	)
 
 	mux := http.NewServeMux()
@@ -75,17 +74,9 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_FIRST, company.GetListingLevel())
 }
 
-func (s *serverSuite) TestGetCompanyUnspecifiedListingLevel() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "X").Return(entities.Company{Ticker: "X"}, nil).Once()
-
-	resp, err := s.callCompany("X")
-
-	s.Require().NoError(err)
-	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED, resp.Msg.GetCompany().GetListingLevel())
-}
-
 func (s *serverSuite) TestGetCompanyNotFound() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "ZZZZ").Return(entities.Company{}, entities.ErrCompanyNotFound).Once()
+	s.companies.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
+		Return(entities.Company{}, entities.ErrCompanyNotFound).Once()
 
 	_, err := s.callCompany("ZZZZ")
 
@@ -103,109 +94,10 @@ func (s *serverSuite) TestGetCompanyInvalidArgument() {
 }
 
 func (s *serverSuite) TestGetCompanyInternal() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.Company{}, errors.New("downstream boom")).Once()
+	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").
+		Return(entities.Company{}, errors.New("downstream boom")).Once()
 
 	_, err := s.callCompany("SBER")
-
-	var connectErr *connectrpc.Error
-	s.Require().ErrorAs(err, &connectErr)
-	s.Equal(connectrpc.CodeInternal, connectErr.Code())
-}
-
-func (s *serverSuite) TestGetCompanyMetricsHappyPath() {
-	changedAt := time.Date(2026, 5, 11, 3, 32, 6, 0, time.UTC)
-	s.companyMetrics.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.CompanyMetrics{
-		Card: entities.CompanyCard{
-			Ticker:   "SBER",
-			Exchange: "MOEX",
-			Name:     "Сбербанк",
-			Sector:   "Финансы",
-			SectorID: 40,
-			Currency: "RUB",
-		},
-		Description:      "ПАО «Сбербанк»",
-		Site:             "https://www.sberbank.com",
-		EPS:              78.8,
-		PEG:              0.56,
-		IdeaConsensus:    entities.IdeaConsensusBuy,
-		InsiderConsensus: entities.InsiderConsensusBuys,
-		ChangedAt:        changedAt,
-	}, nil).Once()
-
-	resp, err := s.callMetrics("SBER")
-
-	s.Require().NoError(err)
-	m := resp.Msg.GetMetrics()
-	s.Require().NotNil(m)
-	s.Equal("SBER", m.GetCard().GetTicker())
-	s.Equal("Финансы", m.GetCard().GetSector())
-	s.InDelta(78.8, m.GetEps(), 0.0001)
-	s.InDelta(0.56, m.GetPeg(), 0.0001)
-	s.Equal(companyv1.IdeaConsensus_IDEA_CONSENSUS_BUY, m.GetIdeaConsensus())
-	s.Equal(companyv1.InsiderConsensus_INSIDER_CONSENSUS_BUYS, m.GetInsiderConsensus())
-	s.Equal(changedAt.Unix(), m.GetChangedAt().AsTime().Unix())
-}
-
-func (s *serverSuite) TestGetCompanyMetricsUnspecifiedConsensuses() {
-	s.companyMetrics.EXPECT().FindByTicker(mock.Anything, "X").Return(entities.CompanyMetrics{
-		Card: entities.CompanyCard{Ticker: "X"},
-	}, nil).Once()
-
-	resp, err := s.callMetrics("X")
-
-	s.Require().NoError(err)
-	m := resp.Msg.GetMetrics()
-	s.Equal(companyv1.IdeaConsensus_IDEA_CONSENSUS_UNSPECIFIED, m.GetIdeaConsensus())
-	s.Equal(companyv1.InsiderConsensus_INSIDER_CONSENSUS_UNSPECIFIED, m.GetInsiderConsensus())
-	s.Nil(m.GetChangedAt())
-}
-
-func (s *serverSuite) TestGetCompanyMetricsInvalidArgument() {
-	_, err := s.callMetrics("")
-
-	var connectErr *connectrpc.Error
-	s.Require().ErrorAs(err, &connectErr)
-	s.Equal(connectrpc.CodeInvalidArgument, connectErr.Code())
-}
-
-func (s *serverSuite) TestGetCompanyMetricsNotFound() {
-	s.companyMetrics.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(entities.CompanyMetrics{}, entities.ErrNotFound).Once()
-
-	_, err := s.callMetrics("ZZZZ")
-
-	var connectErr *connectrpc.Error
-	s.Require().ErrorAs(err, &connectErr)
-	s.Equal(connectrpc.CodeNotFound, connectErr.Code())
-}
-
-func (s *serverSuite) TestGetCompanyMetricsUnauthenticated() {
-	s.companyMetrics.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(entities.CompanyMetrics{}, entities.ErrUnauthorized).Once()
-
-	_, err := s.callMetrics("SBER")
-
-	var connectErr *connectrpc.Error
-	s.Require().ErrorAs(err, &connectErr)
-	s.Equal(connectrpc.CodeUnauthenticated, connectErr.Code())
-}
-
-func (s *serverSuite) TestGetCompanyMetricsResourceExhausted() {
-	s.companyMetrics.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(entities.CompanyMetrics{}, entities.ErrQuotaExceeded).Once()
-
-	_, err := s.callMetrics("SBER")
-
-	var connectErr *connectrpc.Error
-	s.Require().ErrorAs(err, &connectErr)
-	s.Equal(connectrpc.CodeResourceExhausted, connectErr.Code())
-}
-
-func (s *serverSuite) TestGetCompanyMetricsInternal() {
-	s.companyMetrics.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(entities.CompanyMetrics{}, errors.New("boom")).Once()
-
-	_, err := s.callMetrics("SBER")
 
 	var connectErr *connectrpc.Error
 	s.Require().ErrorAs(err, &connectErr)
@@ -247,38 +139,92 @@ func (s *serverSuite) TestGetCompanyListingLevelThird() {
 	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_THIRD, resp.Msg.GetCompany().GetListingLevel())
 }
 
-func (s *serverSuite) TestGetCompanyMetricsConsensusMatrix() {
-	type want struct {
-		idea    companyv1.IdeaConsensus
-		insider companyv1.InsiderConsensus
-	}
-	cases := []struct {
-		idea     entities.IdeaConsensus
-		insider  entities.InsiderConsensus
-		expected want
-	}{
-		{entities.IdeaConsensusHold, entities.InsiderConsensusSells, want{
-			companyv1.IdeaConsensus_IDEA_CONSENSUS_HOLD,
-			companyv1.InsiderConsensus_INSIDER_CONSENSUS_SELLS,
-		}},
-		{entities.IdeaConsensusSell, entities.InsiderConsensusMixed, want{
-			companyv1.IdeaConsensus_IDEA_CONSENSUS_SELL,
-			companyv1.InsiderConsensus_INSIDER_CONSENSUS_MIXED,
-		}},
-	}
-	for _, c := range cases {
-		s.Run(c.expected.idea.String(), func() {
-			s.companyMetrics.EXPECT().FindByTicker(mock.Anything, "X").Return(entities.CompanyMetrics{
-				Card:             entities.CompanyCard{Ticker: "X"},
-				IdeaConsensus:    c.idea,
-				InsiderConsensus: c.insider,
-			}, nil).Once()
-			resp, err := s.callMetrics("X")
-			s.Require().NoError(err)
-			s.Equal(c.expected.idea, resp.Msg.GetMetrics().GetIdeaConsensus())
-			s.Equal(c.expected.insider, resp.Msg.GetMetrics().GetInsiderConsensus())
-		})
-	}
+func (s *serverSuite) TestGetCompanyCardHappyPath() {
+	s.cards.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.CompanyCard{
+		Ticker:                "SBER",
+		Exchange:              "MOEX",
+		Name:                  "Сбербанк",
+		Sector:                "Финансы",
+		SectorID:              40,
+		Industry:              "Банковская деятельность",
+		IndustryID:            401010,
+		IndustryGroup:         "Банковская деятельность",
+		IndustryGroupID:       4010,
+		Country:               "Россия",
+		Currency:              "RUB",
+		PrimaryReportTicker:   "SBER",
+		PrimaryReportExchange: "MOEX",
+		Description:           "ПАО «Сбербанк»",
+		Site:                  "https://www.sberbank.com",
+		DiscLink:              "https://www.sberbank.com/ru/investor-relations",
+	}, nil).Once()
+
+	resp, err := s.callCard("SBER")
+
+	s.Require().NoError(err)
+	c := resp.Msg.GetCard()
+	s.Require().NotNil(c)
+	s.Equal("SBER", c.GetTicker())
+	s.Equal("MOEX", c.GetExchange())
+	s.Equal("Финансы", c.GetSector())
+	s.Equal(int32(40), c.GetSectorId())
+	s.Equal("Банковская деятельность", c.GetIndustry())
+	s.Equal(int32(401010), c.GetIndustryId())
+	s.Equal("Россия", c.GetCountry())
+	s.Equal("RUB", c.GetCurrency())
+	s.Equal("https://www.sberbank.com", c.GetSite())
+}
+
+func (s *serverSuite) TestGetCompanyCardInvalidArgument() {
+	_, err := s.callCard("")
+
+	var connectErr *connectrpc.Error
+	s.Require().ErrorAs(err, &connectErr)
+	s.Equal(connectrpc.CodeInvalidArgument, connectErr.Code())
+}
+
+func (s *serverSuite) TestGetCompanyCardNotFound() {
+	s.cards.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
+		Return(entities.CompanyCard{}, entities.ErrNotFound).Once()
+
+	_, err := s.callCard("ZZZZ")
+
+	var connectErr *connectrpc.Error
+	s.Require().ErrorAs(err, &connectErr)
+	s.Equal(connectrpc.CodeNotFound, connectErr.Code())
+}
+
+func (s *serverSuite) TestGetCompanyCardUnauthenticated() {
+	s.cards.EXPECT().FindByTicker(mock.Anything, "SBER").
+		Return(entities.CompanyCard{}, entities.ErrUnauthorized).Once()
+
+	_, err := s.callCard("SBER")
+
+	var connectErr *connectrpc.Error
+	s.Require().ErrorAs(err, &connectErr)
+	s.Equal(connectrpc.CodeUnauthenticated, connectErr.Code())
+}
+
+func (s *serverSuite) TestGetCompanyCardResourceExhausted() {
+	s.cards.EXPECT().FindByTicker(mock.Anything, "SBER").
+		Return(entities.CompanyCard{}, entities.ErrQuotaExceeded).Once()
+
+	_, err := s.callCard("SBER")
+
+	var connectErr *connectrpc.Error
+	s.Require().ErrorAs(err, &connectErr)
+	s.Equal(connectrpc.CodeResourceExhausted, connectErr.Code())
+}
+
+func (s *serverSuite) TestGetCompanyCardInternal() {
+	s.cards.EXPECT().FindByTicker(mock.Anything, "SBER").
+		Return(entities.CompanyCard{}, errors.New("boom")).Once()
+
+	_, err := s.callCard("SBER")
+
+	var connectErr *connectrpc.Error
+	s.Require().ErrorAs(err, &connectErr)
+	s.Equal(connectrpc.CodeInternal, connectErr.Code())
 }
 
 func (s *serverSuite) callCompany(ticker string) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
@@ -288,9 +234,9 @@ func (s *serverSuite) callCompany(ticker string) (*connectrpc.Response[companyv1
 	)
 }
 
-func (s *serverSuite) callMetrics(ticker string) (*connectrpc.Response[companyv1.GetCompanyMetricsResponse], error) {
-	return s.client.GetCompanyMetrics(
+func (s *serverSuite) callCard(ticker string) (*connectrpc.Response[companyv1.GetCompanyCardResponse], error) {
+	return s.client.GetCompanyCard(
 		context.Background(),
-		connectrpc.NewRequest(&companyv1.GetCompanyMetricsRequest{Ticker: ticker}),
+		connectrpc.NewRequest(&companyv1.GetCompanyCardRequest{Ticker: ticker}),
 	)
 }

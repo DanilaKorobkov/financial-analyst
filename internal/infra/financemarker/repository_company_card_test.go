@@ -22,7 +22,7 @@ type repositorySuite struct {
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	repo    *financemarker.CompanyMetricsRepository
+	repo    *financemarker.CompanyCardRepository
 }
 
 func TestRepositorySuite(t *testing.T) {
@@ -38,7 +38,7 @@ func (s *repositorySuite) SetupTest() {
 		s.handler(w, r)
 	}))
 	client := financemarker.NewClient(s.server.URL+"/api/fm/v2", "test-token", 5*time.Second)
-	s.repo = financemarker.NewCompanyMetricsRepository(client)
+	s.repo = financemarker.NewCompanyCardRepository(client)
 }
 
 func (s *repositorySuite) TearDownTest() {
@@ -46,70 +46,37 @@ func (s *repositorySuite) TearDownTest() {
 }
 
 func (s *repositorySuite) TestFindByTickerHappyPath() {
-	body := s.readFixture("sber_metrics.json")
+	body := s.readFixture("sber_card.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/api/fm/v2/stocks/MOEX:SBER", r.URL.Path)
 		s.Equal("test-token", r.URL.Query().Get("api_token"))
-		s.Equal("info,summary", r.URL.Query().Get("include"))
+		s.Equal("info", r.URL.Query().Get("include"))
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(body)
 	}
 
-	metrics, err := s.repo.FindByTicker(context.Background(), "SBER")
+	card, err := s.repo.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	expected := entities.CompanyMetrics{
-		Card: entities.CompanyCard{
-			Ticker:                "SBER",
-			Exchange:              "MOEX",
-			Name:                  "Сбербанк",
-			Sector:                "Финансы",
-			SectorID:              40,
-			Industry:              "Банковская деятельность",
-			IndustryID:            401010,
-			IndustryGroup:         "Банковская деятельность",
-			IndustryGroupID:       4010,
-			Country:               "Россия",
-			Currency:              "RUB",
-			PrimaryReportTicker:   "SBER",
-			PrimaryReportExchange: "MOEX",
-		},
-		Description:        "ПАО «Сбербанк» — крупнейший универсальный банк России.",
-		Site:               "https://www.sberbank.com",
-		DiscLink:           "https://www.sberbank.com/ru/investor-relations",
-		Capital:            97627.3,
-		EPS:                78.8,
-		PEG:                0.56,
-		PeterLynchTarget:   96.77,
-		GrahamTarget:       160.46,
-		DividendFrequency:  1,
-		DividendStrike:     4,
-		DividendGrowth:     3,
-		DividendIndex:      0.7,
-		DividendYield12m:   10.65,
-		DividendYield3y:    10.55,
-		DividendYield5y:    7.5,
-		DividendGapLast:    280,
-		DividendGapAverage: 482,
-		GrowthRevenue3y:    10.59,
-		GrowthRevenue5y:    13.42,
-		GrowthEarnings3y:   5.62,
-		GrowthEarnings5y:   7.37,
-		GrowthAssets3y:     9.69,
-		GrowthAssets5y:     10.89,
-		GrowthEquity3y:     10.45,
-		GrowthEquity5y:     9.72,
-		GrowthFCF5y:        7.57,
-		IdeaBuy:            9,
-		IdeaHold:           3,
-		IdeaSell:           0,
-		IdeaConsensus:      entities.IdeaConsensusBuy,
-		IdeaTarget:         387.392,
-		IdeaPotential:      20.9125,
-		InsiderConsensus:   entities.InsiderConsensusBuys,
-		ChangedAt:          time.Date(2026, 5, 11, 3, 32, 6, 0, time.UTC),
+	expected := entities.CompanyCard{
+		Ticker:                "SBER",
+		Exchange:              "MOEX",
+		Name:                  "Сбербанк",
+		Sector:                "Финансы",
+		Industry:              "Банковская деятельность",
+		IndustryGroup:         "Банковская деятельность",
+		Country:               "Россия",
+		Currency:              "RUB",
+		PrimaryReportTicker:   "SBER",
+		PrimaryReportExchange: "MOEX",
+		Description:           "ПАО «Сбербанк» — крупнейший универсальный банк России.",
+		Site:                  "https://www.sberbank.com",
+		DiscLink:              "https://www.sberbank.com/ru/investor-relations",
+		SectorID:              40,
+		IndustryID:            401010,
+		IndustryGroupID:       4010,
 	}
-	s.Equal(expected, metrics)
+	s.Equal(expected, card)
 }
 
 func (s *repositorySuite) TestFindByTickerNotFound() {

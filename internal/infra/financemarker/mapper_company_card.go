@@ -22,6 +22,13 @@ type infoDTO struct {
 	IndustryGroupID       int    `json:"industry_group_id"`
 }
 
+// stockDTO — корневой объект ответа эндпоинта по эмитенту. Здесь
+// разбирается только блок info — остальные разделы (summary / ratios / ...)
+// добавляются по мере появления соответствующих репозиториев.
+type stockDTO struct {
+	Info infoDTO `json:"info"`
+}
+
 // mapCompanyCard собирает entities.CompanyCard из info-блока FinanceMarker.
 func mapCompanyCard(info *infoDTO) entities.CompanyCard {
 	return entities.CompanyCard{
@@ -35,6 +42,9 @@ func mapCompanyCard(info *infoDTO) entities.CompanyCard {
 		Currency:              info.Currency,
 		PrimaryReportTicker:   info.PrimaryReportCode,
 		PrimaryReportExchange: info.PrimaryReportExchange,
+		Description:           info.Description,
+		Site:                  info.Site,
+		DiscLink:              info.DiscLink,
 		SectorID:              info.SectorID,
 		IndustryID:            info.IndustryID,
 		IndustryGroupID:       info.IndustryGroupID,
