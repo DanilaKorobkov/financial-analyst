@@ -11,7 +11,7 @@
 ## Ветки
 
 - Имя ветки: `<type>-<kebab-case>`. Никаких commits напрямую в `main`.
-- Расхождение с `main` разрешаем через `git fetch origin main:main && git merge main`.
+- Расхождение с `main` разрешаем через `git fetch origin main && git merge origin/main`.
 
 ## Staging и commits
 
