@@ -67,6 +67,10 @@ exclude = [
     # с placeholder'ами `{engine}`/`{market}`. Сервис нестабилен (часто 502),
     # шаблонные URL по определению не разрешаются. Проверяем вручную.
     '^https?://iss\.moex\.com',
+    # Workflow badge приватного репозитория. Без auth-токена GitHub возвращает
+    # 404; виден badge только авторизованным пользователям при рендере README,
+    # lychee его проверить не может.
+    '^https?://github\.com/DanilaKorobkov/financial-analyst/actions/workflows/',
 ]
 
 ############################

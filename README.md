@@ -1,5 +1,8 @@
 # financial-analyst
 
+[![checks](https://github.com/DanilaKorobkov/financial-analyst/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/DanilaKorobkov/financial-analyst/actions/workflows/checks.yml)
+![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)
+
 Программный финансовый аналитик: оценивает компании и индустрии несколькими независимыми методами.
 
 ## Установка окружения
