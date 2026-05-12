@@ -20,8 +20,9 @@ import (
 // Источник значений — только переменные окружения; дефолтов в коде нет.
 // Отсутствие любой `required` переменной — fatal на старте.
 type Config struct {
-	Moex   MoexConfig
-	Server ServerConfig
+	Moex          MoexConfig
+	FinanceMarker FinanceMarkerConfig
+	Server        ServerConfig
 }
 
 // MoexConfig — параметры доступа к MOEX ISS REST API.
@@ -33,6 +34,20 @@ type MoexConfig struct {
 	// Timeout — таймаут на один HTTP-запрос к MOEX ISS.
 	// Пример: `10s`.
 	Timeout time.Duration `env:"MOEX_TIMEOUT,required"`
+}
+
+// FinanceMarkerConfig — параметры доступа к FinanceMarker.ru REST API.
+type FinanceMarkerConfig struct {
+	// BaseURL — корень FinanceMarker API без завершающего слэша.
+	// Пример: `https://financemarker.ru/api/fm/v2`.
+	BaseURL string `env:"FINANCE_MARKER_BASE_URL,required"`
+
+	// Token — API-токен из профиля FinanceMarker.
+	Token string `env:"FINANCE_MARKER_TOKEN,required"`
+
+	// Timeout — таймаут на один HTTP-запрос к FinanceMarker.
+	// Пример: `10s`.
+	Timeout time.Duration `env:"FINANCE_MARKER_TIMEOUT,required"`
 }
 
 // ServerConfig — параметры Connect-сервера financial-analyst.
