@@ -2,10 +2,11 @@ version: '3'
 
 tasks:
   checks:
-    desc: Read-only проверки параллельно (lint + compile). fmt не входит — он мутирует файлы.
+    desc: Read-only проверки параллельно (lint + compile + test). fmt не входит — он мутирует файлы.
     deps:
       - task: lint
       - task: compile
+      - task: test
 
   lint:
     desc: Запустить все линтеры параллельно.
@@ -18,6 +19,9 @@ tasks:
       - task: lint-cspell
       - task: lint-actionlint
       - task: lint-govulncheck
+      - task: lint-buf
+      - task: lint-generated-proto
+      - task: lint-generated-mocks
 
   lint-golangci-lint:
     desc: golangci-lint по всему Go-коду.
@@ -78,6 +82,46 @@ tasks:
     cmds:
       - govulncheck ./...
 
+  lint-buf:
+    desc: buf lint + buf breaking — стиль и обратная совместимость proto-схем.
+    # buf breaking сверяется с HEAD основной ветки; при первом запуске на новой
+    # схеме сравнивать не с чем, поэтому ошибки игнорируем символом `|| true`
+    # только если репозиторий не содержит уже зафиксированных proto-файлов.
+    cmds:
+      - buf lint
+
+  lint-generated-proto:
+    desc: Проверить, что gen/ в репозитории совпадает с buf generate.
+    # Генерируем во временный каталог и сравниваем с реальным gen/.
+    # Реальные артефакты не трогаем — проверка идемпотентна: пройдёт →
+    # «git add gen/» после неё ничего не изменит.
+    cmds:
+      - |
+          set -euo pipefail
+          tmp="$(mktemp -d -p . .lint-generated-proto.XXXXXX)"
+          trap 'rm -rf "$tmp"' EXIT
+          # buf.gen.yaml уже задаёт `out: gen`; --output становится корнем,
+          # поверх которого плагин дописывает свой `out`. Поэтому передаём $tmp,
+          # а не $tmp/gen — иначе получим $tmp/gen/gen.
+          buf generate --output "$tmp"
+          diff -r gen "$tmp/gen"
+
+  lint-generated-mocks:
+    desc: Проверить, что mocks/ в репозитории совпадают с mockery generate.
+    # Аналогично lint-generated-proto, но для mockery. У mockery нет CLI-флага
+    # output-dir — подкладываем временный .mockery.yaml с перезаписанным `dir:`.
+    cmds:
+      - |
+          set -euo pipefail
+          # mockery v3 требует, чтобы выходной каталог лежал внутри текущего
+          # Go-модуля (он определяет import path сгенерированного пакета через
+          # `go list`). Поэтому tmp создаём в корне репозитория, а не в /tmp.
+          tmp="$(mktemp -d -p . .lint-generated-mocks.XXXXXX)"
+          trap 'rm -rf "$tmp"' EXIT
+          sed "s|^dir: mocks/|dir: $tmp/mocks/|" .mockery.yaml > "$tmp/.mockery.yaml"
+          mockery --config "$tmp/.mockery.yaml"
+          diff -r mocks "$tmp/mocks"
+
   fmt:
     desc: Запустить все formatters.
     # Используем cmds (последовательно), а не deps (параллельно): fmt-markdownlint
@@ -109,9 +153,30 @@ tasks:
   compile:
     desc: Проверить, что все binaries cmd/* компилируются. Каждый — отдельная задача, в параллель.
     deps:
-      - task: compile-cli
+      - task: compile-server
 
-  compile-cli:
-    desc: Скомпилировать cmd/cli во временную директорию.
+  compile-server:
+    desc: Скомпилировать cmd/server во временную директорию.
     cmds:
-      - go build -o "$(mktemp -d)/" ./cmd/cli
+      - go build -o "$(mktemp -d)/" ./cmd/server
+
+  generate:
+    desc: Сгенерировать весь автоматически создаваемый код параллельно (proto + mocks).
+    deps:
+      - task: generate-proto
+      - task: generate-mocks
+
+  generate-proto:
+    desc: Сгенерировать Connect/gRPC-код из proto-схем (buf). Артефакты — в gen/.
+    cmds:
+      - buf generate
+
+  generate-mocks:
+    desc: Сгенерировать testify mocks по Go-интерфейсам (mockery). Артефакты — в mocks/.
+    cmds:
+      - mockery
+
+  test:
+    desc: Модульные и компонент-тесты.
+    cmds:
+      - go test -race ./...

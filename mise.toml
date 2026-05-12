@@ -10,7 +10,7 @@
 [tools]
 
 # Основной рантайм проекта — весь runtime-код на Go.
-go = "1.26.1"
+go = "1.26.3"
 
 # Линтер Go-кода — единая точка правды по стилю и проверкам (.golangci.yml).
 golangci-lint = "2.12.2"
@@ -65,10 +65,25 @@ node = "22.11.0"
 # дополнительного файла; при необходимости можно завести .github/actionlint.yaml.
 "aqua:rhysd/actionlint" = "1.7.12"
 
+# buf — CLI для protobuf-схем: линт, breaking-check, кодген.
+"aqua:bufbuild/buf" = "1.69.0"
+
+# protoc-плагины для buf generate. Ставятся через go-backend mise
+# (собираются из исходников по pinned версии — единая сборка локально и в CI).
+# Remote plugins на buf.build требуют авторизации с конца 2024, поэтому
+# плагины подтянуты как локальные исполняемые файлы — это соответствует tooling.md
+# (go-backend mise разрешён, как и для govulncheck).
+"go:google.golang.org/protobuf/cmd/protoc-gen-go" = "1.36.6"
+"go:connectrpc.com/connect/cmd/protoc-gen-connect-go" = "1.18.1"
+
+# mockery — генератор mock-объектов по Go-интерфейсам (заменяет hand-rolled fakes).
+"aqua:vektra/mockery" = "3.7.0"
+
 # govulncheck — официальный сканер уязвимостей от команды Go
 # (golang.org/x/vuln). В отличие от gosec (паттерны кода) проверяет реальные
 # CVE в зависимостях и stdlib с учётом call graph: репортит только то, что
 # фактически вызывается из проекта. База — https://vuln.go.dev. Ставится
 # через go-backend mise — собирается из исходников по pinned версии, что
-# гарантирует одинаковую сборку локально и в CI.
+# гарантирует одинаковую сборку локально и в CI. Плагины protoc-gen-go и
+# protoc-gen-connect-go выше — тот же подход.
 "go:golang.org/x/vuln/cmd/govulncheck" = "1.1.4"

@@ -138,3 +138,5 @@ ignore: |
   .git/
   .idea/
   vendor/
+  .lint-generated-proto.*/
+  .lint-generated-mocks.*/

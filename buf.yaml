@@ -1,0 +1,29 @@
+# Конфиг buf — единая точка правды по proto-схемам.
+# Документация: https://buf.build/docs/configuration/v2/buf-yaml
+
+version: v2
+
+# Модули — корневые директории с .proto. Каждый модуль образует
+# собственное proto-пространство имён; импорты между модулями идут
+# через имена пакетов в .proto. У нас один модуль: api/proto.
+modules:
+  - path: api/proto
+
+# Lint — статические проверки стиля и структуры .proto.
+# Категории правил: https://buf.build/docs/lint/rules
+#   - STANDARD — рекомендованный пресет: имена пакетов в lower_snake_case,
+#     имена message в UpperCamelCase, поля в lower_snake_case, версионирование
+#     пакета (v1/v2 в имени), требование service-классов и т.п.
+lint:
+  use:
+    - STANDARD
+
+# Breaking — проверка обратной совместимости при изменении схем.
+# Категории: https://buf.build/docs/breaking/rules
+#   - WIRE_JSON — строже всех: ловит несовместимости по wire-формату
+#     (номера полей, типы) И по JSON-сериализации (json_name полей).
+#     WIRE — только wire. FILE — структура файлов. PACKAGE — пакеты.
+#   Подключается командой `buf breaking --against <ref>` (пока не в CI).
+breaking:
+  use:
+    - WIRE_JSON

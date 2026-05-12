@@ -25,7 +25,11 @@ jobs:
           - lint-cspell
           - lint-actionlint
           - lint-govulncheck
-          - compile-cli
+          - lint-buf
+          - lint-generated-proto
+          - lint-generated-mocks
+          - compile-server
+          - test
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:

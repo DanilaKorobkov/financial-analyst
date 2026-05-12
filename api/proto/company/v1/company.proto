@@ -1,0 +1,65 @@
+// Схема Connect-сервиса CompanyService.
+//
+// Возвращает справочную карточку эмитента MOEX по тикеру: имя, ISIN,
+// размер выпуска, уровень листинга, флаги торговых сессий. Источник данных —
+// блок description эндпоинта /iss/securities/{TICKER}.json публичного REST
+// API MOEX ISS.
+
+syntax = "proto3";
+
+package company.v1;
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+import "google/protobuf/timestamp.proto";
+
+service CompanyService {
+  rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
+}
+
+message GetCompanyRequest {
+  // Тикер бумаги MOEX (например, SBER, GAZP, LKOH).
+  string ticker = 1;
+}
+
+message GetCompanyResponse {
+  Company company = 1;
+}
+
+// SecurityType — тип бумаги, поле TYPE блока description MOEX ISS.
+//
+// Список значений см. эндпоинт `get_securitygroups` MOEX ISS. На первом
+// шаге проекта enum покрывает только акции; остальные значения добавим
+// по мере появления потребителей.
+enum SecurityType {
+  SECURITY_TYPE_UNSPECIFIED = 0;
+  SECURITY_TYPE_COMMON_SHARE = 1;
+  SECURITY_TYPE_PREFERRED_SHARE = 2;
+  SECURITY_TYPE_DEPOSITARY_RECEIPT = 3;
+}
+
+message Company {
+  string ticker = 1;
+  string isin = 2;
+  string name = 3;
+  string short_name = 4;
+  string reg_number = 5;
+  SecurityType security_type = 6;
+  // Код группы бумаг MOEX (stock_shares и т.п.).
+  string group = 7;
+  int64 issue_size = 8;
+  double face_value = 9;
+  // Валюта номинала (SUR = ₽, USD и т.п.).
+  string face_unit = 10;
+  google.protobuf.Timestamp issue_date = 11;
+  // Котировальный уровень MOEX (1/2/3). Отсутствует, если биржа не указала.
+  optional int32 listing_level = 12;
+  Sessions sessions = 13;
+  int64 emitter_id = 14;
+}
+
+message Sessions {
+  bool morning = 1;
+  bool evening = 2;
+  bool weekend = 3;
+}
