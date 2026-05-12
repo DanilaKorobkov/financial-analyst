@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	connectrpc "connectrpc.com/connect"
 	"github.com/stretchr/testify/mock"
@@ -50,14 +49,12 @@ func (s *serverSuite) TearDownTest() {
 }
 
 func (s *serverSuite) TestGetCompanyHappyPath() {
-	issueDate := time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC)
 	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.Company{
 		Ticker:       "SBER",
+		ISIN:         "RU0009029540",
 		Name:         "Сбербанк",
-		SecurityType: "common_share",
-		IssueDate:    issueDate,
-		ListingLevel: 1,
-		Sessions:     entities.Sessions{Morning: true},
+		SecurityType: entities.SecurityTypeCommonShare,
+		ListingLevel: entities.ListingLevelFirst,
 	}, nil).Once()
 
 	resp, err := s.call("SBER")
@@ -66,23 +63,19 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	company := resp.Msg.GetCompany()
 	s.Require().NotNil(company)
 	s.Equal("SBER", company.GetTicker())
+	s.Equal("RU0009029540", company.GetIsin())
 	s.Equal("Сбербанк", company.GetName())
 	s.Equal(companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE, company.GetSecurityType())
-	s.Require().NotNil(company.ListingLevel)
-	s.Equal(int32(1), company.GetListingLevel())
-	s.Equal(issueDate.Unix(), company.GetIssueDate().AsTime().Unix())
-	s.Require().NotNil(company.GetSessions())
-	s.True(company.GetSessions().GetMorning())
+	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_FIRST, company.GetListingLevel())
 }
 
-func (s *serverSuite) TestGetCompanyOmitsListingLevelWhenZero() {
+func (s *serverSuite) TestGetCompanyUnspecifiedListingLevel() {
 	s.companies.EXPECT().FindByTicker(mock.Anything, "X").Return(entities.Company{Ticker: "X"}, nil).Once()
 
 	resp, err := s.call("X")
 
 	s.Require().NoError(err)
-	s.Nil(resp.Msg.GetCompany().ListingLevel)
-	s.Nil(resp.Msg.GetCompany().IssueDate)
+	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED, resp.Msg.GetCompany().GetListingLevel())
 }
 
 func (s *serverSuite) TestGetCompanyNotFound() {

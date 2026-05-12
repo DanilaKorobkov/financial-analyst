@@ -23,8 +23,7 @@ func NewCompanyInfo(companies entities.CompanyRepository) *CompanyInfo {
 }
 
 // Lookup проверяет непустоту тикера и делегирует поиск репозиторию.
-// Тикер передаётся в источник как есть — все источники (MOEX ISS,
-// FinanceMarker) регистронезависимы, своей нормализации не делаем.
+// Тикер передаётся как есть, без нормализации.
 func (s *CompanyInfo) Lookup(ctx context.Context, ticker string) (entities.Company, error) {
 	if ticker == "" {
 		return entities.Company{}, ErrTickerEmpty
