@@ -16,13 +16,11 @@ type errorBody struct {
 	Code    int    `json:"code"`
 }
 
-// mapHTTPError переводит ошибочный HTTP-ответ FinanceMarker в domain-ошибку.
-//
-// Таблица соответствий:
-//   - 404                                            → entities.ErrNotFound;
-//   - 401 и 400 с message=token_not_found            → entities.ErrUnauthorized;
-//   - 403                                            → entities.ErrQuotaExceeded;
-//   - 5xx и прочие 4xx                               → ошибка с указанием кода.
+// mapHTTPError переводит ошибочный HTTP-ответ FinanceMarker в ошибку слоя
+// infra. В domain поднимается только entities.ErrNotFound — остальные коды
+// (401/403/400+token_not_found/5xx) едут наверх как непомеченный «внутренний
+// сбой» с указанием причины: для пользователя они неотличимы от 500, и
+// presentation мапит их в connect.CodeInternal.
 //
 // Если HTTP-ответ — успех, mapHTTPError возвращает nil.
 func mapHTTPError(resp *resty.Response) error {
@@ -31,20 +29,18 @@ func mapHTTPError(resp *resty.Response) error {
 	}
 
 	status := resp.StatusCode()
-	switch status {
-	case http.StatusNotFound:
+	switch {
+	case status == http.StatusNotFound:
 		return entities.ErrNotFound
-	case http.StatusUnauthorized:
-		return entities.ErrUnauthorized
-	case http.StatusForbidden:
-		return entities.ErrQuotaExceeded
-	case http.StatusBadRequest:
-		if decodeErrorMessage(resp.Body()) == "token_not_found" {
-			return entities.ErrUnauthorized
-		}
+	case status == http.StatusBadRequest && decodeErrorMessage(resp.Body()) == "token_not_found":
+		return fmt.Errorf("financemarker unauthorized: token_not_found")
+	case status == http.StatusUnauthorized:
+		return fmt.Errorf("financemarker unauthorized: http status %d", status)
+	case status == http.StatusForbidden:
+		return fmt.Errorf("financemarker quota exceeded: http status %d", status)
+	default:
+		return fmt.Errorf("financemarker http status %d", status)
 	}
-
-	return fmt.Errorf("financemarker http status %d", status)
 }
 
 // decodeErrorMessage возвращает поле message из JSON-ошибки FinanceMarker.

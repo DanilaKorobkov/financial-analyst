@@ -37,8 +37,11 @@ func (s *repositorySuite) SetupTest() {
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.handler(w, r)
 	}))
-	client := financemarker.NewClient(s.server.URL+"/api/fm/v2", "test-token", 5*time.Second)
-	s.repo = financemarker.NewCompanyCardRepository(client)
+	s.repo = financemarker.NewCompanyCardRepository(financemarker.ConfigCompanyCardRepository{
+		BaseURL: s.server.URL + "/api/fm/v2",
+		Token:   "test-token",
+		Timeout: 5 * time.Second,
+	})
 }
 
 func (s *repositorySuite) TearDownTest() {
@@ -79,72 +82,74 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 	s.Equal(expected, card)
 }
 
-func (s *repositorySuite) TestFindByTickerNotFound() {
-	body := s.readFixture("not_found.json")
-	s.handler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write(body)
+// TestFindByTickerErrorMapping проходит по таблице ответов FinanceMarker и
+// проверяет, что mapHTTPError + декодер payload-а возвращают ожидаемую ошибку.
+// Только 404 поднимается в domain как entities.ErrNotFound; остальные коды
+// (401, 403, 400+token_not_found, 5xx) едут наверх как непомеченный internal
+// сбой с указанием причины.
+func (s *repositorySuite) TestFindByTickerErrorMapping() {
+	cases := []struct {
+		errIs       error // если задан — проверяем errors.Is.
+		name        string
+		errContains string // иначе — проверяем подстроку в Error().
+		body        []byte
+		status      int
+	}{
+		{
+			name:   "not found mapped to domain ErrNotFound",
+			status: http.StatusNotFound,
+			body:   s.readFixture("not_found.json"),
+			errIs:  entities.ErrNotFound,
+		},
+		{
+			name:        "unauthorized by status reported as internal",
+			status:      http.StatusUnauthorized,
+			errContains: "financemarker unauthorized: http status 401",
+		},
+		{
+			name:        "token_not_found message reported as internal",
+			status:      http.StatusBadRequest,
+			body:        s.readFixture("unauthorized.json"),
+			errContains: "financemarker unauthorized: token_not_found",
+		},
+		{
+			name:        "quota exceeded reported as internal",
+			status:      http.StatusForbidden,
+			body:        s.readFixture("quota_exceeded.json"),
+			errContains: "financemarker quota exceeded: http status 403",
+		},
+		{
+			name:        "server error reported with code",
+			status:      http.StatusInternalServerError,
+			errContains: "financemarker http status 500",
+		},
+		{
+			name:        "invalid JSON payload reports decode error",
+			status:      http.StatusOK,
+			body:        []byte("not json"),
+			errContains: "decode financemarker payload",
+		},
 	}
 
-	_, err := s.repo.FindByTicker(context.Background(), "ZZZZ")
+	for _, c := range cases {
+		s.Run(c.name, func() {
+			s.handler = func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(c.status)
+				if c.body != nil {
+					_, _ = w.Write(c.body)
+				}
+			}
 
-	s.Require().ErrorIs(err, entities.ErrNotFound)
-}
+			_, err := s.repo.FindByTicker(context.Background(), "SBER")
 
-func (s *repositorySuite) TestFindByTickerUnauthorizedFromStatus() {
-	s.handler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
+			s.Require().Error(err)
+			if c.errIs != nil {
+				s.Require().ErrorIs(err, c.errIs)
+				return
+			}
+			s.ErrorContains(err, c.errContains)
+		})
 	}
-
-	_, err := s.repo.FindByTicker(context.Background(), "SBER")
-
-	s.Require().ErrorIs(err, entities.ErrUnauthorized)
-}
-
-func (s *repositorySuite) TestFindByTickerUnauthorizedFromTokenMessage() {
-	body := s.readFixture("unauthorized.json")
-	s.handler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write(body)
-	}
-
-	_, err := s.repo.FindByTicker(context.Background(), "SBER")
-
-	s.Require().ErrorIs(err, entities.ErrUnauthorized)
-}
-
-func (s *repositorySuite) TestFindByTickerQuotaExceeded() {
-	body := s.readFixture("quota_exceeded.json")
-	s.handler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write(body)
-	}
-
-	_, err := s.repo.FindByTicker(context.Background(), "SBER")
-
-	s.Require().ErrorIs(err, entities.ErrQuotaExceeded)
-}
-
-func (s *repositorySuite) TestFindByTickerServerError() {
-	s.handler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	_, err := s.repo.FindByTicker(context.Background(), "SBER")
-
-	s.Require().Error(err)
-	s.ErrorContains(err, "financemarker http status 500")
-}
-
-func (s *repositorySuite) TestFindByTickerInvalidJSON() {
-	s.handler = func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("not json"))
-	}
-
-	_, err := s.repo.FindByTicker(context.Background(), "SBER")
-
-	s.Require().Error(err)
-	s.ErrorContains(err, "decode financemarker payload")
 }
 
 func (s *repositorySuite) TestFindByTickerContextCancelled() {

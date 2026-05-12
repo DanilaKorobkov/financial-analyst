@@ -91,6 +91,49 @@ type CompanyRepository interface {
 
 На самом типе интерфейса — только общее назначение интерфейса.
 
+## Конструкторы
+
+Если конструктор принимает больше одного параметра (помимо `ctx`) —
+параметры заворачиваются в struct `Config<Entity>`, объявленный в том же
+пакете рядом с конструируемой сущностью. `ctx` остаётся отдельным
+параметром, если он нужен.
+
+```go
+type ConfigCompanyCardRepository struct {
+    BaseURL string
+    Token   string
+    Timeout time.Duration
+}
+
+func NewCompanyCardRepository(cfg ConfigCompanyCardRepository) *CompanyCardRepository { ... }   // ✅
+
+func NewCompanyCardRepository(baseURL, token string, timeout time.Duration) *CompanyCardRepository { ... } // ❌
+```
+
+Один параметр без `ctx` — оставляем как есть, конфиг-структуру не вводим
+ради единственного поля.
+
+## Domain-ошибки (sentinel)
+
+Sentinel-ошибка (`var ErrX = errors.New(...)`) вводится в
+`internal/domain/entities` только при выполнении **обоих** условий:
+
+1. Ошибка явно обрабатывается каким-то слоем сверху — `service` делает
+   fallback или `presentation` мапит её в конкретный HTTP/Connect-код,
+   отличный от внутренней ошибки.
+2. Ошибка не привязана к конкретной реализации порта — у неё есть смысл
+   для всех потенциальных источников данного порта.
+
+Если хотя бы одно из условий не выполняется — ошибку не выделяем как
+sentinel. В `infra` оборачиваем причину обычным `fmt.Errorf("...: %w", err)`,
+и она доезжает до presentation как непомеченный «внутренний сбой» (мапится в
+`CodeInternal`).
+
+Пример. `ErrCompanyNotFound` / `ErrNotFound` — да: presentation мапит в 404,
+смысл общий для любого источника. `ErrUnauthorized` / `ErrQuotaExceeded`
+(специфика FM-токена/квоты) — нет: для пользователя это всё равно «внутренний
+сбой», другой источник (MOEX без токена) такого не имеет.
+
 ## Конфигурация
 
 Конфиг приложения — `github.com/caarlos0/env/v11`. Источник — **только переменные окружения**. Никаких дефолтов в коде, никаких файлов, никаких flag'ов.
