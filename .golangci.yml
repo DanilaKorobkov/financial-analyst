@@ -36,6 +36,7 @@ linters:
     - nilerr          # return nil вместо известной ошибки — почти всегда баг
     - nilnil          # return nil, nil — двусмысленный API, заставляет звать обоих
     - errorlint       # требует %w при оборачивании, сравнение через errors.Is/As
+    - wrapcheck       # ошибка из другого пакета должна быть обёрнута fmt.Errorf("...: %w", err)
     - rowserrcheck    # database/sql: проверка rows.Err() после итерации
     - sqlclosecheck   # *sql.Rows / *sql.Stmt должны быть закрыты
     - contextcheck    # функция должна пробрасывать ctx, а не делать context.Background()
@@ -196,6 +197,22 @@ linters:
     misspell:
       locale: US
 
+    wrapcheck:
+      # По умолчанию wrapcheck ловит ошибки из любого пакета, отличного от
+      # текущего. Сохраняем дефолт — обёртка обязательна и для своих
+      # внутренних пакетов (пересечение границы слоя).
+      # extra-ignore-sigs добавляется к дефолтному списку wrapcheck
+      # (.Errorf( / errors.New( / errors.Unwrap( / errors.Join( / .Wrap( ...).
+      extra-ignore-sigs:
+        # Парсеры stdlib — внутренние утилиты-обёртки парсят данные и
+        # возвращают ошибку наружу; обёртку добавляет вызывающий слой,
+        # который знает, что именно парсилось (имя поля).
+        - strconv.ParseInt(
+        - strconv.ParseFloat(
+        - strconv.Atoi(
+        - time.Parse(
+        - time.ParseInLocation(
+
     godot:
       scope: declarations
       capital: false
@@ -227,6 +244,7 @@ linters:
           - mnd             # литералы в тестах — норма
           - goconst
           - errcheck        # в тестах ошибки часто обрабатываются через require
+          - wrapcheck       # тесты вызывают чужой код напрямую и инспектируют raw error
       # main.go — точка входа, допускаем чуть больше "процедурного" кода.
       - path: cmd/.*/main\.go
         linters:

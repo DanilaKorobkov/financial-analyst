@@ -4,6 +4,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
 )
@@ -28,5 +29,9 @@ func (s *CompanyInfo) Lookup(ctx context.Context, ticker string) (entities.Compa
 	if ticker == "" {
 		return entities.Company{}, ErrTickerEmpty
 	}
-	return s.companies.FindByTicker(ctx, ticker)
+	company, err := s.companies.FindByTicker(ctx, ticker)
+	if err != nil {
+		return entities.Company{}, fmt.Errorf("lookup ticker %q: %w", ticker, err)
+	}
+	return company, nil
 }

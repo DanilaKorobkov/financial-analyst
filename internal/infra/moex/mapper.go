@@ -6,8 +6,14 @@ import (
 	"strconv"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
+
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
 )
+
+// json — JSON-парсер с поведением, идентичным encoding/json:
+// sorted map keys, html-escape, validateRawMessage. См. rules/golang.md.
+var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // descriptionField — одна строка блока description в ответе ISS.
 //
@@ -27,7 +33,7 @@ var errDescriptionBlockMissing = fmt.Errorf("description block missing in payloa
 // parseDescription разбирает блок description как map[name]value, без сохранения порядка.
 func parseDescription(raw []byte) (map[string]string, error) {
 	var payload extendedPayload
-	if err := json.Unmarshal(raw, &payload); err != nil {
+	if err := jsonParser.Unmarshal(raw, &payload); err != nil {
 		return nil, fmt.Errorf("decode extended payload: %w", err)
 	}
 
@@ -37,7 +43,7 @@ func parseDescription(raw []byte) (map[string]string, error) {
 			continue
 		}
 		var fields []descriptionField
-		if err := json.Unmarshal(rawDesc, &fields); err != nil {
+		if err := jsonParser.Unmarshal(rawDesc, &fields); err != nil {
 			return nil, fmt.Errorf("decode description block: %w", err)
 		}
 		out := make(map[string]string, len(fields))
@@ -54,7 +60,7 @@ func parseDescription(raw []byte) (map[string]string, error) {
 // Пустой map → entities.ErrCompanyNotFound (тикер не найден).
 func mapDescription(fields map[string]string) (entities.Company, error) {
 	if len(fields) == 0 {
-		return entities.Company{}, entities.ErrCompanyNotFound
+		return entities.Company{}, fmt.Errorf("empty description block: %w", entities.ErrCompanyNotFound)
 	}
 
 	issueSize, err := parseInt64(fields["ISSUESIZE"])

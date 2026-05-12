@@ -89,7 +89,7 @@ func (s *repositorySuite) TestFindByTickerInvalidJSON() {
 	_, err := s.repo.FindByTicker(context.Background(), "SBER")
 
 	s.Require().Error(err)
-	s.NotErrorIs(err, entities.ErrCompanyNotFound)
+	s.ErrorContains(err, "decode extended payload")
 }
 
 func (s *repositorySuite) TestFindByTickerNotFound() {
@@ -111,7 +111,7 @@ func (s *repositorySuite) TestFindByTickerServerError() {
 	_, err := s.repo.FindByTicker(context.Background(), "SBER")
 
 	s.Require().Error(err)
-	s.NotErrorIs(err, entities.ErrCompanyNotFound)
+	s.ErrorContains(err, "moex http status 500")
 }
 
 func (s *repositorySuite) TestFindByTickerContextCancelled() {
@@ -121,6 +121,8 @@ func (s *repositorySuite) TestFindByTickerContextCancelled() {
 	_, err := s.repo.FindByTicker(ctx, "SBER")
 
 	s.Require().Error(err)
+	s.ErrorContains(err, "context canceled")
+	s.ErrorContains(err, "moex request")
 }
 
 func (s *repositorySuite) readFixture(name string) []byte {

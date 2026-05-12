@@ -34,6 +34,19 @@ type CompanyInfo struct {
 
 Для внешних HTTP-вызовов используется `github.com/go-resty/resty/v2`, не голый `net/http`.
 
+## JSON
+
+Для разбора и сериализации JSON используется `github.com/json-iterator/go` в режиме `jsoniter.ConfigCompatibleWithStandardLibrary` — drop-in для `encoding/json` (sorted map keys, html-escape, `ValidateJsonRawMessage`), но 2–3× быстрее. Тип `json.RawMessage` остаётся из `encoding/json` — это просто `[]byte`.
+
+```go
+import jsoniter "github.com/json-iterator/go"
+
+var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
+// jsonParser.Unmarshal(...) / jsonParser.Marshal(...)
+```
+
+`ConfigFastest` НЕ используем: `MarshalFloatWith6Digits=true` режет точность float-полей (FACEVALUE и т.п.).
+
 ## Doc-комментарии интерфейсов
 
 Описание возвращаемых значений и ошибок располагается на **методе** интерфейса, а не на типе:

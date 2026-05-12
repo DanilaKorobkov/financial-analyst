@@ -74,15 +74,20 @@ FinanceMarker
 golangci        # golangci-lint
 pipx            # Python CLI installer
 
-# --- Сгенерированные идентификаторы protobuf / Connect ---
+# --- Идентификаторы protobuf / Connect (используются в hand-written коде) ---
 companyv        # пакет gen/company/v1 → companyv1 / companyv1connect
 connectrpc      # connectrpc.com/connect — runtime библиотека Connect
 Isin            # геттер сгенерированного proto-поля isin (GetIsin)
 timestamppb     # google.golang.org/protobuf/types/known/timestamppb
 pconnect        # импорт-алиас presentation/connect в композиции
-nolint          # директива golangci-lint в коде
+
+# --- Имена Go-библиотек проекта ---
 resty           # HTTP-клиент github.com/go-resty/resty/v2
 godotenv        # библиотека github.com/joho/godotenv (.env loader)
+jsoniter        # JSON-парсер github.com/json-iterator/go
+
+# --- Директивы линтеров ---
+nolint          # директива golangci-lint в коде
 
 # --- MOEX ISS API термины (имена эндпоинтов / блоков / параметров) ---
 deviationcoeffs   # имя эндпоинта /iss/.../deviationcoeffs.json
