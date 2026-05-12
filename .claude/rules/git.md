@@ -8,6 +8,12 @@
 
 - `feat` `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
 
+## База для PR и имени ветки
+
+- При формировании описания PR и предложенного имени ветки базой сравнения служит **`origin/main`**, не локальный `main` (локальный может отставать и тянуть в diff уже влитые в `origin/main` commits).
+- Перед сбором контекста: `git fetch origin main`, далее `git diff origin/main...HEAD` и `git log origin/main..HEAD`.
+- На сообщение commit это не распространяется — там анализируется staged/unstaged diff, `main` не участвует.
+
 ## Ветки
 
 - Имя ветки: `<type>-<kebab-case>`. Никаких commits напрямую в `main`.
