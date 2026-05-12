@@ -1,8 +1,7 @@
 // Схема Connect-сервиса CompanyService.
 //
-// Возвращает справочную карточку эмитента MOEX по тикеру: имя, ISIN,
-// тип бумаги, уровень листинга. Источник данных — блок description
-// эндпоинта /iss/securities/{TICKER}.json публичного REST API MOEX ISS.
+// Возвращает справочную карточку эмитента по тикеру: имя, ISIN,
+// тип бумаги, уровень листинга.
 
 syntax = "proto3";
 
@@ -15,7 +14,7 @@ service CompanyService {
 }
 
 message GetCompanyRequest {
-  // Тикер бумаги MOEX (например, SBER, GAZP, LKOH).
+  // Тикер бумаги (например, SBER, GAZP, LKOH).
   string ticker = 1;
 }
 
@@ -23,11 +22,8 @@ message GetCompanyResponse {
   Company company = 1;
 }
 
-// SecurityType — тип бумаги, поле TYPE блока description MOEX ISS.
-//
-// Список значений см. эндпоинт `get_securitygroups` MOEX ISS. На первом
-// шаге проекта enum покрывает только акции; остальные значения добавим
-// по мере появления потребителей.
+// SecurityType — тип бумаги. На первом шаге проекта enum покрывает
+// только акции; остальные значения добавим по мере появления потребителей.
 enum SecurityType {
   SECURITY_TYPE_UNSPECIFIED = 0;
   SECURITY_TYPE_COMMON_SHARE = 1;
@@ -35,8 +31,7 @@ enum SecurityType {
   SECURITY_TYPE_DEPOSITARY_RECEIPT = 3;
 }
 
-// ListingLevel — котировальный уровень MOEX. UNSPECIFIED означает,
-// что биржа не указала уровень (поле LISTLEVEL отсутствовало в ответе).
+// ListingLevel — котировальный уровень. UNSPECIFIED — уровень не указан.
 enum ListingLevel {
   LISTING_LEVEL_UNSPECIFIED = 0;
   LISTING_LEVEL_FIRST = 1;

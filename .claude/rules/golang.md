@@ -47,14 +47,31 @@ var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
 
 `ConfigFastest` НЕ используем: `MarshalFloatWith6Digits=true` режет точность float-полей (FACEVALUE и т.п.).
 
-## Domain-слой и источники данных
+## Изоляция слоёв в комментариях
 
-Доменные сущности (`internal/domain/entities`) **не должны знать**, откуда берутся данные. В doc-комментариях domain-типов запрещено упоминать конкретные источники: имена провайдеров, эндпоинты, имена полей внешних API, форматы payload.
+Слои: `domain` (ядро — `entities`, `services`), `infra` (адаптеры внешних систем — `internal/infra/<provider>/`), `presentation` (транспортный контракт — `api/proto/*.proto` и handlers `internal/presentation/`).
 
-- ✅ `// ListingLevel — котировальный уровень бумаги.`
-- ❌ `// ListingLevel — котировальный уровень MOEX (поле LISTLEVEL блока description).`
+В doc-комментариях и публичных строках **верхнего** слоя нельзя упоминать детали **нижнего** или **смежного** слоя. Правило симметрично коду: слой, который не зависит от другого, не должен знать о нём и в текстовом виде.
 
-Привязка к источнику — деталь infra-слоя; такие комментарии живут рядом с маппером (`internal/infra/<provider>/mapper.go`), а не в `entities`.
+| Слой           | Может упоминать                                      | НЕ должен упоминать                                            |
+| -------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| `domain`       | только domain-понятия                                | провайдеров, эндпоинты, имена полей внешних API, proto/HTTP    |
+| `presentation` | domain-понятия, особенности своего транспорта        | конкретных провайдеров, имена полей и эндпоинты внешних систем |
+| `infra`        | domain-понятия + детали своего конкретного источника | другие источники, presentation                                 |
+
+Хорошо:
+
+- ✅ `// ListingLevel — котировальный уровень бумаги.` (`domain`)
+- ✅ `// SecurityType — тип бумаги.` (`presentation`, `.proto`)
+- ✅ `// parseListingLevel переводит LISTLEVEL блока description MOEX → entities.ListingLevel.` (`infra/moex`)
+
+Плохо:
+
+- ❌ `// Company — карточка эмитента MOEX. Поля из блока description /iss/securities/{TICKER}.json.` в `domain`
+- ❌ `// Возвращает справочную карточку эмитента MOEX по тикеру.` в `.proto`
+- ❌ `// Тикер передаётся в источник как есть — все источники (MOEX ISS, FinanceMarker) регистронезависимы.` в `domain/services`
+
+Привязка к конкретному источнику — деталь `infra`-слоя; такие комментарии живут рядом с маппером (`internal/infra/<provider>/mapper.go`), а не в `domain` или `presentation`.
 
 ## Doc-комментарии интерфейсов
 
