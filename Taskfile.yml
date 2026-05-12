@@ -161,8 +161,29 @@ tasks:
       - go build -o "$(mktemp -d)/" ./cmd/server
 
   run-server:
-    desc: Запустить Connect-сервер (cmd/server) локально.
+    desc: Запустить Connect-сервер. Если порт уже занят — освободить и перезапустить.
+    # preconditions останавливают задачу до cmds. .env обязателен:
+    # caarlos0/env с `required` и без дефолтов упадёт с невнятной ошибкой,
+    # поэтому проверяем явно и подсказываем команду копирования.
+    preconditions:
+      - sh: test -f .env
+        msg: .env не найден — выполни `cp .env.example .env`.
+    # Порт читаем из самого .env, чтобы Taskfile не дублировал значение
+    # SERVER_PORT и автоматически следовал за конфигом.
+    vars:
+      # `[ -f .env ] && grep ... || true` — глушим ошибку grep, если .env нет:
+      # vars вычисляются раньше preconditions, и иначе пользователь увидит
+      # "grep: .env: No such file or directory" поверх осмысленного сообщения.
+      PORT:
+        sh: '[ -f .env ] && grep -E "^SERVER_PORT=" .env | cut -d= -f2 || true'
     cmds:
+      # SIGKILL — обработчик процесса не успевает выполниться, ядро снимает
+      # процесс и освобождает порт сразу при доставке сигнала. Это убирает
+      # необходимость опрашивать порт в цикле. `xargs -I{}` корректно
+      # обрабатывает пустой вход (когда порт свободен) — без -I `xargs`
+      # на macOS вызвал бы `kill -9` без аргументов и упал. `/bin/kill` —
+      # потому что встроенный shell go-task (mvdan/sh) не реализует builtin.
+      - lsof -tiTCP:{{.PORT}} -sTCP:LISTEN 2>/dev/null | xargs -I{} /bin/kill -9 {}
       - go run ./cmd/server
 
   generate:

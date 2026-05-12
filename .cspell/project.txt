@@ -207,6 +207,8 @@ Refinitiv
 # --- Имена инструментов разработки ---
 govulncheck       # официальный сканер CVE для Go (golang.org/x/vuln)
 gosec             # security-линтер для Go
+caarlos           # автор github.com/caarlos0/env (упоминание в комментариях)
+mvdan             # автор встроенного POSIX-shell в go-task (mvdan/sh)
 
 # --- ISIN / SECID для ОФЗ ---
 RMFS
