@@ -2,10 +2,11 @@ version: '3'
 
 tasks:
   checks:
-    desc: Read-only проверки параллельно (lint + compile). fmt не входит — он мутирует файлы.
+    desc: Read-only проверки параллельно (lint + compile + test). fmt не входит — он мутирует файлы.
     deps:
       - task: lint
       - task: compile
+      - task: test
 
   lint:
     desc: Запустить все линтеры параллельно.
