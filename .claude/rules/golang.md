@@ -73,6 +73,8 @@ var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
 
 Привязка к конкретному источнику — деталь `infra`-слоя; такие комментарии живут рядом с маппером (`internal/infra/<provider>/mapper.go`), а не в `domain` или `presentation`.
 
+**Исключение — composition root.** `app/` и `cmd/` собирают приложение и по природе знают обо всех слоях: тип `MoexConfig`, конструктор `moex.NewCompanyRepository`, env-переменная `MOEX_BASE_URL` называются на своём «настоящем» имени. Правило изоляции к ним не применяется.
+
 ## Doc-комментарии интерфейсов
 
 Описание возвращаемых значений и ошибок располагается на **методе** интерфейса, а не на типе:
