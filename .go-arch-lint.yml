@@ -81,15 +81,12 @@ deps:
     anyVendorDeps: true
 
   generated:
-    mayDependOn:
-      - generated
     anyVendorDeps: true
 
   mocks:
     mayDependOn:
       - entities
       - services
-      - mocks
     anyVendorDeps: true
 
   app:
