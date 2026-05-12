@@ -12,6 +12,7 @@ const (
 	SecurityTypeDepositaryReceipt
 )
 
+//nolint:grouper // отдельный блок для независимого iota-enum (счётчик iota не сбрасывается внутри одного блока).
 const (
 	// ListingLevelUnspecified — уровень не указан.
 	ListingLevelUnspecified ListingLevel = iota
