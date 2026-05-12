@@ -17,7 +17,7 @@ import (
 //go:embed testdata/*.json
 var testdataFS embed.FS
 
-type RepositorySuite struct {
+type repositorySuite struct {
 	suite.Suite
 
 	handler func(http.ResponseWriter, *http.Request)
@@ -25,7 +25,12 @@ type RepositorySuite struct {
 	repo    *moex.CompanyRepository
 }
 
-func (s *RepositorySuite) SetupTest() {
+func TestRepositorySuite(t *testing.T) {
+	t.Parallel()
+	suite.Run(t, new(repositorySuite))
+}
+
+func (s *repositorySuite) SetupTest() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -35,18 +40,11 @@ func (s *RepositorySuite) SetupTest() {
 	s.repo = moex.NewCompanyRepository(s.server.URL+"/iss", 5*time.Second)
 }
 
-func (s *RepositorySuite) TearDownTest() {
+func (s *repositorySuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *RepositorySuite) readFixture(name string) []byte {
-	s.T().Helper()
-	raw, err := testdataFS.ReadFile("testdata/" + name)
-	s.Require().NoError(err)
-	return raw
-}
-
-func (s *RepositorySuite) TestFindByTickerHappyPath() {
+func (s *repositorySuite) TestFindByTickerHappyPath() {
 	body := s.readFixture("sber.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/iss/securities/SBER.json", r.URL.Path)
@@ -83,7 +81,7 @@ func (s *RepositorySuite) TestFindByTickerHappyPath() {
 	s.Equal(expected, company)
 }
 
-func (s *RepositorySuite) TestFindByTickerInvalidJSON() {
+func (s *repositorySuite) TestFindByTickerInvalidJSON() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("not json"))
 	}
@@ -94,7 +92,7 @@ func (s *RepositorySuite) TestFindByTickerInvalidJSON() {
 	s.NotErrorIs(err, entities.ErrCompanyNotFound)
 }
 
-func (s *RepositorySuite) TestFindByTickerNotFound() {
+func (s *repositorySuite) TestFindByTickerNotFound() {
 	body := s.readFixture("not_found.json")
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
@@ -105,7 +103,7 @@ func (s *RepositorySuite) TestFindByTickerNotFound() {
 	s.Require().ErrorIs(err, entities.ErrCompanyNotFound)
 }
 
-func (s *RepositorySuite) TestFindByTickerServerError() {
+func (s *repositorySuite) TestFindByTickerServerError() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -116,7 +114,7 @@ func (s *RepositorySuite) TestFindByTickerServerError() {
 	s.NotErrorIs(err, entities.ErrCompanyNotFound)
 }
 
-func (s *RepositorySuite) TestFindByTickerContextCancelled() {
+func (s *repositorySuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -125,7 +123,9 @@ func (s *RepositorySuite) TestFindByTickerContextCancelled() {
 	s.Require().Error(err)
 }
 
-func TestRepositorySuite(t *testing.T) {
-	t.Parallel()
-	suite.Run(t, new(RepositorySuite))
+func (s *repositorySuite) readFixture(name string) []byte {
+	s.T().Helper()
+	raw, err := testdataFS.ReadFile("testdata/" + name)
+	s.Require().NoError(err)
+	return raw
 }

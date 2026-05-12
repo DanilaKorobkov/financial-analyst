@@ -74,11 +74,6 @@ FinanceMarker
 golangci        # golangci-lint
 pipx            # Python CLI installer
 
-# --- GitHub-логины авторов инструментов (упоминаются в путях aqua: в mise.toml) ---
-rhysd           # автор actionlint (aqua:rhysd/actionlint)
-vektra          # автор mockery (aqua:vektra/mockery)
-caarlos         # автор github.com/caarlos0/env
-
 # --- Сгенерированные идентификаторы protobuf / Connect ---
 companyv        # пакет gen/company/v1 → companyv1 / companyv1connect
 connectrpc      # connectrpc.com/connect — runtime библиотека Connect

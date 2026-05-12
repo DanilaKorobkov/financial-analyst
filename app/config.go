@@ -39,6 +39,10 @@ type MoexConfig struct {
 type ServerConfig struct {
 	// Port — TCP-порт, который слушает сервер. Bind по всем интерфейсам.
 	Port uint16 `env:"SERVER_PORT,required"`
+
+	// ReadHeaderTimeout — лимит на чтение заголовков HTTP-запроса.
+	// Защищает от Slowloris-атак; см. http.Server.ReadHeaderTimeout.
+	ReadHeaderTimeout time.Duration `env:"SERVER_READ_HEADER_TIMEOUT,required"`
 }
 
 // LoadConfig читает Config из переменных окружения. Перед разбором env

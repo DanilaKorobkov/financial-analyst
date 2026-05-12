@@ -167,11 +167,6 @@ tasks:
       - mockery
 
   test:
-    desc: Модульные и компонент-тесты (без integration build tag).
+    desc: Модульные и компонент-тесты.
     cmds:
       - go test -race ./...
-
-  test-integration:
-    desc: Integration-тесты (build tag integration) — вертикальный срез через fake-MOEX.
-    cmds:
-      - go test -race -tags=integration ./tests/integration/...

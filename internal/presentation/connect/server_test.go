@@ -20,7 +20,7 @@ import (
 	entities_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/entities"
 )
 
-type ServerSuite struct {
+type serverSuite struct {
 	suite.Suite
 
 	companies *entities_mock.CompanyRepository
@@ -28,7 +28,12 @@ type ServerSuite struct {
 	client    companyv1connect.CompanyServiceClient
 }
 
-func (s *ServerSuite) SetupTest() {
+func TestServerSuite(t *testing.T) {
+	t.Parallel()
+	suite.Run(t, new(serverSuite))
+}
+
+func (s *serverSuite) SetupTest() {
 	s.companies = entities_mock.NewCompanyRepository(s.T())
 	srv := pconnect.NewServer(services.NewCompanyInfo(s.companies))
 
@@ -40,18 +45,11 @@ func (s *ServerSuite) SetupTest() {
 	s.client = companyv1connect.NewCompanyServiceClient(s.server.Client(), s.server.URL)
 }
 
-func (s *ServerSuite) TearDownTest() {
+func (s *serverSuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *ServerSuite) call(ticker string) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
-	return s.client.GetCompany(
-		context.Background(),
-		connectrpc.NewRequest(&companyv1.GetCompanyRequest{Ticker: ticker}),
-	)
-}
-
-func (s *ServerSuite) TestGetCompanyHappyPath() {
+func (s *serverSuite) TestGetCompanyHappyPath() {
 	issueDate := time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC)
 	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.Company{
 		Ticker:       "SBER",
@@ -77,7 +75,7 @@ func (s *ServerSuite) TestGetCompanyHappyPath() {
 	s.True(company.GetSessions().GetMorning())
 }
 
-func (s *ServerSuite) TestGetCompanyOmitsListingLevelWhenZero() {
+func (s *serverSuite) TestGetCompanyOmitsListingLevelWhenZero() {
 	s.companies.EXPECT().FindByTicker(mock.Anything, "X").Return(entities.Company{Ticker: "X"}, nil).Once()
 
 	resp, err := s.call("X")
@@ -87,7 +85,7 @@ func (s *ServerSuite) TestGetCompanyOmitsListingLevelWhenZero() {
 	s.Nil(resp.Msg.GetCompany().IssueDate)
 }
 
-func (s *ServerSuite) TestGetCompanyNotFound() {
+func (s *serverSuite) TestGetCompanyNotFound() {
 	s.companies.EXPECT().FindByTicker(mock.Anything, "ZZZZ").Return(entities.Company{}, entities.ErrCompanyNotFound).Once()
 
 	_, err := s.call("ZZZZ")
@@ -97,7 +95,7 @@ func (s *ServerSuite) TestGetCompanyNotFound() {
 	s.Equal(connectrpc.CodeNotFound, connectErr.Code())
 }
 
-func (s *ServerSuite) TestGetCompanyInvalidArgument() {
+func (s *serverSuite) TestGetCompanyInvalidArgument() {
 	_, err := s.call("")
 
 	var connectErr *connectrpc.Error
@@ -105,7 +103,7 @@ func (s *ServerSuite) TestGetCompanyInvalidArgument() {
 	s.Equal(connectrpc.CodeInvalidArgument, connectErr.Code())
 }
 
-func (s *ServerSuite) TestGetCompanyInternal() {
+func (s *serverSuite) TestGetCompanyInternal() {
 	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.Company{}, errors.New("downstream boom")).Once()
 
 	_, err := s.call("SBER")
@@ -115,7 +113,9 @@ func (s *ServerSuite) TestGetCompanyInternal() {
 	s.Equal(connectrpc.CodeInternal, connectErr.Code())
 }
 
-func TestServerSuite(t *testing.T) {
-	t.Parallel()
-	suite.Run(t, new(ServerSuite))
+func (s *serverSuite) call(ticker string) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
+	return s.client.GetCompany(
+		context.Background(),
+		connectrpc.NewRequest(&companyv1.GetCompanyRequest{Ticker: ticker}),
+	)
 }

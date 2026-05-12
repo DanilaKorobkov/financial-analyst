@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/DanilaKorobkov/financial-analyst/app"
 )
-
-const readHeaderTimeout = 5 * time.Second
 
 func main() {
 	cfg, err := app.LoadConfig()
@@ -22,7 +19,7 @@ func main() {
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           app.New(cfg),
-		ReadHeaderTimeout: readHeaderTimeout,
+		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 	}
 
 	log.Printf("Connect-сервер слушает %s", addr)
