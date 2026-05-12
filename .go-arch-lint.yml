@@ -54,6 +54,14 @@ components:
   internal-pkg:
     in: internal/pkg/**
 
+  # Публичная техническая «библиотека» проекта: то, что в принципе можно
+  # вынести наружу (отдельным модулем или копипастой) — например,
+  # observability-обвязка, общие типы. Сейчас пуст, но компонент заведён
+  # заранее, чтобы зафиксировать правило: pkg ни от чего внутреннего не
+  # зависит (leaf), а импортировать его может любой слой.
+  pkg:
+    in: pkg/**
+
   # Composition root приложения — собирает domain + infra + presentation
   # в работающий процесс. Единственный компонент, которому разрешено
   # знать обо всех остальных.
@@ -109,17 +117,29 @@ deps:
       - app
     anyVendorDeps: true
 
+  # internal-pkg и pkg — leaf-компоненты: вверх по слоям не зависят. Это
+  # делает их пригодными для импорта из любой части проекта без риска
+  # циклов и без размывания границ. internal-pkg может пользоваться pkg
+  # (как «внутренняя» обёртка над «публичной» библиотекой), но не наоборот.
   internal-pkg:
     mayDependOn:
       - internal-pkg
+      - pkg
     anyVendorDeps: true
 
-# generated, mocks и pkg — служебные компоненты, доступные всем без явного
-# перечисления в mayDependOn (proto-код и моки нужны и тестам, и app;
-# pkg — технические HTTP/observability-утилиты, общие для всех слоёв).
+  pkg:
+    mayDependOn:
+      - pkg
+    anyVendorDeps: true
+
+# generated, mocks, internal-pkg и pkg — служебные компоненты, доступные
+# всем без явного перечисления в mayDependOn. generated и mocks — артефакты
+# кодгенерации, нужные и тестам, и app; internal-pkg и pkg — leaf-библиотеки
+# технической обвязки (HTTP, observability, общие типы), не имеющие слоя.
 commonComponents:
   - generated
   - mocks
   - internal-pkg
+  - pkg
 
 commonVendors: []
