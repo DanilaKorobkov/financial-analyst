@@ -43,7 +43,7 @@ func NewCompanyRepository(baseURL string, timeout time.Duration) *CompanyReposit
 
 // FindByTicker запрашивает description у MOEX и маппит в entities.Company.
 //
-// Возвращает entities.ErrCompanyNotFound, если ISS вернула пустой блок
+// Возвращает entities.ErrMissingCompany, если ISS вернула пустой блок
 // description (тикер не существует).
 func (r *CompanyRepository) FindByTicker(ctx context.Context, ticker string) (entities.Company, error) {
 	resp, err := r.client.R().

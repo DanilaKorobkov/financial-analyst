@@ -29,24 +29,51 @@ type stockDTO struct {
 	Info infoDTO `json:"info"`
 }
 
-// mapCompanyCard собирает entities.CompanyCard из info-блока FinanceMarker.
-func mapCompanyCard(info *infoDTO) entities.CompanyCard {
+// translateCompanyCard собирает entities.CompanyCard из info-блока FinanceMarker.
+func translateCompanyCard(info *infoDTO) entities.CompanyCard {
 	return entities.CompanyCard{
 		Ticker:                info.Code,
-		Exchange:              info.Exchange,
+		Exchange:              translateExchange(info.Exchange),
 		Name:                  info.Name,
 		Sector:                info.Sector,
 		Industry:              info.Industry,
 		IndustryGroup:         info.IndustryGroup,
 		Country:               info.Country,
-		Currency:              info.Currency,
+		Currency:              translateCurrency(info.Currency),
 		PrimaryReportTicker:   info.PrimaryReportCode,
-		PrimaryReportExchange: info.PrimaryReportExchange,
+		PrimaryReportExchange: translateExchange(info.PrimaryReportExchange),
 		Description:           info.Description,
 		Site:                  info.Site,
 		DiscLink:              info.DiscLink,
 		SectorID:              info.SectorID,
 		IndustryID:            info.IndustryID,
 		IndustryGroupID:       info.IndustryGroupID,
+	}
+}
+
+// translateExchange переводит строковый код биржи FinanceMarker в domain-enum.
+// Незнакомые значения становятся ExchangeUnspecified — набор бирж со временем
+// расширяется.
+func translateExchange(s string) entities.Exchange {
+	switch s {
+	case codeExchangeMOEX:
+		return entities.ExchangeMOEX
+	default:
+		return entities.ExchangeUnspecified
+	}
+}
+
+// translateCurrency переводит ISO 4217-код валюты FinanceMarker в domain-enum.
+// Незнакомые значения становятся CurrencyUnspecified.
+func translateCurrency(s string) entities.Currency {
+	switch s {
+	case "RUB":
+		return entities.CurrencyRUB
+	case "USD":
+		return entities.CurrencyUSD
+	case "EUR":
+		return entities.CurrencyEUR
+	default:
+		return entities.CurrencyUnspecified
 	}
 }

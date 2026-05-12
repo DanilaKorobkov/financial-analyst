@@ -88,7 +88,7 @@ func (s *repositorySuite) TestFindByTickerNotFound() {
 
 	_, err := s.repo.FindByTicker(context.Background(), "ZZZZ")
 
-	s.Require().ErrorIs(err, entities.ErrCompanyNotFound)
+	s.Require().ErrorIs(err, entities.ErrMissingCompany)
 }
 
 func (s *repositorySuite) TestFindByTickerServerError() {

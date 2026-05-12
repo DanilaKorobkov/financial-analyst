@@ -56,11 +56,11 @@ func (s *companyInfoSuite) TestLookupEmptyTicker() {
 }
 
 func (s *companyInfoSuite) TestLookupNotFoundPropagates() {
-	s.companies.EXPECT().FindByTicker(context.Background(), "ZZZZ").Return(entities.Company{}, entities.ErrCompanyNotFound).Once()
+	s.companies.EXPECT().FindByTicker(context.Background(), "ZZZZ").Return(entities.Company{}, entities.ErrMissingCompany).Once()
 
 	_, err := s.service.Lookup(context.Background(), "ZZZZ")
 
-	s.Require().ErrorIs(err, entities.ErrCompanyNotFound)
+	s.Require().ErrorIs(err, entities.ErrMissingCompany)
 }
 
 func (s *companyInfoSuite) TestLookupArbitraryErrorPropagates() {

@@ -116,7 +116,7 @@ func NewCompanyCardRepository(baseURL, token string, timeout time.Duration) *Com
 ## Domain-ошибки (sentinel)
 
 Sentinel-ошибка (`var ErrX = errors.New(...)`) вводится в
-`internal/domain/entities` только при выполнении **обоих** условий:
+`internal/domain` только при выполнении **обоих** условий:
 
 1. Ошибка явно обрабатывается каким-то слоем сверху — `service` делает
    fallback или `presentation` переводит её в конкретный HTTP/Connect-код,

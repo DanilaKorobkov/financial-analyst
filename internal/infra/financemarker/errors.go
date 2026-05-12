@@ -20,7 +20,7 @@ type errorBody struct {
 }
 
 // mapHTTPError переводит ошибочный HTTP-ответ FinanceMarker в ошибку слоя
-// infra. В domain поднимается только entities.ErrNotFound — остальные коды
+// infra. В domain поднимается только entities.ErrMissingCompany — остальные коды
 // (401/403/400+token_not_found/5xx) едут наверх как непомеченный «внутренний
 // сбой» с указанием причины: для пользователя они неотличимы от 500, и
 // presentation переводит их в connect.CodeInternal.
@@ -34,7 +34,7 @@ func mapHTTPError(resp *resty.Response) error {
 	status := resp.StatusCode()
 	switch {
 	case status == http.StatusNotFound:
-		return entities.ErrNotFound
+		return entities.ErrMissingCompany
 	case status == http.StatusBadRequest && decodeErrorMessage(resp.Body()) == "token_not_found":
 		return fmt.Errorf("financemarker unauthorized: token_not_found")
 	case status == http.StatusUnauthorized:

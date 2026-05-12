@@ -58,20 +58,20 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	card, err := s.repo.FindByTicker(context.Background(), "SBER")
+	card, err := s.repo.FindByTicker(context.Background(), entities.ExchangeMOEX, "SBER")
 
 	s.Require().NoError(err)
 	expected := entities.CompanyCard{
 		Ticker:                "SBER",
-		Exchange:              "MOEX",
+		Exchange:              entities.ExchangeMOEX,
 		Name:                  "Сбербанк",
 		Sector:                "Финансы",
 		Industry:              "Банковская деятельность",
 		IndustryGroup:         "Банковская деятельность",
 		Country:               "Россия",
-		Currency:              "RUB",
+		Currency:              entities.CurrencyRUB,
 		PrimaryReportTicker:   "SBER",
-		PrimaryReportExchange: "MOEX",
+		PrimaryReportExchange: entities.ExchangeMOEX,
 		Description:           "ПАО «Сбербанк» — крупнейший универсальный банк России.",
 		Site:                  "https://www.sberbank.com",
 		DiscLink:              "https://www.sberbank.com/ru/investor-relations",
@@ -84,7 +84,7 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 
 // TestFindByTickerErrorMapping проходит по таблице ответов FinanceMarker и
 // проверяет, что mapHTTPError + декодер payload-а возвращают ожидаемую ошибку.
-// Только 404 поднимается в domain как entities.ErrNotFound; остальные коды
+// Только 404 поднимается в domain как entities.ErrMissingCompany; остальные коды
 // (401, 403, 400+token_not_found, 5xx) едут наверх как непомеченный internal
 // сбой с указанием причины.
 func (s *repositorySuite) TestFindByTickerErrorMapping() {
@@ -96,10 +96,10 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 		status      int
 	}{
 		{
-			name:   "not found mapped to domain ErrNotFound",
+			name:   "not found mapped to domain ErrMissingCompany",
 			status: http.StatusNotFound,
 			body:   s.readFixture("not_found.json"),
-			errIs:  entities.ErrNotFound,
+			errIs:  entities.ErrMissingCompany,
 		},
 		{
 			name:        "unauthorized by status reported as internal",
@@ -140,7 +140,7 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 				}
 			}
 
-			_, err := s.repo.FindByTicker(context.Background(), "SBER")
+			_, err := s.repo.FindByTicker(context.Background(), entities.ExchangeMOEX, "SBER")
 
 			s.Require().Error(err)
 			if c.errIs != nil {
@@ -152,15 +152,41 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 	}
 }
 
+func (s *repositorySuite) TestFindByTickerExchangeValidation() {
+	cases := []struct {
+		name        string
+		errContains string
+		exchange    entities.Exchange
+	}{
+		{
+			name:        "unspecified exchange rejected",
+			exchange:    entities.ExchangeUnspecified,
+			errContains: "financemarker: exchange is unspecified",
+		},
+		{
+			name:        "unsupported exchange rejected",
+			exchange:    entities.Exchange(99),
+			errContains: "financemarker: unsupported exchange 99",
+		},
+	}
+
+	for _, c := range cases {
+		s.Run(c.name, func() {
+			_, err := s.repo.FindByTicker(context.Background(), c.exchange, "SBER")
+			s.Require().Error(err)
+			s.ErrorContains(err, c.errContains)
+		})
+	}
+}
+
 func (s *repositorySuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := s.repo.FindByTicker(ctx, "SBER")
+	_, err := s.repo.FindByTicker(ctx, entities.ExchangeMOEX, "SBER")
 
 	s.Require().Error(err)
-	s.ErrorContains(err, "context canceled")
-	s.ErrorContains(err, "financemarker request")
+	s.ErrorContains(err, "financemarker request: Get \""+s.server.URL+"/api/fm/v2/stocks/MOEX:SBER?api_token=test-token&include=info\": context canceled")
 }
 
 func (s *repositorySuite) readFixture(name string) []byte {

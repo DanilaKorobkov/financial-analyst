@@ -40,7 +40,7 @@ func mapDomainError(err error) error {
 	switch {
 	case errors.Is(err, services.ErrTickerEmpty):
 		return connectrpc.NewError(connectrpc.CodeInvalidArgument, err)
-	case errors.Is(err, entities.ErrCompanyNotFound):
+	case errors.Is(err, entities.ErrMissingCompany):
 		return connectrpc.NewError(connectrpc.CodeNotFound, err)
 	default:
 		return connectrpc.NewError(connectrpc.CodeInternal, err)
