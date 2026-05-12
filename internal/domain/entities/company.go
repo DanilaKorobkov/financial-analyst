@@ -1,26 +1,27 @@
 // Package entities — плоские domain-сущности (без подпапок на агрегат).
 package entities
 
+// Численные значения зафиксированы явно: enum-ы выходят наружу через
+// proto-контракт presentation-слоя, и `iota` сделал бы порядок строк
+// load-bearing — вставка члена в середину сдвинула бы коды.
 const (
 	// SecurityTypeUnspecified — неизвестный или неподдерживаемый тип.
-	SecurityTypeUnspecified SecurityType = iota
+	SecurityTypeUnspecified SecurityType = 0
 	// SecurityTypeCommonShare — обыкновенная акция.
-	SecurityTypeCommonShare
+	SecurityTypeCommonShare SecurityType = 1
 	// SecurityTypePreferredShare — привилегированная акция.
-	SecurityTypePreferredShare
+	SecurityTypePreferredShare SecurityType = 2
 	// SecurityTypeDepositaryReceipt — депозитарная расписка.
-	SecurityTypeDepositaryReceipt
-)
+	SecurityTypeDepositaryReceipt SecurityType = 3
 
-const (
 	// ListingLevelUnspecified — уровень не указан.
-	ListingLevelUnspecified ListingLevel = iota
+	ListingLevelUnspecified ListingLevel = 0
 	// ListingLevelFirst — первый котировальный уровень.
-	ListingLevelFirst
+	ListingLevelFirst ListingLevel = 1
 	// ListingLevelSecond — второй котировальный уровень.
-	ListingLevelSecond
+	ListingLevelSecond ListingLevel = 2
 	// ListingLevelThird — третий котировальный уровень.
-	ListingLevelThird
+	ListingLevelThird ListingLevel = 3
 )
 
 // Company — справочная карточка эмитента.
