@@ -1,21 +1,22 @@
 package entities
 
+// Численные значения зафиксированы явно: enum-ы выходят наружу через
+// proto-контракт presentation-слоя, и `iota` сделал бы порядок строк
+// load-bearing — вставка члена в середину сдвинула бы коды.
 const (
 	// ExchangeUnspecified — биржа не определена или неподдерживаемая.
-	ExchangeUnspecified Exchange = iota
+	ExchangeUnspecified Exchange = 0
 	// ExchangeMOEX — Московская биржа.
-	ExchangeMOEX
-)
+	ExchangeMOEX Exchange = 1
 
-const (
 	// CurrencyUnspecified — валюта не определена или неподдерживаемая.
-	CurrencyUnspecified Currency = iota
+	CurrencyUnspecified Currency = 0
 	// CurrencyRUB — российский рубль (ISO 4217: RUB).
-	CurrencyRUB
+	CurrencyRUB Currency = 1
 	// CurrencyUSD — доллар США (ISO 4217: USD).
-	CurrencyUSD
+	CurrencyUSD Currency = 2
 	// CurrencyEUR — евро (ISO 4217: EUR).
-	CurrencyEUR
+	CurrencyEUR Currency = 3
 )
 
 // CompanyCard — карточка эмитента: идентификация, классификация (страна,

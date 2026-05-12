@@ -12,12 +12,14 @@ import (
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
 )
 
-// includeInfo — значение query-параметра include, ограничивающее ответ
-// блоком info (классификация, описание, ссылки).
-const includeInfo = "info"
+const (
+	// includeInfo — значение query-параметра include, ограничивающее ответ
+	// блоком info (классификация, описание, ссылки).
+	includeInfo = "info"
 
-// codeExchangeMOEX — строковый код Московской биржи в формате FinanceMarker.
-const codeExchangeMOEX = "MOEX"
+	// codeExchangeMOEX — строковый код Московской биржи в формате FinanceMarker.
+	codeExchangeMOEX = "MOEX"
+)
 
 // ConfigCompanyCardRepository — параметры доступа к FinanceMarker для
 // репозитория карточек эмитента.
