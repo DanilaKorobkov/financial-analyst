@@ -127,7 +127,7 @@ func (s *serverSuite) TestGetCompanyUnspecifiedListingLevel() {
 }
 
 func (s *serverSuite) TestGetCompanyNotFound() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "ZZZZ").Return(entities.Company{}, entities.ErrCompanyNotFound).Once()
+	s.companies.EXPECT().FindByTicker(mock.Anything, "ZZZZ").Return(entities.Company{}, entities.ErrMissingCompany).Once()
 
 	_, err := s.call("ZZZZ")
 

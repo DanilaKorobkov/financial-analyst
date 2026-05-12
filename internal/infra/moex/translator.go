@@ -57,10 +57,10 @@ func parseDescription(raw []byte) (map[string]string, error) {
 }
 
 // mapDescription собирает entities.Company из map[name]value блока description.
-// Пустой map → entities.ErrCompanyNotFound (тикер не найден).
+// Пустой map → entities.ErrMissingCompany (тикер не найден).
 func mapDescription(fields map[string]string) (entities.Company, error) {
 	if len(fields) == 0 {
-		return entities.Company{}, fmt.Errorf("empty description block: %w", entities.ErrCompanyNotFound)
+		return entities.Company{}, fmt.Errorf("empty description block: %w", entities.ErrMissingCompany)
 	}
 
 	listLevel, err := parseListingLevel(fields["LISTLEVEL"])
