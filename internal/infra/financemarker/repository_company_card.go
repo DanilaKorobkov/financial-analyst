@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	jsoniter "github.com/json-iterator/go"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
+	"github.com/DanilaKorobkov/financial-analyst/internal/pkg/httpx"
 )
 
 const (
@@ -48,24 +48,15 @@ func NewCompanyCardRepository(cfg ConfigCompanyCardRepository) *CompanyCardRepos
 	return &CompanyCardRepository{client: newRestyClient(cfg.BaseURL, cfg.Token, cfg.Timeout)}
 }
 
-// newRestyClient собирает resty-клиент для FinanceMarker. Декларативная
-// конфигурация: базовый URL, таймаут, api_token, jsoniter-парсер, тип
-// ошибочного body (errorBody) и middleware, который превращает ошибочные
-// HTTP-ответы в типизированные ошибки. После этого репозиторий пишет только
-// запрос и тип ответа — статус и payload разбираются прозрачно.
+// newRestyClient собирает resty-клиент для FinanceMarker. Общие дефолты
+// (jsoniter, BaseURL, Timeout) приходят из httpx; здесь — провайдер-специфика:
+// api_token во всех запросах, тип ошибочного body (errorBody) и middleware,
+// который превращает ошибочные HTTP-ответы в типизированные ошибки.
 func newRestyClient(baseURL, token string, timeout time.Duration) *resty.Client {
-	jsonParser := jsoniter.ConfigCompatibleWithStandardLibrary
-
-	return resty.New().
-		SetBaseURL(baseURL).
-		SetTimeout(timeout).
+	client := httpx.New(httpx.Config{BaseURL: baseURL, Timeout: timeout}).
 		SetQueryParam("api_token", token).
-		SetJSONUnmarshaler(jsonParser.Unmarshal).
-		SetJSONMarshaler(jsonParser.Marshal).
-		SetError(&errorBody{}).
-		OnAfterResponse(func(_ *resty.Client, resp *resty.Response) error {
-			return classifyError(resp)
-		})
+		SetError(&errorBody{})
+	return httpx.OnError(client, classifyError)
 }
 
 // FindByTicker запрашивает карточку эмитента и переводит её в entities.CompanyCard.

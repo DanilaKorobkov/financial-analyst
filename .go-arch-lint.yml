@@ -47,6 +47,13 @@ components:
   mocks:
     in: mocks/**
 
+  # Технические утилиты проекта (HTTP-клиенты, retry, observability). Слоя
+  # не имеют, доступны через commonComponents любому пакету, кому нужны.
+  # Имя — internal-pkg, чтобы не путать с конвенцией публичного `pkg/` на
+  # корне проекта.
+  internal-pkg:
+    in: internal/pkg/**
+
   # Composition root приложения — собирает domain + infra + presentation
   # в работающий процесс. Единственный компонент, которому разрешено
   # знать обо всех остальных.
@@ -102,10 +109,17 @@ deps:
       - app
     anyVendorDeps: true
 
-# generated и mocks — служебные компоненты, доступные всем без явного
-# перечисления в mayDependOn (proto-код и моки нужны и тестам, и app).
+  internal-pkg:
+    mayDependOn:
+      - internal-pkg
+    anyVendorDeps: true
+
+# generated, mocks и pkg — служебные компоненты, доступные всем без явного
+# перечисления в mayDependOn (proto-код и моки нужны и тестам, и app;
+# pkg — технические HTTP/observability-утилиты, общие для всех слоёв).
 commonComponents:
   - generated
   - mocks
+  - internal-pkg
 
 commonVendors: []

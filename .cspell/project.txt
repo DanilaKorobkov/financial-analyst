@@ -86,6 +86,9 @@ resty           # HTTP-клиент github.com/go-resty/resty/v2
 godotenv        # библиотека github.com/joho/godotenv (.env loader)
 jsoniter        # JSON-парсер github.com/json-iterator/go
 
+# --- Имена внутренних пакетов проекта ---
+httpx           # internal/pkg/httpx — общие HTTP-утилиты
+
 # --- Директивы линтеров ---
 nolint          # директива golangci-lint в коде
 
