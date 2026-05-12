@@ -59,24 +59,11 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 
 	s.Require().NoError(err)
 	expected := entities.Company{
-		IssueDate:    time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC),
 		Ticker:       "SBER",
 		ISIN:         "RU0009029540",
 		Name:         "Сбербанк России ПАО ао",
-		ShortName:    "Сбербанк",
-		RegNumber:    "10301481B",
-		SecurityType: "common_share",
-		Group:        "stock_shares",
-		FaceUnit:     "SUR",
-		IssueSize:    21586948000,
-		EmitterID:    484,
-		FaceValue:    3.0,
-		ListingLevel: 1,
-		Sessions: entities.Sessions{
-			Morning: true,
-			Evening: true,
-			Weekend: true,
-		},
+		SecurityType: entities.SecurityTypeCommonShare,
+		ListingLevel: entities.ListingLevelFirst,
 	}
 	s.Equal(expected, company)
 }

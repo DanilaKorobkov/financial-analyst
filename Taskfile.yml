@@ -160,6 +160,11 @@ tasks:
     cmds:
       - go build -o "$(mktemp -d)/" ./cmd/server
 
+  run-server:
+    desc: Запустить Connect-сервер (cmd/server) локально.
+    cmds:
+      - go run ./cmd/server
+
   generate:
     desc: Сгенерировать весь автоматически создаваемый код параллельно (proto + mocks).
     deps:

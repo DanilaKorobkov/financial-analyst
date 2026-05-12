@@ -3,8 +3,6 @@ package moex
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -63,77 +61,50 @@ func mapDescription(fields map[string]string) (entities.Company, error) {
 		return entities.Company{}, fmt.Errorf("empty description block: %w", entities.ErrCompanyNotFound)
 	}
 
-	issueSize, err := parseInt64(fields["ISSUESIZE"])
-	if err != nil {
-		return entities.Company{}, fmt.Errorf("ISSUESIZE: %w", err)
-	}
-	faceValue, err := parseFloat64(fields["FACEVALUE"])
-	if err != nil {
-		return entities.Company{}, fmt.Errorf("FACEVALUE: %w", err)
-	}
-	issueDate, err := parseDate(fields["ISSUEDATE"])
-	if err != nil {
-		return entities.Company{}, fmt.Errorf("ISSUEDATE: %w", err)
-	}
-	listLevel, err := parseInt(fields["LISTLEVEL"])
+	listLevel, err := parseListingLevel(fields["LISTLEVEL"])
 	if err != nil {
 		return entities.Company{}, fmt.Errorf("LISTLEVEL: %w", err)
-	}
-	emitterID, err := parseInt64(fields["EMITTER_ID"])
-	if err != nil {
-		return entities.Company{}, fmt.Errorf("EMITTER_ID: %w", err)
 	}
 
 	return entities.Company{
 		Ticker:       fields["SECID"],
 		ISIN:         fields["ISIN"],
 		Name:         fields["NAME"],
-		ShortName:    fields["SHORTNAME"],
-		RegNumber:    fields["REGNUMBER"],
-		SecurityType: fields["TYPE"],
-		Group:        fields["GROUP"],
-		IssueSize:    issueSize,
-		FaceValue:    faceValue,
-		FaceUnit:     fields["FACEUNIT"],
-		IssueDate:    issueDate,
+		SecurityType: parseSecurityType(fields["TYPE"]),
 		ListingLevel: listLevel,
-		Sessions: entities.Sessions{
-			Morning: parseBool(fields["MORNINGSESSION"]),
-			Evening: parseBool(fields["EVENINGSESSION"]),
-			Weekend: parseBool(fields["WEEKENDSESSION"]),
-		},
-		EmitterID: emitterID,
 	}, nil
 }
 
-func parseInt64(s string) (int64, error) {
-	if s == "" {
-		return 0, nil
+// parseSecurityType переводит код TYPE блока description MOEX в domain-enum.
+// Неизвестные значения становятся SecurityTypeUnspecified — TYPE задаётся
+// биржей и со временем расширяется (фонды, облигации и т.п.).
+func parseSecurityType(s string) entities.SecurityType {
+	switch s {
+	case "common_share":
+		return entities.SecurityTypeCommonShare
+	case "preferred_share":
+		return entities.SecurityTypePreferredShare
+	case "depositary_receipt":
+		return entities.SecurityTypeDepositaryReceipt
+	default:
+		return entities.SecurityTypeUnspecified
 	}
-	return strconv.ParseInt(s, 10, 64)
 }
 
-func parseInt(s string) (int, error) {
-	if s == "" {
-		return 0, nil
+// parseListingLevel переводит строковое значение LISTLEVEL ("1" / "2" / "3" / "")
+// в entities.ListingLevel. Пустое значение — биржа не указала уровень.
+// Любое другое значение — ошибка: список уровней зафиксирован MOEX.
+func parseListingLevel(s string) (entities.ListingLevel, error) {
+	switch s {
+	case "":
+		return entities.ListingLevelUnspecified, nil
+	case "1":
+		return entities.ListingLevelFirst, nil
+	case "2":
+		return entities.ListingLevelSecond, nil
+	case "3":
+		return entities.ListingLevelThird, nil
+	default:
+		return entities.ListingLevelUnspecified, fmt.Errorf("unexpected LISTLEVEL value: %q", s)
 	}
-	return strconv.Atoi(s)
-}
-
-func parseFloat64(s string) (float64, error) {
-	if s == "" {
-		return 0, nil
-	}
-	return strconv.ParseFloat(s, 64)
-}
-
-func parseBool(s string) bool {
-	return s == "1"
-}
-
-func parseDate(s string) (time.Time, error) {
-	if s == "" {
-		return time.Time{}, nil
-	}
-	return time.ParseInLocation("2006-01-02", s, time.UTC)
 }
