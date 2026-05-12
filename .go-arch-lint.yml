@@ -1,0 +1,113 @@
+version: 3
+workdir: .
+
+# deepScan = false — отключаем дорогостоящий «advanced»-режим go-arch-lint,
+# который трекает аргументы вызовов и DI-инъекции через composition root и
+# репортит, что infra «зависит» от services только потому, что объект из infra
+# передаётся в конструктор services в app/. Нам нужна именно граница импортов
+# на уровне пакетов, поэтому оставляем только базовый компонентный линтер
+# и vendor-проверку.
+allow:
+  deepScan: false
+
+# Архитектурные слои проекта и разрешённые стрелки зависимостей.
+# Проверяется go-arch-lint (см. mise.toml). Цель — детерминированно
+# гарантировать, что domain не знает об infra/presentation, presentation
+# не знает о конкретных провайдерах, а провайдеры в infra не знают друг
+# о друге. composition root (app/, cmd/) — единственное место, которому
+# разрешено собирать всё вместе.
+
+components:
+  # Ядро домена. Сущности и порты (интерфейсы репозиториев) живут в entities.
+  entities:
+    in: internal/domain/entities
+  # Доменные сервисы. Знают только entities — никаких HTTP/gRPC/провайдеров.
+  services:
+    in: internal/domain/services
+
+  # Адаптеры внешних источников данных. Каждый провайдер — отдельный
+  # компонент, чтобы запретить их перекрёстные импорты. Provider знает
+  # только domain entities и нужные ему vendor-пакеты.
+  infra_moex:
+    in: internal/infra/moex
+
+  # Транспортный слой. Знает domain и сгенерированный proto-код (generated).
+  presentation:
+    in: internal/presentation/**
+
+  # Сгенерированный buf'ом proto-код. За форму его импортов отвечает кодген,
+  # поэтому внутрь не лезем, а снаружи разрешаем импортировать всем, кому надо
+  # (см. commonComponents ниже).
+  generated:
+    in: gen/**
+
+  # Моки от mockery. Используются только в тестах. Доступны всем через
+  # commonComponents.
+  mocks:
+    in: mocks/**
+
+  # Composition root приложения — собирает domain + infra + presentation
+  # в работающий процесс. Единственный компонент, которому разрешено
+  # знать обо всех остальных.
+  app:
+    in: app
+  cmd:
+    in: cmd/**
+
+deps:
+  entities:
+    mayDependOn:
+      - entities
+    anyVendorDeps: true
+
+  services:
+    mayDependOn:
+      - entities
+      - services
+    anyVendorDeps: true
+
+  infra_moex:
+    mayDependOn:
+      - entities
+      - infra_moex
+    anyVendorDeps: true
+
+  presentation:
+    mayDependOn:
+      - entities
+      - services
+      - presentation
+    anyVendorDeps: true
+
+  generated:
+    mayDependOn:
+      - generated
+    anyVendorDeps: true
+
+  mocks:
+    mayDependOn:
+      - entities
+      - services
+      - mocks
+    anyVendorDeps: true
+
+  app:
+    mayDependOn:
+      - entities
+      - services
+      - infra_moex
+      - presentation
+    anyVendorDeps: true
+
+  cmd:
+    mayDependOn:
+      - app
+    anyVendorDeps: true
+
+# generated и mocks — служебные компоненты, доступные всем без явного
+# перечисления в mayDependOn (proto-код и моки нужны и тестам, и app).
+commonComponents:
+  - generated
+  - mocks
+
+commonVendors: []
