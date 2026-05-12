@@ -134,6 +134,9 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			s.handler = func(w http.ResponseWriter, _ *http.Request) {
+				if c.body != nil {
+					w.Header().Set("Content-Type", "application/json")
+				}
 				w.WriteHeader(c.status)
 				if c.body != nil {
 					_, _ = w.Write(c.body)

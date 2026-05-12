@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
 )
@@ -47,18 +48,30 @@ func NewCompanyCardRepository(cfg ConfigCompanyCardRepository) *CompanyCardRepos
 	return &CompanyCardRepository{client: newRestyClient(cfg.BaseURL, cfg.Token, cfg.Timeout)}
 }
 
-// newRestyClient собирает resty-клиент для FinanceMarker: фиксирует базовый
-// URL, таймаут и автоматически прокидывает api_token во все запросы.
+// newRestyClient собирает resty-клиент для FinanceMarker. Декларативная
+// конфигурация: базовый URL, таймаут, api_token, jsoniter-парсер, тип
+// ошибочного body (errorBody) и middleware, который превращает ошибочные
+// HTTP-ответы в типизированные ошибки. После этого репозиторий пишет только
+// запрос и тип ответа — статус и payload разбираются прозрачно.
 func newRestyClient(baseURL, token string, timeout time.Duration) *resty.Client {
+	jsonParser := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	return resty.New().
 		SetBaseURL(baseURL).
 		SetTimeout(timeout).
-		SetQueryParam("api_token", token)
+		SetQueryParam("api_token", token).
+		SetJSONUnmarshaler(jsonParser.Unmarshal).
+		SetJSONMarshaler(jsonParser.Marshal).
+		SetError(&errorBody{}).
+		OnAfterResponse(func(_ *resty.Client, resp *resty.Response) error {
+			return classifyError(resp)
+		})
 }
 
 // FindByTicker запрашивает карточку эмитента и переводит её в entities.CompanyCard.
 // Биржу принимаем явно: символ для FM собирается как "{exchange}:{ticker}".
-// Перевод HTTP-ошибок в domain/internal-ошибки — в mapHTTPError.
+// Сетевые и HTTP-ошибки приходят из resty-клиента уже классифицированными
+// (см. newRestyClient / classifyError), сюда — только транспорт.
 func (r *CompanyCardRepository) FindByTicker(
 	ctx context.Context,
 	exchange entities.Exchange,
@@ -69,21 +82,22 @@ func (r *CompanyCardRepository) FindByTicker(
 		return entities.CompanyCard{}, err
 	}
 
+	var dto stockDTO
 	resp, err := r.client.R().
 		SetContext(ctx).
 		SetPathParam("symbol", symbol).
 		SetQueryParam("include", includeInfo).
+		SetResult(&dto).
 		Get("/stocks/{symbol}")
 	if err != nil {
-		return entities.CompanyCard{}, fmt.Errorf("financemarker request: %w", err)
-	}
-	if err := mapHTTPError(resp); err != nil {
-		return entities.CompanyCard{}, err
-	}
-
-	var dto stockDTO
-	if err := jsonParser.Unmarshal(resp.Body(), &dto); err != nil {
-		return entities.CompanyCard{}, fmt.Errorf("decode financemarker payload: %w", err)
+		switch {
+		case resp == nil || resp.StatusCode() == 0:
+			return entities.CompanyCard{}, fmt.Errorf("financemarker request: %w", err)
+		case !resp.IsError():
+			return entities.CompanyCard{}, fmt.Errorf("decode financemarker payload: %w", err)
+		default:
+			return entities.CompanyCard{}, err //nolint:wrapcheck // err уже сформирован нашим OnAfterResponse (classifyError)
+		}
 	}
 
 	return translateCompanyCard(&dto.Info), nil
