@@ -28,6 +28,7 @@ jobs:
           - lint-buf
           - lint-generated-proto
           - lint-generated-mocks
+          - lint-test-coverage
           - compile-server
           - test
     name: check (${{ matrix.target }})
