@@ -116,3 +116,11 @@ node = "22.11.0"
 # исключается). Exit code != 0 при недоборе — CI падает.
 # Документация: https://github.com/vladopajic/go-test-coverage
 "go:github.com/vladopajic/go-test-coverage/v2" = "2.18.4"
+
+# go-arch-lint — детерминированная проверка слоёной архитектуры по графу импортов.
+# Описание компонентов и разрешённых стрелок зависимостей — в .go-arch-lint.yml
+# в корне репозитория. Падает, если, например, internal/domain/** импортирует
+# что-то из internal/infra/** или internal/presentation/**. Composition root
+# (app/, cmd/) — единственное место, которому разрешено знать обо всех слоях.
+# Документация: https://github.com/fe3dback/go-arch-lint
+"go:github.com/fe3dback/go-arch-lint" = "1.14.0"

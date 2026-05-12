@@ -9,12 +9,14 @@ import (
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
 )
 
-// json — JSON-парсер с поведением, идентичным encoding/json:
-// sorted map keys, html-escape, validateRawMessage. См. rules/golang.md.
-var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
+var (
+	// jsonParser — JSON-парсер с поведением, идентичным encoding/json:
+	// sorted map keys, html-escape, validateRawMessage. См. rules/golang.md.
+	jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
 
-// errDescriptionBlockMissing — payload не содержит ожидаемого блока description.
-var errDescriptionBlockMissing = fmt.Errorf("description block missing in payload")
+	// errDescriptionBlockMissing — payload не содержит ожидаемого блока description.
+	errDescriptionBlockMissing = fmt.Errorf("description block missing in payload")
+)
 
 // descriptionField — одна строка блока description в ответе ISS.
 //

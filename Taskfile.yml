@@ -12,6 +12,7 @@ tasks:
     desc: Запустить все линтеры параллельно.
     deps:
       - task: lint-golangci-lint
+      - task: lint-arch
       - task: lint-yamllint
       - task: lint-markdownlint
       - task: lint-prettier
@@ -28,6 +29,14 @@ tasks:
     desc: golangci-lint по всему Go-коду.
     cmds:
       - golangci-lint run ./...
+
+  lint-arch:
+    desc: go-arch-lint — проверка слоёной архитектуры (.go-arch-lint.yml).
+    # Запрещает запрещённые стрелки между компонентами (domain → infra и т.п.).
+    # Конфиг — .go-arch-lint.yml в корне; описывает границы слоёв, исключения
+    # для composition root (app/, cmd/) и общие компоненты (gen/, mocks/).
+    cmds:
+      - go-arch-lint check
 
   lint-yamllint:
     desc: yamllint по всем YAML-файлам.
