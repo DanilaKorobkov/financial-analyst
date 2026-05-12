@@ -18,7 +18,7 @@ func main() {
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           app.New(&cfg),
+		Handler:           app.New(cfg),
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 	}
 

@@ -2,8 +2,6 @@
 package connect
 
 import (
-	"math"
-
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
 )
@@ -45,36 +43,4 @@ func toProtoListingLevel(level entities.ListingLevel) companyv1.ListingLevel {
 	default:
 		return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED
 	}
-}
-
-// toProtoCompanyCard переводит entities.CompanyCard в proto-сообщение.
-func toProtoCompanyCard(c *entities.CompanyCard) *companyv1.CompanyCard {
-	return &companyv1.CompanyCard{
-		Ticker:                c.Ticker,
-		Exchange:              c.Exchange,
-		Name:                  c.Name,
-		Sector:                c.Sector,
-		SectorId:              toInt32(c.SectorID),
-		Industry:              c.Industry,
-		IndustryId:            toInt32(c.IndustryID),
-		IndustryGroup:         c.IndustryGroup,
-		IndustryGroupId:       toInt32(c.IndustryGroupID),
-		Country:               c.Country,
-		Currency:              c.Currency,
-		PrimaryReportTicker:   c.PrimaryReportTicker,
-		PrimaryReportExchange: c.PrimaryReportExchange,
-		Description:           c.Description,
-		Site:                  c.Site,
-		DiscLink:              c.DiscLink,
-	}
-}
-
-// toInt32 безопасно сужает int до int32. GICS-коды (сектор / отрасль /
-// группа) укладываются в int32 (значения < 10^9); выход за границы для этих
-// доменных полей нереалистичен, поэтому возвращаем 0.
-func toInt32(v int) int32 {
-	if v < math.MinInt32 || v > math.MaxInt32 {
-		return 0
-	}
-	return int32(v)
 }

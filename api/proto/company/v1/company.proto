@@ -1,9 +1,7 @@
 // Схема Connect-сервиса CompanyService.
 //
 // Возвращает справочную карточку эмитента по тикеру: имя, ISIN,
-// тип бумаги, уровень листинга. Дополнительно отдаёт карточку эмитента
-// c классификацией (сектор / отрасль / страна / валюта), описанием и
-// ссылками на корпоративный сайт и страницу раскрытия.
+// тип бумаги, уровень листинга.
 
 syntax = "proto3";
 
@@ -13,7 +11,6 @@ option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;
 
 service CompanyService {
   rpc GetCompany(GetCompanyRequest) returns (GetCompanyResponse);
-  rpc GetCompanyCard(GetCompanyCardRequest) returns (GetCompanyCardResponse);
 }
 
 message GetCompanyRequest {
@@ -48,34 +45,4 @@ message Company {
   string name = 3;
   SecurityType security_type = 4;
   ListingLevel listing_level = 5;
-}
-
-message GetCompanyCardRequest {
-  // Тикер бумаги (например, SBER, GAZP, LKOH).
-  string ticker = 1;
-}
-
-message GetCompanyCardResponse {
-  CompanyCard card = 1;
-}
-
-// CompanyCard — карточка эмитента: идентификация и классификация
-// (страна, валюта, сектор / отрасль), описание и ссылки.
-message CompanyCard {
-  string ticker = 1;
-  string exchange = 2;
-  string name = 3;
-  string sector = 4;
-  int32 sector_id = 5;
-  string industry = 6;
-  int32 industry_id = 7;
-  string industry_group = 8;
-  int32 industry_group_id = 9;
-  string country = 10;
-  string currency = 11;
-  string primary_report_ticker = 12;
-  string primary_report_exchange = 13;
-  string description = 14;
-  string site = 15;
-  string disc_link = 16;
 }
