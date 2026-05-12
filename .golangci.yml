@@ -65,6 +65,7 @@ linters:
     - godot           # комментарии-предложения должны заканчиваться точкой
     - whitespace      # лишние пустые строки в начале/конце функций
     - wastedassign    # присвоение, переписанное до использования
+    - decorder       # фиксированный порядок top-level деклараций: const → var → type → func
 
     # ── Импорты и зависимости ────────────────────────────────────────────────
     - depguard        # запрет нежелательных импортов (см. settings.depguard)
@@ -217,6 +218,21 @@ linters:
       scope: declarations
       capital: false
 
+    decorder:
+      # Фиксированный порядок top-level деклараций в файле:
+      # const → var → type → func. Если в файле нет одного из видов — он просто
+      # пропускается, но нарушать относительный порядок остальных нельзя.
+      dec-order: [const, var, type, func]
+      disable-dec-order-check: false
+      # init() должен быть первой функцией в файле, если присутствует.
+      disable-init-func-first-check: false
+      # Не ограничиваем количество top-level деклараций каждого вида — следим
+      # только за порядком.
+      disable-dec-num-check: true
+      disable-type-dec-num-check: true
+      disable-const-dec-num-check: true
+      disable-var-dec-num-check: true
+
     depguard:
       # Запреты на импорты по слоям: defense-in-depth для DDD.
       # Список адаптируется по мере появления слоёв (domain/application/infrastructure).
@@ -233,6 +249,12 @@ linters:
     # Не используем "стандартные" пресеты исключений golangci-lint —
     # хотим явный контроль над тем, что игнорируем.
     presets: []
+    # Полностью пропускаем сгенерированный код: его правила оформления диктует
+    # генератор (buf/protoc-gen-*, mockery), а не наш .golangci.yml. Линтить
+    # такие файлы — гонять линтер вхолостую и видеть постоянный шум.
+    paths:
+      - ^gen/         # protoc/buf generate → gen/<pkg>/v1/*.{pb,connect}.go
+      - ^mocks/       # mockery generate → mocks/<pkg>/<Interface>.go
     rules:
       # В тестах ослабляем правила, мешающие выразительности тестов.
       - path: _test\.go

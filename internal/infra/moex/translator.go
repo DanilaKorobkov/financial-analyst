@@ -13,6 +13,9 @@ import (
 // sorted map keys, html-escape, validateRawMessage. См. rules/golang.md.
 var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
 
+// errDescriptionBlockMissing — payload не содержит ожидаемого блока description.
+var errDescriptionBlockMissing = fmt.Errorf("description block missing in payload")
+
 // descriptionField — одна строка блока description в ответе ISS.
 //
 // Значение ISS всегда отдаёт строкой (поле type указывает исходный тип на
@@ -24,9 +27,6 @@ type descriptionField struct {
 
 // extendedPayload — формат iss.json=extended: массив [meta, blocks].
 type extendedPayload []map[string]json.RawMessage
-
-// errDescriptionBlockMissing — payload не содержит ожидаемого блока description.
-var errDescriptionBlockMissing = fmt.Errorf("description block missing in payload")
 
 // parseDescription разбирает блок description как map[name]value, без сохранения порядка.
 func parseDescription(raw []byte) (map[string]string, error) {

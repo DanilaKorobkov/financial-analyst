@@ -69,6 +69,54 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_FIRST, company.GetListingLevel())
 }
 
+func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
+	cases := []struct {
+		name string
+		in   entities.SecurityType
+		want companyv1.SecurityType
+	}{
+		{"common", entities.SecurityTypeCommonShare, companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE},
+		{"preferred", entities.SecurityTypePreferredShare, companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE},
+		{"depositary", entities.SecurityTypeDepositaryReceipt, companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT},
+		{"unspecified", entities.SecurityTypeUnspecified, companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
+	}
+	for _, c := range cases {
+		s.Run(c.name, func() {
+			s.companies.EXPECT().FindByTicker(mock.Anything, "X").
+				Return(entities.Company{Ticker: "X", SecurityType: c.in}, nil).Once()
+
+			resp, err := s.call("X")
+
+			s.Require().NoError(err)
+			s.Equal(c.want, resp.Msg.GetCompany().GetSecurityType())
+		})
+	}
+}
+
+func (s *serverSuite) TestGetCompanyListingLevelMapping() {
+	cases := []struct {
+		name string
+		in   entities.ListingLevel
+		want companyv1.ListingLevel
+	}{
+		{"first", entities.ListingLevelFirst, companyv1.ListingLevel_LISTING_LEVEL_FIRST},
+		{"second", entities.ListingLevelSecond, companyv1.ListingLevel_LISTING_LEVEL_SECOND},
+		{"third", entities.ListingLevelThird, companyv1.ListingLevel_LISTING_LEVEL_THIRD},
+		{"unspecified", entities.ListingLevelUnspecified, companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED},
+	}
+	for _, c := range cases {
+		s.Run(c.name, func() {
+			s.companies.EXPECT().FindByTicker(mock.Anything, "X").
+				Return(entities.Company{Ticker: "X", ListingLevel: c.in}, nil).Once()
+
+			resp, err := s.call("X")
+
+			s.Require().NoError(err)
+			s.Equal(c.want, resp.Msg.GetCompany().GetListingLevel())
+		})
+	}
+}
+
 func (s *serverSuite) TestGetCompanyUnspecifiedListingLevel() {
 	s.companies.EXPECT().FindByTicker(mock.Anything, "X").Return(entities.Company{Ticker: "X"}, nil).Once()
 

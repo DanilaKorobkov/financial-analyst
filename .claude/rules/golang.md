@@ -71,7 +71,7 @@ var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
 - ❌ `// Возвращает справочную карточку эмитента MOEX по тикеру.` в `.proto`
 - ❌ `// Тикер передаётся в источник как есть — все источники (MOEX ISS, FinanceMarker) регистронезависимы.` в `domain/services`
 
-Привязка к конкретному источнику — деталь `infra`-слоя; такие комментарии живут рядом с маппером (`internal/infra/<provider>/mapper.go`), а не в `domain` или `presentation`.
+Привязка к конкретному источнику — деталь `infra`-слоя; такие комментарии живут рядом с транслятором (`internal/infra/<provider>/translator.go`), а не в `domain` или `presentation`.
 
 **Исключение — composition root.** `app/` и `cmd/` собирают приложение и по природе знают обо всех слоях: тип `MoexConfig`, конструктор `moex.NewCompanyRepository`, env-переменная `MOEX_BASE_URL` называются на своём «настоящем» имени. Правило изоляции к ним не применяется.
 

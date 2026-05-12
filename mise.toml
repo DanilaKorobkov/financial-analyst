@@ -7,6 +7,27 @@
 # После установки добавить shell-хук (см. ссылку выше) — иначе версии
 # не будут автоматически переключаться при `cd` в проект.
 
+# ──────────────────────────────────────────────────────────────────────────────
+# ENV — переменные окружения, общие для всех `mise exec` и task-задач проекта.
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# Зачем: golangci-lint и go-build по умолчанию пишут кэш в один глобальный
+# каталог пользователя (~/Library/Caches/golangci-lint, ~/Library/Caches/go-build
+# на macOS). Кэш индексируется абсолютными путями файлов; когда git-worktree
+# удаляется, его пути остаются в общем кэше и при следующем lint в *другом*
+# worktree линтер репортит ошибки в несуществующих файлах. Лечится только
+# ручным `golangci-lint cache clean`.
+#
+# Привязываем оба кэша к корню текущего worktree (`{{config_root}}` у mise =
+# директория, где лежит этот mise.toml). У каждого worktree свой кэш в
+# собственной директории — удалили worktree, кэш ушёл с ним; коллизий между
+# параллельными worktrees нет.
+#
+# Каталоги исключены из git (.gitignore: .golangci-cache/, .gocache/).
+[env]
+GOLANGCI_LINT_CACHE = "{{config_root}}/.golangci-cache"
+GOCACHE = "{{config_root}}/.gocache"
+
 [tools]
 
 # Основной рантайм проекта — весь runtime-код на Go.
@@ -87,3 +108,11 @@ node = "22.11.0"
 # гарантирует одинаковую сборку локально и в CI. Плагины protoc-gen-go и
 # protoc-gen-connect-go выше — тот же подход.
 "go:golang.org/x/vuln/cmd/govulncheck" = "1.1.4"
+
+# go-test-coverage — гейт по порогам покрытия тестами поверх `go test -coverprofile`.
+# Парсит coverage.out, считает % покрытия по файлам / пакетам / total и сравнивает
+# с порогами из .testcoverage.yml. Override-секция позволяет задавать разные пороги
+# по слоям архитектуры (domain — 100%, presentation — 100%, infra — 80%; cmd
+# исключается). Exit code != 0 при недоборе — CI падает.
+# Документация: https://github.com/vladopajic/go-test-coverage
+"go:github.com/vladopajic/go-test-coverage/v2" = "2.18.4"

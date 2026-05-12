@@ -38,3 +38,8 @@ go.work.sum
 # trap-ом, но могут остаться при аварийном завершении.
 .lint-generated-proto.*/
 .lint-generated-mocks.*/
+
+# Per-worktree кэши golangci-lint и go-build. Привязаны к корню worktree
+# через mise.toml [env] (GOLANGCI_LINT_CACHE, GOCACHE) — см. там обоснование.
+.golangci-cache/
+.gocache/
