@@ -86,6 +86,7 @@ deps:
     mayDependOn:
       - entities
       - infra
+      - internal-pkg
     anyVendorDeps: true
 
   presentation:
@@ -93,6 +94,7 @@ deps:
       - entities
       - services
       - presentation
+      - internal-pkg
     anyVendorDeps: true
 
   generated:
@@ -110,6 +112,7 @@ deps:
       - services
       - infra
       - presentation
+      - internal-pkg
     anyVendorDeps: true
 
   cmd:
@@ -132,14 +135,18 @@ deps:
       - pkg
     anyVendorDeps: true
 
-# generated, mocks, internal-pkg и pkg — служебные компоненты, доступные
-# всем без явного перечисления в mayDependOn. generated и mocks — артефакты
-# кодгенерации, нужные и тестам, и app; internal-pkg и pkg — leaf-библиотеки
-# технической обвязки (HTTP, observability, общие типы), не имеющие слоя.
+# generated, mocks и pkg — служебные компоненты, доступные всем без явного
+# перечисления в mayDependOn. generated и mocks — артефакты кодгенерации,
+# нужные и тестам, и app; pkg — публичная leaf-библиотека, импортируемая
+# любым слоем.
+#
+# internal-pkg НАМЕРЕННО НЕ в commonComponents: commonComponents даёт не
+# только входящие импорты от всех, но и перекрёстную видимость между
+# членами, а pkg (leaf) не должен видеть internal-pkg. Доступ к internal-pkg
+# раздаётся явно через mayDependOn у конкретных слоёв.
 commonComponents:
   - generated
   - mocks
-  - internal-pkg
   - pkg
 
 commonVendors: []
