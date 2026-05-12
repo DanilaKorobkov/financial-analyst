@@ -20,7 +20,8 @@ tasks:
       - task: lint-actionlint
       - task: lint-govulncheck
       - task: lint-buf
-      - task: check-generate
+      - task: lint-generated-proto
+      - task: lint-generated-mocks
 
   lint-golangci-lint:
     desc: golangci-lint по всему Go-коду.
@@ -89,28 +90,36 @@ tasks:
     cmds:
       - buf lint
 
-  check-generate:
-    desc: Проверить, что сгенерированный код в репозитории актуален относительно схем.
-    # Генерируем во временный каталог и сравниваем с реальными gen/ и mocks/.
-    # Реальные артефакты в репозитории не трогаем — проверка идемпотентна
-    # и честна: если она прошла, значит «git add gen/ mocks/» после неё
-    # ничего не изменит. У mockery нет CLI-флага output-dir, поэтому
-    # подкладываем временный .mockery.yaml с перезаписанным `dir:`.
+  lint-generated-proto:
+    desc: Проверить, что gen/ в репозитории совпадает с buf generate.
+    # Генерируем во временный каталог и сравниваем с реальным gen/.
+    # Реальные артефакты не трогаем — проверка идемпотентна: пройдёт →
+    # «git add gen/» после неё ничего не изменит.
+    cmds:
+      - |
+          set -euo pipefail
+          tmp="$(mktemp -d -p . .lint-generated-proto.XXXXXX)"
+          trap 'rm -rf "$tmp"' EXIT
+          # buf.gen.yaml уже задаёт `out: gen`; --output становится корнем,
+          # поверх которого плагин дописывает свой `out`. Поэтому передаём $tmp,
+          # а не $tmp/gen — иначе получим $tmp/gen/gen.
+          buf generate --output "$tmp"
+          diff -r gen "$tmp/gen"
+
+  lint-generated-mocks:
+    desc: Проверить, что mocks/ в репозитории совпадают с mockery generate.
+    # Аналогично lint-generated-proto, но для mockery. У mockery нет CLI-флага
+    # output-dir — подкладываем временный .mockery.yaml с перезаписанным `dir:`.
     cmds:
       - |
           set -euo pipefail
           # mockery v3 требует, чтобы выходной каталог лежал внутри текущего
           # Go-модуля (он определяет import path сгенерированного пакета через
           # `go list`). Поэтому tmp создаём в корне репозитория, а не в /tmp.
-          tmp="$(mktemp -d -p . .check-generate.XXXXXX)"
+          tmp="$(mktemp -d -p . .lint-generated-mocks.XXXXXX)"
           trap 'rm -rf "$tmp"' EXIT
-          # buf.gen.yaml уже задаёт `out: gen`; флаг --output становится корнем,
-          # поверх которого плагин дописывает свой `out`. Поэтому передаём $tmp,
-          # а не $tmp/gen — иначе получим $tmp/gen/gen.
-          buf generate --output "$tmp"
           sed "s|^dir: mocks/|dir: $tmp/mocks/|" .mockery.yaml > "$tmp/.mockery.yaml"
           mockery --config "$tmp/.mockery.yaml"
-          diff -r gen "$tmp/gen"
           diff -r mocks "$tmp/mocks"
 
   fmt:
