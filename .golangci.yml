@@ -241,6 +241,15 @@ linters:
           deny:
             - pkg: github.com/pkg/errors
               desc: use stdlib errors + fmt.Errorf %w (Go 1.13+)
+        # Моки — артефакт mockery, нужны только тестам. Запрещаем их импорт
+        # из production-кода. `!$test` — встроенный синтаксис depguard,
+        # означающий «все Go-файлы, кроме *_test.go».
+        mocks-test-only:
+          files:
+            - "!$test"
+          deny:
+            - pkg: github.com/DanilaKorobkov/financial-analyst/mocks
+              desc: mocks are test-only; production code must depend on real implementations
 
   # ────────────────────────────────────────────────────────────────────────────
   # EXCLUSIONS — исключения только там, где это осознанно.

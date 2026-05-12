@@ -18,6 +18,7 @@ jobs:
         # задачу в `Taskfile.yml`.
         target:
           - lint-golangci-lint
+          - lint-arch
           - lint-yamllint
           - lint-markdownlint
           - lint-prettier
