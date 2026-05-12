@@ -47,6 +47,15 @@ var jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
 
 `ConfigFastest` НЕ используем: `MarshalFloatWith6Digits=true` режет точность float-полей (FACEVALUE и т.п.).
 
+## Domain-слой и источники данных
+
+Доменные сущности (`internal/domain/entities`) **не должны знать**, откуда берутся данные. В doc-комментариях domain-типов запрещено упоминать конкретные источники: имена провайдеров, эндпоинты, имена полей внешних API, форматы payload.
+
+- ✅ `// ListingLevel — котировальный уровень бумаги.`
+- ❌ `// ListingLevel — котировальный уровень MOEX (поле LISTLEVEL блока description).`
+
+Привязка к источнику — деталь infra-слоя; такие комментарии живут рядом с маппером (`internal/infra/<provider>/mapper.go`), а не в `entities`.
+
 ## Doc-комментарии интерфейсов
 
 Описание возвращаемых значений и ошибок располагается на **методе** интерфейса, а не на типе:

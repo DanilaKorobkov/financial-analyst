@@ -1,10 +1,9 @@
 // Package entities — плоские domain-сущности (без подпапок на агрегат).
 package entities
 
-// Company — справочная карточка эмитента MOEX. Поля из блока description
-// эндпоинта /iss/securities/{TICKER}.json. Примеры значений — по SBER.
+// Company — справочная карточка эмитента.
 type Company struct {
-	// Ticker — биржевой код бумаги (SECID). Пример: "SBER".
+	// Ticker — биржевой код бумаги. Пример: "SBER".
 	Ticker string
 
 	// ISIN — международный идентификатор. Пример: "RU0009029540".
@@ -13,16 +12,16 @@ type Company struct {
 	// Name — полное название бумаги. Пример: "Сбербанк России ПАО ао".
 	Name string
 
-	// SecurityType — тип бумаги. SecurityTypeUnspecified — биржа вернула
-	// неизвестное значение поля TYPE (см. справочник get_securitygroups MOEX).
+	// SecurityType — тип бумаги. SecurityTypeUnspecified — неизвестный
+	// или неподдерживаемый тип.
 	SecurityType SecurityType
 
-	// ListingLevel — котировальный уровень MOEX. ListingLevelUnspecified —
-	// биржа не указала уровень (поле LISTLEVEL отсутствовало).
+	// ListingLevel — котировальный уровень. ListingLevelUnspecified —
+	// уровень не указан.
 	ListingLevel ListingLevel
 }
 
-// SecurityType — тип бумаги MOEX (поле TYPE блока description).
+// SecurityType — тип бумаги.
 type SecurityType int
 
 const (
@@ -36,11 +35,11 @@ const (
 	SecurityTypeDepositaryReceipt
 )
 
-// ListingLevel — котировальный уровень MOEX.
+// ListingLevel — котировальный уровень бумаги.
 type ListingLevel int
 
 const (
-	// ListingLevelUnspecified — биржа не указала уровень.
+	// ListingLevelUnspecified — уровень не указан.
 	ListingLevelUnspecified ListingLevel = iota
 	// ListingLevelFirst — первый котировальный уровень.
 	ListingLevelFirst
