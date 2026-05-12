@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
-	"github.com/DanilaKorobkov/financial-analyst/internal/pkg/httpx"
 )
 
 // CompanyRepository ходит в /iss/securities/{TICKER}.json (блок description).
@@ -35,18 +35,24 @@ type CompanyRepository struct {
 // Проверка HTTP-статуса вешается middleware-ом: репозиторий получает
 // resp с уже валидным телом либо err с уже сформулированной HTTP-ошибкой.
 func NewCompanyRepository(baseURL string, timeout time.Duration) *CompanyRepository {
-	client := httpx.New(httpx.Config{BaseURL: baseURL, Timeout: timeout}).
+	jsonParser := jsoniter.ConfigCompatibleWithStandardLibrary
+
+	client := resty.New().
+		SetBaseURL(baseURL).
+		SetTimeout(timeout).
 		SetQueryParams(map[string]string{
 			"iss.json": "extended",
 			"iss.meta": "off",
 			"iss.only": "description",
+		}).
+		SetJSONUnmarshaler(jsonParser.Unmarshal).
+		SetJSONMarshaler(jsonParser.Marshal).
+		OnAfterResponse(func(_ *resty.Client, resp *resty.Response) error {
+			if resp.IsError() {
+				return fmt.Errorf("moex http status %d", resp.StatusCode())
+			}
+			return nil
 		})
-	client = httpx.OnError(client, func(resp *resty.Response) error {
-		if resp.IsError() {
-			return fmt.Errorf("moex http status %d", resp.StatusCode())
-		}
-		return nil
-	})
 	return &CompanyRepository{client: client}
 }
 

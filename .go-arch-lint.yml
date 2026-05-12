@@ -47,21 +47,6 @@ components:
   mocks:
     in: mocks/**
 
-  # Технические утилиты проекта (HTTP-клиенты, retry, observability). Слоя
-  # не имеют, доступны через commonComponents любому пакету, кому нужны.
-  # Имя — internal-pkg, чтобы не путать с конвенцией публичного `pkg/` на
-  # корне проекта.
-  internal-pkg:
-    in: internal/pkg/**
-
-  # Публичная техническая «библиотека» проекта: то, что в принципе можно
-  # вынести наружу (отдельным модулем или копипастой) — например,
-  # observability-обвязка, общие типы. Сейчас пуст, но компонент заведён
-  # заранее, чтобы зафиксировать правило: pkg ни от чего внутреннего не
-  # зависит (leaf), а импортировать его может любой слой.
-  pkg:
-    in: pkg/**
-
   # Composition root приложения — собирает domain + infra + presentation
   # в работающий процесс. Единственный компонент, которому разрешено
   # знать обо всех остальных.
@@ -86,7 +71,6 @@ deps:
     mayDependOn:
       - entities
       - infra
-      - internal-pkg
     anyVendorDeps: true
 
   presentation:
@@ -94,7 +78,6 @@ deps:
       - entities
       - services
       - presentation
-      - internal-pkg
     anyVendorDeps: true
 
   generated:
@@ -112,7 +95,6 @@ deps:
       - services
       - infra
       - presentation
-      - internal-pkg
     anyVendorDeps: true
 
   cmd:
@@ -120,33 +102,10 @@ deps:
       - app
     anyVendorDeps: true
 
-  # internal-pkg и pkg — leaf-компоненты: вверх по слоям не зависят. Это
-  # делает их пригодными для импорта из любой части проекта без риска
-  # циклов и без размывания границ. internal-pkg может пользоваться pkg
-  # (как «внутренняя» обёртка над «публичной» библиотекой), но не наоборот.
-  internal-pkg:
-    mayDependOn:
-      - internal-pkg
-      - pkg
-    anyVendorDeps: true
-
-  pkg:
-    mayDependOn:
-      - pkg
-    anyVendorDeps: true
-
-# generated, mocks и pkg — служебные компоненты, доступные всем без явного
-# перечисления в mayDependOn. generated и mocks — артефакты кодгенерации,
-# нужные и тестам, и app; pkg — публичная leaf-библиотека, импортируемая
-# любым слоем.
-#
-# internal-pkg НАМЕРЕННО НЕ в commonComponents: commonComponents даёт не
-# только входящие импорты от всех, но и перекрёстную видимость между
-# членами, а pkg (leaf) не должен видеть internal-pkg. Доступ к internal-pkg
-# раздаётся явно через mayDependOn у конкретных слоёв.
+# generated и mocks — служебные компоненты, доступные всем без явного
+# перечисления в mayDependOn (proto-код и моки нужны и тестам, и app).
 commonComponents:
   - generated
   - mocks
-  - pkg
 
 commonVendors: []
