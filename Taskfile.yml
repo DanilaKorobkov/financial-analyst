@@ -12,6 +12,7 @@ tasks:
     desc: Запустить все линтеры параллельно.
     deps:
       - task: lint-golangci-lint
+      - task: lint-structfielddocs
       - task: lint-arch
       - task: lint-yamllint
       - task: lint-markdownlint
@@ -29,6 +30,15 @@ tasks:
     desc: golangci-lint по всему Go-коду.
     cmds:
       - golangci-lint run ./...
+
+  lint-structfielddocs:
+    desc: Проектный анализатор — doc-комментарии у экспортируемых полей структур.
+    # Standalone go/analysis CLI живёт в tools/structfielddocs. Запускается
+    # через `go run` — Go build cache обеспечивает инкрементальную компиляцию.
+    # Когда анализатор стабилизируется, его можно будет вынести в отдельный
+    # репозиторий и поставить через mise.
+    cmds:
+      - go run ./tools/structfielddocs/cmd/structfielddocs ./...
 
   lint-arch:
     desc: go-arch-lint — проверка слоёной архитектуры (.go-arch-lint.yml).

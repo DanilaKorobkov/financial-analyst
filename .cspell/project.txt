@@ -221,6 +221,13 @@ gosec             # security-линтер для Go
 caarlos           # автор github.com/caarlos0/env (упоминание в комментариях)
 mvdan             # автор встроенного POSIX-shell в go-task (mvdan/sh)
 Korobkov          # фамилия владельца репозитория, фигурирует в URL бейджей
+structfielddocs   # имя проектного анализатора (tools/structfielddocs)
+неэкспортируемый  # форма с приставкой «не-», bundle ru_ru знает только «экспортируемый»
+неэкспортируемые
+неэкспортируемых
+Reportf           # метод *analysis.Pass из golang.org/x/tools/go/analysis
+fset              # стандартное имя переменной для go/token.FileSet
+Fset              # поле analysis.Pass.Fset
 
 # --- ISIN / SECID для ОФЗ ---
 RMFS

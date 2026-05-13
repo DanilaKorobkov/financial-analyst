@@ -41,6 +41,12 @@ exclude:
     # Точки входа binaries — `main()`, разбор флагов, инициализация.
     - ^cmd/
 
+    # Точки входа binaries для проектных линтеров (например,
+    # tools/structfielddocs/cmd/structfielddocs). Содержат только
+    # singlechecker.Main(Analyzer) — покрытие даёт unit-тест самого
+    # анализатора в пакете-родителе.
+    - ^tools/.*/cmd/
+
     # Composition root — сборка приложения из частей (DI-граф, чтение конфига).
     # Логики нет, только wiring.
     - ^app/
