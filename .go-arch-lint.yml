@@ -43,6 +43,10 @@ components:
     in: internal/infra/financemarker
   infra-financemarker-companycard:
     in: internal/infra/financemarker/companycard
+  # Файловый кеш-Proxy над портом карточек эмитентов. Знает только domain-
+  # contract порта и сам себя; не зависит ни от одного конкретного провайдера.
+  infra-filecache-companycard:
+    in: internal/infra/filecache/companycard
 
   # Транспортный слой. Знает domain и сгенерированный proto-код (generated).
   presentation:
@@ -101,6 +105,12 @@ deps:
       - infra-financemarker-companycard
     anyVendorDeps: true
 
+  infra-filecache-companycard:
+    mayDependOn:
+      - domain-companycard
+      - infra-filecache-companycard
+    anyVendorDeps: true
+
   presentation:
     mayDependOn:
       - domain-company
@@ -128,6 +138,7 @@ deps:
       - infra-moex-company
       - infra-financemarker
       - infra-financemarker-companycard
+      - infra-filecache-companycard
       - presentation
     anyVendorDeps: true
 
