@@ -205,6 +205,12 @@ okpo
 # --- Внешние сервисы ---
 Refinitiv
 
+# --- Go import-алиасы (составные lowercase-идентификаторы) ---
+moexcompany       # alias для internal/infra/moex/company в composition root
+domaincompany     # alias для internal/domain/company в подпакете infra/moex/company
+domaincard        # alias для internal/domain/companycard в подпакете infra/financemarker/companycard
+fmcard            # alias для internal/infra/financemarker/companycard в тестах
+
 # --- Имена инструментов разработки ---
 govulncheck       # официальный сканер CVE для Go (golang.org/x/vuln)
 gosec             # security-линтер для Go

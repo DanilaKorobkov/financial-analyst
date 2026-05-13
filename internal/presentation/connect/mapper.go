@@ -3,11 +3,11 @@ package connect
 
 import (
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 )
 
-// toProtoCompany переводит entities.Company в proto-сообщение.
-func toProtoCompany(c *entities.Company) *companyv1.Company {
+// toProtoCompany переводит company.Company в proto-сообщение.
+func toProtoCompany(c *company.Company) *companyv1.Company {
 	return &companyv1.Company{
 		Ticker:       c.Ticker,
 		Isin:         c.ISIN,
@@ -18,13 +18,13 @@ func toProtoCompany(c *entities.Company) *companyv1.Company {
 }
 
 // toProtoSecurityType переводит domain-enum в proto-enum.
-func toProtoSecurityType(t entities.SecurityType) companyv1.SecurityType {
+func toProtoSecurityType(t company.SecurityType) companyv1.SecurityType {
 	switch t {
-	case entities.SecurityTypeCommonShare:
+	case company.SecurityTypeCommonShare:
 		return companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE
-	case entities.SecurityTypePreferredShare:
+	case company.SecurityTypePreferredShare:
 		return companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE
-	case entities.SecurityTypeDepositaryReceipt:
+	case company.SecurityTypeDepositaryReceipt:
 		return companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT
 	default:
 		return companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED
@@ -32,13 +32,13 @@ func toProtoSecurityType(t entities.SecurityType) companyv1.SecurityType {
 }
 
 // toProtoListingLevel переводит domain-enum в proto-enum.
-func toProtoListingLevel(level entities.ListingLevel) companyv1.ListingLevel {
+func toProtoListingLevel(level company.ListingLevel) companyv1.ListingLevel {
 	switch level {
-	case entities.ListingLevelFirst:
+	case company.ListingLevelFirst:
 		return companyv1.ListingLevel_LISTING_LEVEL_FIRST
-	case entities.ListingLevelSecond:
+	case company.ListingLevelSecond:
 		return companyv1.ListingLevel_LISTING_LEVEL_SECOND
-	case entities.ListingLevelThird:
+	case company.ListingLevelThird:
 		return companyv1.ListingLevel_LISTING_LEVEL_THIRD
 	default:
 		return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED

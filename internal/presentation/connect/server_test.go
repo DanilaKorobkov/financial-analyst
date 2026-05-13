@@ -13,16 +13,16 @@ import (
 
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
 	"github.com/DanilaKorobkov/financial-analyst/gen/company/v1/companyv1connect"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
-	entities_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/entities"
+	company_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/company"
 )
 
 type serverSuite struct {
 	suite.Suite
 
-	companies *entities_mock.CompanyRepository
+	companies *company_mock.Repository
 	server    *httptest.Server
 	client    companyv1connect.CompanyServiceClient
 }
@@ -33,7 +33,7 @@ func TestServerSuite(t *testing.T) {
 }
 
 func (s *serverSuite) SetupTest() {
-	s.companies = entities_mock.NewCompanyRepository(s.T())
+	s.companies = company_mock.NewRepository(s.T())
 	srv := pconnect.NewServer(services.NewCompanyInfo(s.companies))
 
 	mux := http.NewServeMux()
@@ -49,41 +49,41 @@ func (s *serverSuite) TearDownTest() {
 }
 
 func (s *serverSuite) TestGetCompanyHappyPath() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.Company{
+	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(company.Company{
 		Ticker:       "SBER",
 		ISIN:         "RU0009029540",
 		Name:         "Сбербанк",
-		SecurityType: entities.SecurityTypeCommonShare,
-		ListingLevel: entities.ListingLevelFirst,
+		SecurityType: company.SecurityTypeCommonShare,
+		ListingLevel: company.ListingLevelFirst,
 	}, nil).Once()
 
 	resp, err := s.call("SBER")
 
 	s.Require().NoError(err)
-	company := resp.Msg.GetCompany()
-	s.Require().NotNil(company)
-	s.Equal("SBER", company.GetTicker())
-	s.Equal("RU0009029540", company.GetIsin())
-	s.Equal("Сбербанк", company.GetName())
-	s.Equal(companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE, company.GetSecurityType())
-	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_FIRST, company.GetListingLevel())
+	got := resp.Msg.GetCompany()
+	s.Require().NotNil(got)
+	s.Equal("SBER", got.GetTicker())
+	s.Equal("RU0009029540", got.GetIsin())
+	s.Equal("Сбербанк", got.GetName())
+	s.Equal(companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE, got.GetSecurityType())
+	s.Equal(companyv1.ListingLevel_LISTING_LEVEL_FIRST, got.GetListingLevel())
 }
 
 func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
 	cases := []struct {
 		name string
-		in   entities.SecurityType
+		in   company.SecurityType
 		want companyv1.SecurityType
 	}{
-		{"common", entities.SecurityTypeCommonShare, companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE},
-		{"preferred", entities.SecurityTypePreferredShare, companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE},
-		{"depositary", entities.SecurityTypeDepositaryReceipt, companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT},
-		{"unspecified", entities.SecurityTypeUnspecified, companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
+		{"common", company.SecurityTypeCommonShare, companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE},
+		{"preferred", company.SecurityTypePreferredShare, companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE},
+		{"depositary", company.SecurityTypeDepositaryReceipt, companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT},
+		{"unspecified", company.SecurityTypeUnspecified, companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			s.companies.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(entities.Company{Ticker: "X", SecurityType: c.in}, nil).Once()
+				Return(company.Company{Ticker: "X", SecurityType: c.in}, nil).Once()
 
 			resp, err := s.call("X")
 
@@ -96,18 +96,18 @@ func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
 func (s *serverSuite) TestGetCompanyListingLevelMapping() {
 	cases := []struct {
 		name string
-		in   entities.ListingLevel
+		in   company.ListingLevel
 		want companyv1.ListingLevel
 	}{
-		{"first", entities.ListingLevelFirst, companyv1.ListingLevel_LISTING_LEVEL_FIRST},
-		{"second", entities.ListingLevelSecond, companyv1.ListingLevel_LISTING_LEVEL_SECOND},
-		{"third", entities.ListingLevelThird, companyv1.ListingLevel_LISTING_LEVEL_THIRD},
-		{"unspecified", entities.ListingLevelUnspecified, companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED},
+		{"first", company.ListingLevelFirst, companyv1.ListingLevel_LISTING_LEVEL_FIRST},
+		{"second", company.ListingLevelSecond, companyv1.ListingLevel_LISTING_LEVEL_SECOND},
+		{"third", company.ListingLevelThird, companyv1.ListingLevel_LISTING_LEVEL_THIRD},
+		{"unspecified", company.ListingLevelUnspecified, companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			s.companies.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(entities.Company{Ticker: "X", ListingLevel: c.in}, nil).Once()
+				Return(company.Company{Ticker: "X", ListingLevel: c.in}, nil).Once()
 
 			resp, err := s.call("X")
 
@@ -118,7 +118,7 @@ func (s *serverSuite) TestGetCompanyListingLevelMapping() {
 }
 
 func (s *serverSuite) TestGetCompanyUnspecifiedListingLevel() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "X").Return(entities.Company{Ticker: "X"}, nil).Once()
+	s.companies.EXPECT().FindByTicker(mock.Anything, "X").Return(company.Company{Ticker: "X"}, nil).Once()
 
 	resp, err := s.call("X")
 
@@ -127,7 +127,7 @@ func (s *serverSuite) TestGetCompanyUnspecifiedListingLevel() {
 }
 
 func (s *serverSuite) TestGetCompanyNotFound() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "ZZZZ").Return(entities.Company{}, entities.ErrMissingCompany).Once()
+	s.companies.EXPECT().FindByTicker(mock.Anything, "ZZZZ").Return(company.Company{}, company.ErrNotFound).Once()
 
 	_, err := s.call("ZZZZ")
 
@@ -145,7 +145,7 @@ func (s *serverSuite) TestGetCompanyInvalidArgument() {
 }
 
 func (s *serverSuite) TestGetCompanyInternal() {
-	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(entities.Company{}, errors.New("downstream boom")).Once()
+	s.companies.EXPECT().FindByTicker(mock.Anything, "SBER").Return(company.Company{}, errors.New("downstream boom")).Once()
 
 	_, err := s.call("SBER")
 
