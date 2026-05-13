@@ -2,11 +2,14 @@ package companycard_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -21,6 +24,14 @@ type repositorySuite struct {
 	delegate *companycard_mock.Repository
 	repo     *fccard.Repository
 	dir      string
+}
+
+// envelopeOnDisk — формат записи, ожидаемый в файле кеша. Дублирует
+// приватный тип репозитория ровно настолько, чтобы тесты могли убедиться
+// в раскладке JSON и значении ExpiresAt.
+type envelopeOnDisk struct {
+	ExpiresAt time.Time       `json:"expires_at"`
+	Card      domaincard.Card `json:"card"`
 }
 
 func TestRepositorySuite(t *testing.T) {
@@ -128,6 +139,110 @@ func (s *repositorySuite) TestFindByTickerUnsafeTickerStillCached() {
 	s.Equal(card, got)
 }
 
+// TestFindByTickerExpiredEntryRefreshed: при cache hit с истёкшим
+// ExpiresAt запись считается просроченной — Repository идёт в делегат
+// и перезаписывает файл новой картой и сдвинутым ExpiresAt. Время
+// контролируется testing/synctest: внутри bubble time.Now() и
+// time.Sleep работают на синтетических часах bubble.
+func (s *repositorySuite) TestFindByTickerExpiredEntryRefreshed() {
+	synctest.Test(s.T(), func(_ *testing.T) {
+		const ttl = time.Hour
+		dir := s.T().TempDir()
+		delegate := companycard_mock.NewRepository(s.T())
+		repo := fccard.NewRepository(fccard.ConfigRepository{
+			Delegate: delegate,
+			Dir:      dir,
+			TTL:      ttl,
+		})
+
+		first := sberCard()
+		second := sberCard()
+		second.Description = "обновлённое описание"
+		delegate.EXPECT().
+			FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER").
+			Return(first, nil).
+			Once()
+		delegate.EXPECT().
+			FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER").
+			Return(second, nil).
+			Once()
+
+		writtenAt := time.Now().UTC()
+		got, err := repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+		s.Require().NoError(err)
+		s.Equal(first, got)
+		s.Equal(writtenAt.Add(ttl), readEnvelope(s.T(), dir, "1_SBER.json").ExpiresAt)
+
+		// Сдвигаемся за пределы TTL — следующий вызов должен идти в делегат.
+		time.Sleep(ttl + time.Second)
+		refreshedAt := time.Now().UTC()
+		got, err = repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+		s.Require().NoError(err)
+		s.Equal(second, got)
+		envelope := readEnvelope(s.T(), dir, "1_SBER.json")
+		s.Equal(second, envelope.Card)
+		s.Equal(refreshedAt.Add(ttl), envelope.ExpiresAt)
+	})
+}
+
+// TestFindByTickerWithinTTLServesFromCache: пока now < ExpiresAt, кеш
+// считается живым и делегат не зовётся.
+func (s *repositorySuite) TestFindByTickerWithinTTLServesFromCache() {
+	synctest.Test(s.T(), func(_ *testing.T) {
+		dir := s.T().TempDir()
+		delegate := companycard_mock.NewRepository(s.T())
+		repo := fccard.NewRepository(fccard.ConfigRepository{
+			Delegate: delegate,
+			Dir:      dir,
+			TTL:      time.Hour,
+		})
+
+		card := sberCard()
+		delegate.EXPECT().
+			FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER").
+			Return(card, nil).
+			Once()
+
+		_, err := repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+		s.Require().NoError(err)
+
+		// Доходим почти до конца TTL — запись должна продолжать жить.
+		time.Sleep(time.Hour - time.Second)
+		got, err := repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+		s.Require().NoError(err)
+		s.Equal(card, got)
+	})
+}
+
+// TestFindByTickerZeroTTLNeverExpires: TTL == 0 означает «без
+// экспирации» — ExpiresAt в файле нулевой, и сколько бы часы ни шли,
+// запись всегда считается живой.
+func (s *repositorySuite) TestFindByTickerZeroTTLNeverExpires() {
+	synctest.Test(s.T(), func(_ *testing.T) {
+		dir := s.T().TempDir()
+		delegate := companycard_mock.NewRepository(s.T())
+		repo := fccard.NewRepository(fccard.ConfigRepository{
+			Delegate: delegate,
+			Dir:      dir,
+		})
+
+		card := sberCard()
+		delegate.EXPECT().
+			FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER").
+			Return(card, nil).
+			Once()
+
+		_, err := repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+		s.Require().NoError(err)
+		s.True(readEnvelope(s.T(), dir, "1_SBER.json").ExpiresAt.IsZero())
+
+		time.Sleep(100 * 365 * 24 * time.Hour)
+		got, err := repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+		s.Require().NoError(err)
+		s.Equal(card, got)
+	})
+}
+
 func sberCard() domaincard.Card {
 	return domaincard.Card{
 		Ticker:                "SBER",
@@ -147,4 +262,17 @@ func sberCard() domaincard.Card {
 		IndustryID:            401010,
 		IndustryGroupID:       4010,
 	}
+}
+
+func readEnvelope(t *testing.T, dir, name string) envelopeOnDisk {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(dir, name)) //nolint:gosec // dir = t.TempDir(), name — литерал теста
+	if err != nil {
+		t.Fatalf("read envelope file: %v", err)
+	}
+	var envelope envelopeOnDisk
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		t.Fatalf("unmarshal envelope: %v", err)
+	}
+	return envelope
 }

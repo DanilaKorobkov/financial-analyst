@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/peterbourgon/diskv/v3"
@@ -29,6 +30,10 @@ type ConfigRepository struct {
 
 	// Dir — каталог хранения файлов кеша. Создаётся diskv при первой записи.
 	Dir string
+
+	// TTL — срок жизни записи в кеше. Ноль — без экспирации (запись
+	// действительна, пока файл лежит на диске).
+	TTL time.Duration
 }
 
 // Repository — Proxy над domaincard.Repository: на cache hit возвращает
@@ -37,6 +42,16 @@ type ConfigRepository struct {
 type Repository struct {
 	delegate domaincard.Repository
 	store    *diskv.Diskv
+	ttl      time.Duration
+}
+
+// cacheEnvelope — формат записи на диске. ExpiresAt хранится в UTC и в
+// RFC3339, чтобы файл оставался самодостаточным и читаемым глазами:
+// время экспирации видно прямо в JSON, без сторонних индексов и mtime.
+// Нулевое ExpiresAt означает «без экспирации».
+type cacheEnvelope struct {
+	ExpiresAt time.Time       `json:"expires_at"`
+	Card      domaincard.Card `json:"card"`
 }
 
 // NewRepository собирает файловый кеш-репозиторий поверх diskv.
@@ -48,13 +63,14 @@ func NewRepository(cfg ConfigRepository) *Repository {
 	return &Repository{
 		delegate: cfg.Delegate,
 		store:    store,
+		ttl:      cfg.TTL,
 	}
 }
 
 // FindByTicker сначала пытается отдать карточку из файла кеша. При
-// промахе обращается к Delegate и, если запрос успешен, сохраняет
-// карточку на диск. Ошибки Delegate (включая domaincard.ErrNotFound) на
-// диск не пишутся.
+// промахе или истёкшем TTL обращается к Delegate и, если запрос
+// успешен, перезаписывает файл свежей записью. Ошибки Delegate
+// (включая domaincard.ErrNotFound) на диск не пишутся.
 func (r *Repository) FindByTicker(
 	ctx context.Context,
 	exchange domaincard.Exchange,
@@ -85,28 +101,37 @@ func cacheKey(exchange domaincard.Exchange, ticker string) string {
 	return fmt.Sprintf("%d_%s.json", int(exchange), url.PathEscape(ticker))
 }
 
-// readCache читает карточку из diskv. Отсутствие файла, битый JSON или
-// ошибка ввода-вывода — всё трактуется как cache miss: лучше сходить
-// в Delegate, чем отдать сломанную запись.
+// readCache читает конверт из diskv и проверяет срок жизни. Отсутствие
+// файла, битый JSON, ошибка ввода-вывода или истёкший ExpiresAt — всё
+// трактуется как cache miss: лучше сходить в Delegate, чем отдать
+// сломанную или просроченную запись.
 func (r *Repository) readCache(key string) (domaincard.Card, bool) {
 	raw, err := r.store.Read(key)
 	if err != nil {
 		return domaincard.Card{}, false
 	}
-	var card domaincard.Card
-	if err := jsonParser.Unmarshal(raw, &card); err != nil {
+	var envelope cacheEnvelope
+	if err := jsonParser.Unmarshal(raw, &envelope); err != nil {
 		return domaincard.Card{}, false
 	}
-	return card, true
+	if !envelope.ExpiresAt.IsZero() && !time.Now().UTC().Before(envelope.ExpiresAt) {
+		return domaincard.Card{}, false
+	}
+	return envelope.Card, true
 }
 
-// writeCache кодирует карточку в JSON и кладёт её в diskv. Сам diskv
-// пишет через tmp-файл + rename, поэтому параллельные писатели не дают
-// читателю «полуписанного» файла.
+// writeCache упаковывает карточку в конверт и кладёт её в diskv. Сам
+// diskv пишет через tmp-файл + rename, поэтому параллельные писатели
+// не дают читателю «полуписанного» файла. При TTL == 0 ExpiresAt
+// остаётся нулевым — такая запись не протухает.
 func (r *Repository) writeCache(key string, card *domaincard.Card) error {
-	raw, err := jsonParser.Marshal(card)
+	envelope := cacheEnvelope{Card: *card}
+	if r.ttl > 0 {
+		envelope.ExpiresAt = time.Now().UTC().Add(r.ttl)
+	}
+	raw, err := jsonParser.Marshal(envelope)
 	if err != nil {
-		return fmt.Errorf("filecache companycard: marshal card: %w", err)
+		return fmt.Errorf("filecache companycard: marshal envelope: %w", err)
 	}
 	if err := r.store.Write(key, raw); err != nil {
 		return fmt.Errorf("filecache companycard: write: %w", err)
