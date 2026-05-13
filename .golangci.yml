@@ -42,6 +42,7 @@ linters:
     - contextcheck    # функция должна пробрасывать ctx, а не делать context.Background()
     - durationcheck   # подозрительные операции с time.Duration (умножение Duration на Duration)
     - exhaustive      # switch по enum/типу должен покрывать все варианты
+    - recvcheck       # запрещает смешивание pointer/value receivers на одном типе
 
     # ── Безопасность ─────────────────────────────────────────────────────────
     - gosec           # типовые security-проблемы (hardcoded secrets, weak crypto, ...)
@@ -139,6 +140,24 @@ linters:
         - name: confusing-naming       # имена, отличающиеся только регистром
         - name: confusing-results      # одинаковые типы возврата без имён
         - name: empty-block
+        # ── Immutability и foot-gun receiver'ов ─────────────────────────────
+        # CLAUDE.md помечает immutability как CRITICAL; ниже — линтер-страховка
+        # вместо «держится на code review».
+        - name: modifies-parameter        # мутация входного параметра — нарушение immutability
+        # value receiver мутирует поле → потерянное изменение (DDD foot-gun).
+        - name: modifies-value-receiver
+        # ── Foot-gun в потоке управления и сигнатурах ───────────────────────
+        - name: bare-return               # naked return — скрытое возвращаемое значение
+        - name: unused-parameter          # параметр не используется — мёртвая сигнатура
+        - name: unused-receiver           # receiver не используется — функция, а не метод
+        - name: unchecked-type-assertion  # x.(T) без ok — паника на проде вместо ошибки
+        # подозрительные defer (return, recover вне функции и т.п.).
+        - name: defer
+        # `if err != nil { return err }; return nil` → `return err`.
+        - name: if-return
+        - name: useless-break             # лишний break внутри switch/select
+        - name: bool-literal-in-expr      # `x == true` / `y == false` — упростить
+        - name: empty-lines               # двойные пустые строки внутри функции/блока
 
     gocyclo:
       # Цикломатическая сложность ≤ 12. Выше — рефакторить.
