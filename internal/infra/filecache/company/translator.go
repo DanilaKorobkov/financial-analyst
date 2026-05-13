@@ -29,9 +29,8 @@ type classificationDTO struct {
 }
 
 // classificationToDTO упаковывает domain-значение в JSON-проекцию
-// файлового кеша. Принимает указатель, чтобы не копировать
-// 80-байтную struct на каждой записи в кеш.
-func classificationToDTO(c *domaincompany.Classification) classificationDTO {
+// файлового кеша.
+func classificationToDTO(c domaincompany.Classification) classificationDTO {
 	return classificationDTO{
 		Sector:              c.Sector,
 		Industry:            c.Industry,
@@ -43,9 +42,8 @@ func classificationToDTO(c *domaincompany.Classification) classificationDTO {
 }
 
 // classificationFromDTO распаковывает прочитанную из файла проекцию
-// обратно в domain-значение. Принимает указатель симметрично
-// classificationToDTO.
-func classificationFromDTO(d *classificationDTO) domaincompany.Classification {
+// обратно в domain-значение.
+func classificationFromDTO(d classificationDTO) domaincompany.Classification {
 	return domaincompany.Classification{
 		Sector:              d.Sector,
 		Industry:            d.Industry,

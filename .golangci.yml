@@ -101,6 +101,12 @@ linters:
       # Достраиваем jsoniter — в проекте это де-факто основной JSON-движок
       # (jsoniter.ConfigCompatibleWithStandardLibrary). Без этих сигнатур
       # musttag прозевал бы парсинг через инстанс конфига.
+      #
+      # ВНИМАНИЕ: ниже покрыты Marshal/Unmarshal-API и Encoder/Decoder.
+      # Низкоуровневый стриминговый API jsoniter — (*Stream).WriteVal и
+      # (*Iterator).ReadVal — НЕ покрыт: musttag не пробрасывает тип
+      # через generic'и итератора. Если такой код появится — добавить
+      # сигнатуры сюда и проверить эффект на тестовом вызове.
       functions:
         # Пакетные функции jsoniter (drop-in для encoding/json).
         - name: github.com/json-iterator/go.Marshal
@@ -262,6 +268,14 @@ linters:
       disabled-checks:
         # ifElseChain противоречит revive.early-return — отключаем во избежание шума.
         - ifElseChain
+      settings:
+        hugeParam:
+          # Дефолт hugeParam = 80 байт. Это режет нормальные value-параметры
+          # (доменные value object'ы из 4-6 полей), заставляя без причины
+          # переходить на указатели и создавать ложный nullable-контракт.
+          # Поднимаем порог: ругаемся только на действительно громоздкие
+          # struct'ы (> ~16 полей), где копирование уже заметно.
+          sizeThreshold: 256
 
     exhaustive:
       # Жёсткий режим: каждый switch/map literal по enum-типу обязан перечислить

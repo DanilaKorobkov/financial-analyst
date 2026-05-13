@@ -44,8 +44,11 @@ type classificationJSON struct {
 }
 
 // toDomain сворачивает прочитанную JSON-проекцию обратно в
-// domain-значение для сравнений в s.Equal.
-func (c *classificationJSON) toDomain() domaincompany.Classification {
+// domain-значение для сравнений в s.Equal. Дублирует приватный
+// classificationFromDTO осознанно: тест-пакет (`company_test`)
+// не видит приватные функции prod-пакета, а экспортировать
+// translator только ради теста — раздувать публичный API.
+func (c classificationJSON) toDomain() domaincompany.Classification {
 	return domaincompany.Classification{
 		Sector:              c.Sector,
 		Industry:            c.Industry,

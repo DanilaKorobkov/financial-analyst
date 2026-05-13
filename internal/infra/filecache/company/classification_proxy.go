@@ -108,7 +108,7 @@ func (p *ClassificationProxy) readCache(key string) (domaincompany.Classificatio
 	if !envelope.ExpiresAt.IsZero() && !time.Now().UTC().Before(envelope.ExpiresAt) {
 		return domaincompany.Classification{}, false
 	}
-	return classificationFromDTO(&envelope.Classification), true
+	return classificationFromDTO(envelope.Classification), true
 }
 
 // writeCache упаковывает классификацию в конверт и кладёт её в diskv.
@@ -116,7 +116,7 @@ func (p *ClassificationProxy) readCache(key string) (domaincompany.Classificatio
 // писатели не дают читателю «полуписанного» файла. При TTL == 0
 // ExpiresAt остаётся нулевым — такая запись не протухает.
 func (p *ClassificationProxy) writeCache(key string, cls *domaincompany.Classification) error {
-	envelope := classificationEnvelope{Classification: classificationToDTO(cls)}
+	envelope := classificationEnvelope{Classification: classificationToDTO(*cls)}
 	if p.ttl > 0 {
 		envelope.ExpiresAt = time.Now().UTC().Add(p.ttl)
 	}
