@@ -141,8 +141,11 @@ linters:
         - name: confusing-results      # одинаковые типы возврата без имён
         - name: empty-block
         # ── Immutability и foot-gun receiver'ов ─────────────────────────────
-        # CLAUDE.md помечает immutability как CRITICAL; ниже — линтер-страховка
-        # вместо «держится на code review».
+        # Тихая мутация входов и value-receiver'ов — главный источник
+        # «потерянных» изменений: вызов отработал, но снаружи ничего не
+        # поменялось. Особенно опасно для value object'ов в domain-слое,
+        # где такие баги не ловятся unit-тестами (всё считается на одном
+        # объекте по ходу теста) и доезжают до прода как расхождение цифр.
         - name: modifies-parameter        # мутация входного параметра — нарушение immutability
         # value receiver мутирует поле → потерянное изменение (DDD foot-gun).
         - name: modifies-value-receiver
