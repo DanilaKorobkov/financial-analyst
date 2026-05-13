@@ -8,7 +8,7 @@
 # Этот файл — единственный источник правды по допустимому списку `<type>` для
 # commit / PR-заголовков. Документация (.claude/rules/git.md) ссылается на
 # поле `types:` ниже; при расширении или сужении списка правится ТОЛЬКО здесь.
-name: Lint pull request title
+name: lint-pull-request-title
 
 on:
   pull_request:
