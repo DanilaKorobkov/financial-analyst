@@ -88,6 +88,9 @@ func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
 		{"preferred", company.SecurityTypePreferredShare, companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE},
 		{"depositary", company.SecurityTypeDepositaryReceipt, companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT},
 		{"unspecified", company.SecurityTypeUnspecified, companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
+		// invalid — значение вне enum'а; fallback после switch должен
+		// деградировать до UNSPECIFIED, а не паниковать.
+		{"invalid", company.SecurityType(99), companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
@@ -118,6 +121,7 @@ func (s *serverSuite) TestGetCompanyListingLevelMapping() {
 		{"second", company.ListingLevelSecond, companyv1.ListingLevel_LISTING_LEVEL_SECOND},
 		{"third", company.ListingLevelThird, companyv1.ListingLevel_LISTING_LEVEL_THIRD},
 		{"unspecified", company.ListingLevelUnspecified, companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED},
+		{"invalid", company.ListingLevel(99), companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
@@ -146,6 +150,7 @@ func (s *serverSuite) TestGetCompanyExchangeMapping() {
 	}{
 		{"moex", company.ExchangeMOEX, companyv1.Exchange_EXCHANGE_MOEX},
 		{"unspecified", company.ExchangeUnspecified, companyv1.Exchange_EXCHANGE_UNSPECIFIED},
+		{"invalid", company.Exchange(99), companyv1.Exchange_EXCHANGE_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
@@ -176,6 +181,7 @@ func (s *serverSuite) TestGetCompanyCurrencyMapping() {
 		{"usd", company.CurrencyUSD, companyv1.Currency_CURRENCY_USD},
 		{"eur", company.CurrencyEUR, companyv1.Currency_CURRENCY_EUR},
 		{"unspecified", company.CurrencyUnspecified, companyv1.Currency_CURRENCY_UNSPECIFIED},
+		{"invalid", company.Currency(99), companyv1.Currency_CURRENCY_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {

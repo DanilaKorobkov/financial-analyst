@@ -185,9 +185,30 @@ linters:
         - ifElseChain
 
     exhaustive:
-      # default-clause считаем покрытием — иначе любой switch требует перечисления
-      # всех значений, что в DDD удобно не всегда.
-      default-signifies-exhaustive: true
+      # Жёсткий режим: каждый switch/map literal по enum-типу обязан перечислить
+      # все объявленные варианты. Цель — добавление нового варианта enum'а
+      # ломает линтер во всех местах, где о нём нужно подумать, а не уходит
+      # молча в default-ветку или в zero-value мапы.
+      #
+      # default-signifies-exhaustive: false — `default:` НЕ считается покрытием.
+      # Если хочется fallback-семантики «прочее → ошибка», пишем default явно,
+      # но все известные варианты всё равно перечисляем рядом cases.
+      default-signifies-exhaustive: false
+      # Проверяем и switch, и map literals: translator'ы MOEX→domain часто
+      # делают `map[string]ListingLevel{...}`, забытый ключ там — zero value bug.
+      check:
+        - switch
+        - map
+      # Не требуем обязательного default: — исчерпывающий switch самодостаточен,
+      # лишний default только провоцирует мёртвый код.
+      default-case-required: false
+      # Проверяем все switch'и по enum-типам, не только помеченные комментарием.
+      explicit-exhaustive-switch: false
+      explicit-exhaustive-map: false
+      # Включаем проверку enum'ов из внешних пакетов: presentation мапит
+      # proto-enums из gen/ в domain-enums — это типичное место пропуска
+      # нового варианта.
+      package-scope-only: false
 
     nolintlint:
       # //nolint должен указывать линтер и причину — никаких "//nolint" просто так.

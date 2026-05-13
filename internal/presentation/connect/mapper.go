@@ -26,51 +26,55 @@ func toProtoCompany(c *company.Company) *companyv1.Company {
 // toProtoSecurityType переводит domain-enum в proto-enum.
 func toProtoSecurityType(t company.SecurityType) companyv1.SecurityType {
 	switch t {
+	case company.SecurityTypeUnspecified:
+		return companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED
 	case company.SecurityTypeCommonShare:
 		return companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE
 	case company.SecurityTypePreferredShare:
 		return companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE
 	case company.SecurityTypeDepositaryReceipt:
 		return companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT
-	default:
-		return companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED
 	}
+	return companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED
 }
 
 // toProtoListingLevel переводит domain-enum в proto-enum.
 func toProtoListingLevel(level company.ListingLevel) companyv1.ListingLevel {
 	switch level {
+	case company.ListingLevelUnspecified:
+		return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED
 	case company.ListingLevelFirst:
 		return companyv1.ListingLevel_LISTING_LEVEL_FIRST
 	case company.ListingLevelSecond:
 		return companyv1.ListingLevel_LISTING_LEVEL_SECOND
 	case company.ListingLevelThird:
 		return companyv1.ListingLevel_LISTING_LEVEL_THIRD
-	default:
-		return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED
 	}
+	return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED
 }
 
 // toProtoExchange переводит domain-enum в proto-enum.
 func toProtoExchange(exchange company.Exchange) companyv1.Exchange {
 	switch exchange {
+	case company.ExchangeUnspecified:
+		return companyv1.Exchange_EXCHANGE_UNSPECIFIED
 	case company.ExchangeMOEX:
 		return companyv1.Exchange_EXCHANGE_MOEX
-	default:
-		return companyv1.Exchange_EXCHANGE_UNSPECIFIED
 	}
+	return companyv1.Exchange_EXCHANGE_UNSPECIFIED
 }
 
 // toProtoCurrency переводит domain-enum в proto-enum.
 func toProtoCurrency(currency company.Currency) companyv1.Currency {
 	switch currency {
+	case company.CurrencyUnspecified:
+		return companyv1.Currency_CURRENCY_UNSPECIFIED
 	case company.CurrencyRUB:
 		return companyv1.Currency_CURRENCY_RUB
 	case company.CurrencyUSD:
 		return companyv1.Currency_CURRENCY_USD
 	case company.CurrencyEUR:
 		return companyv1.Currency_CURRENCY_EUR
-	default:
-		return companyv1.Currency_CURRENCY_UNSPECIFIED
 	}
+	return companyv1.Currency_CURRENCY_UNSPECIFIED
 }
