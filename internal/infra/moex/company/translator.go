@@ -76,19 +76,19 @@ func parseDescription(raw []byte) (map[string]string, error) {
 	return nil, errDescriptionBlockMissing
 }
 
-// mapDescription собирает domaincompany.Company из map[name]value блока description.
+// mapDescription собирает domaincompany.Identity из map[name]value блока description.
 // Пустой map → domaincompany.ErrNotFound (тикер не найден).
-func mapDescription(fields map[string]string) (domaincompany.Company, error) {
+func mapDescription(fields map[string]string) (domaincompany.Identity, error) {
 	if len(fields) == 0 {
-		return domaincompany.Company{}, fmt.Errorf("empty description block: %w", domaincompany.ErrNotFound)
+		return domaincompany.Identity{}, fmt.Errorf("empty description block: %w", domaincompany.ErrNotFound)
 	}
 
 	listLevel, err := parseListingLevel(fields["LISTLEVEL"])
 	if err != nil {
-		return domaincompany.Company{}, fmt.Errorf("LISTLEVEL: %w", err)
+		return domaincompany.Identity{}, fmt.Errorf("LISTLEVEL: %w", err)
 	}
 
-	return domaincompany.Company{
+	return domaincompany.Identity{
 		Ticker:       fields["SECID"],
 		ISIN:         fields["ISIN"],
 		Name:         fields["NAME"],

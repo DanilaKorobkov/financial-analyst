@@ -13,12 +13,12 @@ import (
 
 // Server реализует companyv1connect.CompanyServiceHandler поверх domain-сервиса.
 type Server struct {
-	companyInfo *services.CompanyInfo
+	companies *services.CompanyService
 }
 
 // NewServer собирает Connect-сервер вокруг доменного сервиса.
-func NewServer(companyInfo *services.CompanyInfo) *Server {
-	return &Server{companyInfo: companyInfo}
+func NewServer(companies *services.CompanyService) *Server {
+	return &Server{companies: companies}
 }
 
 // GetCompany — unary-метод CompanyService.GetCompany.
@@ -26,7 +26,7 @@ func (s *Server) GetCompany(
 	ctx context.Context,
 	req *connectrpc.Request[companyv1.GetCompanyRequest],
 ) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
-	found, err := s.companyInfo.Lookup(ctx, req.Msg.GetTicker())
+	found, err := s.companies.GetCompany(ctx, req.Msg.GetTicker())
 	if err != nil {
 		return nil, mapDomainError(err)
 	}

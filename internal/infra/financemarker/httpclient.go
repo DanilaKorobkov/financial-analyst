@@ -45,7 +45,7 @@ type ConfigClient struct {
 // jsoniter-парсер, api_token, тип errorBody и middleware, превращающий
 // ошибочные HTTP-ответы в типизированные ошибки.
 //
-// Встраивается в конкретные репозитории подпакетов (companycard, ...).
+// Встраивается в конкретные gateway подпакетов (company, ...).
 type Client struct {
 	*resty.Client
 }

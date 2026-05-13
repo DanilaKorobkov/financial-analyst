@@ -20,12 +20,10 @@ allow:
 
 components:
   # Domain: каждый агрегат — отдельный компонент. Внутри агрегата лежат
-  # entity, port (интерфейс репозитория), доменные sentinel-ошибки и
-  # enum-ы, специфичные для агрегата.
+  # entity, value objects, порты (gateway-интерфейсы), доменные sentinel-
+  # ошибки и enum-ы, специфичные для агрегата.
   domain-company:
     in: internal/domain/company
-  domain-companycard:
-    in: internal/domain/companycard
   # Доменные сервисы. Знают агрегаты — никаких HTTP/gRPC/провайдеров.
   domain-services:
     in: internal/domain/services
@@ -41,12 +39,13 @@ components:
     in: internal/infra/moex/company
   infra-financemarker:
     in: internal/infra/financemarker
-  infra-financemarker-companycard:
-    in: internal/infra/financemarker/companycard
-  # Файловый кеш-Proxy над портом карточек эмитентов. Знает только domain-
-  # contract порта и сам себя; не зависит ни от одного конкретного провайдера.
-  infra-filecache-companycard:
-    in: internal/infra/filecache/companycard
+  infra-financemarker-company:
+    in: internal/infra/financemarker/company
+  # Файловый кеш-Proxy над gateway-портом компании. Знает только
+  # domain-contract порта и сам себя; не зависит ни от одного
+  # конкретного провайдера.
+  infra-filecache-company:
+    in: internal/infra/filecache/company
 
   # Транспортный слой. Знает domain и сгенерированный proto-код (generated).
   presentation:
@@ -75,13 +74,9 @@ deps:
   domain-company:
     anyVendorDeps: true
 
-  domain-companycard:
-    anyVendorDeps: true
-
   domain-services:
     mayDependOn:
       - domain-company
-      - domain-companycard
       - domain-services
     anyVendorDeps: true
 
@@ -98,23 +93,22 @@ deps:
   infra-financemarker:
     anyVendorDeps: true
 
-  infra-financemarker-companycard:
+  infra-financemarker-company:
     mayDependOn:
-      - domain-companycard
+      - domain-company
       - infra-financemarker
-      - infra-financemarker-companycard
+      - infra-financemarker-company
     anyVendorDeps: true
 
-  infra-filecache-companycard:
+  infra-filecache-company:
     mayDependOn:
-      - domain-companycard
-      - infra-filecache-companycard
+      - domain-company
+      - infra-filecache-company
     anyVendorDeps: true
 
   presentation:
     mayDependOn:
       - domain-company
-      - domain-companycard
       - domain-services
       - presentation
     anyVendorDeps: true
@@ -125,20 +119,18 @@ deps:
   mocks:
     mayDependOn:
       - domain-company
-      - domain-companycard
       - domain-services
     anyVendorDeps: true
 
   app:
     mayDependOn:
       - domain-company
-      - domain-companycard
       - domain-services
       - infra-moex
       - infra-moex-company
       - infra-financemarker
-      - infra-financemarker-companycard
-      - infra-filecache-companycard
+      - infra-financemarker-company
+      - infra-filecache-company
       - presentation
     anyVendorDeps: true
 

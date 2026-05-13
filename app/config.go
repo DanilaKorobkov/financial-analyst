@@ -22,6 +22,10 @@ import (
 type Config struct {
 	// Moex — параметры доступа к MOEX ISS REST API.
 	Moex MoexConfig
+	// FinanceMarker — параметры доступа к FinanceMarker REST API.
+	FinanceMarker FinanceMarkerConfig
+	// ClassCache — параметры файлового кеша классификационной секции.
+	ClassCache ClassificationCacheConfig
 	// Server — параметры HTTP/Connect-сервера приложения.
 	Server ServerConfig
 }
@@ -35,6 +39,31 @@ type MoexConfig struct {
 	// Timeout — таймаут на один HTTP-запрос к MOEX ISS.
 	// Пример: `10s`.
 	Timeout time.Duration `env:"MOEX_TIMEOUT,required"`
+}
+
+// FinanceMarkerConfig — параметры доступа к FinanceMarker REST API.
+type FinanceMarkerConfig struct {
+	// BaseURL — корень FinanceMarker без завершающего слэша.
+	// Пример: `https://financemarker.ru/api/fm/v2`.
+	BaseURL string `env:"FINANCEMARKER_BASE_URL,required"`
+
+	// Token — API-токен FinanceMarker. Передаётся query-параметром
+	// `api_token` во всех запросах.
+	Token string `env:"FINANCEMARKER_TOKEN,required"`
+
+	// Timeout — таймаут на один HTTP-запрос.
+	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required"`
+}
+
+// ClassificationCacheConfig — параметры файлового кеша классификационной
+// секции карточки (поверх FinanceMarker). Свободный MOEX-источник идёт
+// без кеша, поэтому здесь — только параметры одного Proxy.
+type ClassificationCacheConfig struct {
+	// Dir — каталог хранения файлов кеша.
+	Dir string `env:"CLASSIFICATION_CACHE_DIR,required"`
+
+	// TTL — срок жизни записи в кеше. Ноль — без экспирации.
+	TTL time.Duration `env:"CLASSIFICATION_CACHE_TTL,required"`
 }
 
 // ServerConfig — параметры Connect-сервера financial-analyst.

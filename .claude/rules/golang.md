@@ -34,6 +34,26 @@ type CompanyInfo struct {
 
 Для внешних HTTP-вызовов используется `github.com/go-resty/resty/v2`, не голый `net/http`.
 
+## Параллелизм
+
+Для оркестрации параллельных горутин используется `github.com/sourcegraph/conc`, не голый `sync.WaitGroup` / `golang.org/x/sync/errgroup` / самописные `chan error`.
+
+- Fail-fast пул с отменой контекста по первой ошибке — `pool.New().WithErrors().WithContext(ctx)`:
+
+  ```go
+  import "github.com/sourcegraph/conc/pool"
+
+  p := pool.New().WithErrors().WithContext(ctx)
+  p.Go(func(ctx context.Context) error { return fetchA(ctx) })
+  p.Go(func(ctx context.Context) error { return fetchB(ctx) })
+  if err := p.Wait(); err != nil { ... }
+  ```
+
+- Параллельный обход коллекции — `iter.ForEach` / `iter.Map`.
+- Без оркестрации ошибок — `conc.NewWaitGroup()` вместо `sync.WaitGroup` (recover-safe).
+
+`errgroup` и голый `sync.WaitGroup` запрещены: `conc` даёт recover из паник и единый стиль на проекте.
+
 ## JSON
 
 Для разбора и сериализации JSON используется `github.com/json-iterator/go` в режиме `jsoniter.ConfigCompatibleWithStandardLibrary` — drop-in для `encoding/json` (sorted map keys, html-escape, `ValidateJsonRawMessage`), но 2–3× быстрее. Тип `json.RawMessage` остаётся из `encoding/json` — это просто `[]byte`.
@@ -139,6 +159,73 @@ sentinel. В `infra` оборачиваем причину обычным `fmt.E
 Конфиг приложения — `github.com/caarlos0/env/v11`. Источник — **только переменные окружения**. Никаких дефолтов в коде, никаких файлов, никаких flag'ов.
 
 Тесты, которым нужен `Config`, выставляют env через `t.Setenv(...)`.
+
+## Разрыв цепочки вызовов
+
+Цепочка из нескольких вызовов через `.` разбивается на строки —
+по одному звену на строку. Цель — глазами видеть последовательность
+шагов и легко комментировать или удалять отдельные звенья в diff.
+
+Касается прежде всего цепочек, которые регулярно растут вширь:
+
+- mockery EXPECT (`.EXPECT().Method(...).Return(...).Once()`);
+- resty (`client.R().SetContext(ctx).SetQueryParam(...).Get(url)`).
+
+```go
+// ✅ mocks
+s.identities.EXPECT().
+    FindByTicker(mock.Anything, "SBER").
+    Return(identity, nil).
+    Once()
+
+// ❌ mocks
+s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").Return(identity, nil).Once()
+
+// ✅ resty
+resp, err := c.client.R().
+    SetContext(ctx).
+    SetPathParam("ticker", ticker).
+    SetResult(&out).
+    Get("/iss/securities/{ticker}.json")
+
+// ❌ resty
+resp, err := c.client.R().SetContext(ctx).SetPathParam("ticker", ticker).SetResult(&out).Get("/iss/securities/{ticker}.json")
+```
+
+Короткие цепочки из двух звеньев (`foo.Bar()`) держим в одной строке —
+правило про разрыв включается с трёх звеньев и выше.
+
+## Имена тикеров в тестах
+
+Тестовые литералы тикеров отражают **семантику** проверки, а не
+случайный набор букв. Это правило сквозное по проекту и касается
+любых unit-тестов поверх domain/presentation (infra-тесты против
+реальных фикстур MOEX/FM используют настоящие тикеры — там литерал
+обязан совпасть с фикстурой).
+
+| Семантика                                            | Литерал                           |
+| ---------------------------------------------------- | --------------------------------- |
+| Тикер не найден (проверяем `ErrNotFound`/404)        | `"missing"`                       |
+| Тикер не важен (проверяем маппинг/ошибку downstream) | `"any"`                           |
+| Тикер важен по смыслу (happy-path, специальный кейс) | `"SBER"` и т.п. — настоящий тикер |
+
+```go
+// ✅ говорит, что именно проверяем
+s.identities.EXPECT().
+    FindByTicker(mock.Anything, "missing").
+    Return(company.Identity{}, company.ErrNotFound).
+    Once()
+
+// ❌ "ZZZZ" — случайный шум, читателю не помогает
+s.identities.EXPECT().
+    FindByTicker(mock.Anything, "ZZZZ").
+    Return(company.Identity{}, company.ErrNotFound).
+    Once()
+```
+
+То же относится к другим placeholder-значениям в тестах
+(идентификаторы, имена пользователей, URL-ы) — литерал должен
+называть свою роль.
 
 ## Тесты
 

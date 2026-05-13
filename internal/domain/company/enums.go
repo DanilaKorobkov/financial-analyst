@@ -21,6 +21,20 @@ const (
 	ListingLevelSecond ListingLevel = 2
 	// ListingLevelThird — третий котировальный уровень.
 	ListingLevelThird ListingLevel = 3
+
+	// ExchangeUnspecified — биржа не определена или неподдерживаемая.
+	ExchangeUnspecified Exchange = 0
+	// ExchangeMOEX — Московская биржа.
+	ExchangeMOEX Exchange = 1
+
+	// CurrencyUnspecified — валюта не определена или неподдерживаемая.
+	CurrencyUnspecified Currency = 0
+	// CurrencyRUB — российский рубль (ISO 4217: RUB).
+	CurrencyRUB Currency = 1
+	// CurrencyUSD — доллар США (ISO 4217: USD).
+	CurrencyUSD Currency = 2
+	// CurrencyEUR — евро (ISO 4217: EUR).
+	CurrencyEUR Currency = 3
 )
 
 // SecurityType — тип бумаги.
@@ -28,3 +42,9 @@ type SecurityType int
 
 // ListingLevel — котировальный уровень бумаги.
 type ListingLevel int
+
+// Exchange — биржа листинга бумаги.
+type Exchange int
+
+// Currency — валюта торгов бумагой.
+type Currency int

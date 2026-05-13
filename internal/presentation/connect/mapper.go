@@ -9,11 +9,17 @@ import (
 // toProtoCompany переводит company.Company в proto-сообщение.
 func toProtoCompany(c *company.Company) *companyv1.Company {
 	return &companyv1.Company{
-		Ticker:       c.Ticker,
-		Isin:         c.ISIN,
-		Name:         c.Name,
-		SecurityType: toProtoSecurityType(c.SecurityType),
-		ListingLevel: toProtoListingLevel(c.ListingLevel),
+		Ticker:              c.Ticker,
+		Isin:                c.ISIN,
+		Name:                c.Name,
+		SecurityType:        toProtoSecurityType(c.SecurityType),
+		ListingLevel:        toProtoListingLevel(c.ListingLevel),
+		Exchange:            toProtoExchange(c.Exchange),
+		Currency:            toProtoCurrency(c.Currency),
+		Sector:              c.Sector,
+		Industry:            c.Industry,
+		Country:             c.Country,
+		PrimaryReportTicker: c.PrimaryReportTicker,
 	}
 }
 
@@ -42,5 +48,29 @@ func toProtoListingLevel(level company.ListingLevel) companyv1.ListingLevel {
 		return companyv1.ListingLevel_LISTING_LEVEL_THIRD
 	default:
 		return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED
+	}
+}
+
+// toProtoExchange переводит domain-enum в proto-enum.
+func toProtoExchange(exchange company.Exchange) companyv1.Exchange {
+	switch exchange {
+	case company.ExchangeMOEX:
+		return companyv1.Exchange_EXCHANGE_MOEX
+	default:
+		return companyv1.Exchange_EXCHANGE_UNSPECIFIED
+	}
+}
+
+// toProtoCurrency переводит domain-enum в proto-enum.
+func toProtoCurrency(currency company.Currency) companyv1.Currency {
+	switch currency {
+	case company.CurrencyRUB:
+		return companyv1.Currency_CURRENCY_RUB
+	case company.CurrencyUSD:
+		return companyv1.Currency_CURRENCY_USD
+	case company.CurrencyEUR:
+		return companyv1.Currency_CURRENCY_EUR
+	default:
+		return companyv1.Currency_CURRENCY_UNSPECIFIED
 	}
 }
