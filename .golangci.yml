@@ -78,6 +78,7 @@ linters:
     - thelper         # хелперы тестов должны звать t.Helper()
     - tparallel       # корректное использование t.Parallel в подтестах
     - paralleltest    # каждый тест должен явно решать про t.Parallel()
+    - testifylint     # типовые ошибки testify (порядок args, error-is, require и т.д.)
 
     # ── Анти-foot-gun ───────────────────────────────────────────────────────
     - forbidigo       # запрет вызовов вроде fmt.Print*/panic в проде (см. settings)
@@ -293,6 +294,38 @@ linters:
       # regexp, который не матчит ни одно реальное имя файла, чтобы
       # линтер ругался на любой test-файл с внутренним пакетом.
       skip-regexp: _disabled_skip_$
+
+    testifylint:
+      # Жёсткий режим, как и для revive: правила перечислены явно, чтобы
+      # апгрейд testifylint не менял поведение бесшумно. enable-all не
+      # используем — у testifylint есть пара правил со спорной семантикой
+      # (например, formatter), которые включать молча не хотим.
+      enable-all: false
+      enable:
+        - bool-compare              # s.Equal(true, x) → s.True(x)
+        - compares                  # s.True(a == b) → s.Equal(a, b)
+        - empty                     # s.Equal(0, len(x)) → s.Empty(x)
+        - error-is-as               # s.True(errors.Is(err, X)) → s.ErrorIs(err, X)
+        - error-nil                 # s.Nil(err) → s.NoError(err)
+        - expected-actual           # порядок аргументов в Equal: expected первым
+        - float-compare             # точные сравнения float — через InDelta
+        - go-require                # require из горутины — t.FailNow не сработает
+        - len                       # s.Equal(N, len(x)) → s.Len(x, N)
+        - negative-positive         # s.Less(0, x) → s.Positive(x)
+        - nil-compare               # s.Equal(nil, x) → s.Nil(x)
+        - require-error             # последняя проверка err — через require
+        - suite-dont-use-pkg        # assert.Equal(s.T(), ...) → s.Equal(...)
+        - suite-extra-assert-call   # стилистика вызовов в suite
+        - suite-thelper             # хелперы suite должны звать s.T().Helper()
+        - useless-assert            # s.Equal(x, x) — бессмысленное сравнение
+      # expected-actual: regexp имён "ожидаемых" переменных, чтобы линтер
+      # понимал, какой аргумент должен идти первым.
+      expected-actual:
+        pattern: ^(expected|want|wanted)
+      # require-error: список assert-функций, после которых require следом
+      # НЕ обязателен. Пусто = строгий режим.
+      require-error:
+        fn-pattern: ""
 
     depguard:
       # Запреты на импорты по слоям: defense-in-depth для DDD.
