@@ -1,4 +1,4 @@
-package companycard_test
+package company_test
 
 import (
 	"context"
@@ -13,16 +13,16 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	domaincard "github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
-	fccard "github.com/DanilaKorobkov/financial-analyst/internal/infra/filecache/companycard"
-	companycard_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/companycard"
+	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	fccompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/filecache/company"
+	company_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/company"
 )
 
 type classificationProxySuite struct {
 	suite.Suite
 
-	delegate *companycard_mock.ClassificationGateway
-	proxy    *fccard.ClassificationProxy
+	delegate *company_mock.ClassificationGateway
+	proxy    *fccompany.ClassificationProxy
 	dir      string
 }
 
@@ -30,8 +30,8 @@ type classificationProxySuite struct {
 // приватный тип Proxy ровно настолько, чтобы тесты могли убедиться в
 // раскладке JSON и значении ExpiresAt.
 type envelopeOnDisk struct {
-	ExpiresAt      time.Time                 `json:"expires_at"`
-	Classification domaincard.Classification `json:"classification"`
+	ExpiresAt      time.Time                    `json:"expires_at"`
+	Classification domaincompany.Classification `json:"classification"`
 }
 
 func TestClassificationProxySuite(t *testing.T) {
@@ -41,8 +41,8 @@ func TestClassificationProxySuite(t *testing.T) {
 
 func (s *classificationProxySuite) SetupTest() {
 	s.dir = s.T().TempDir()
-	s.delegate = companycard_mock.NewClassificationGateway(s.T())
-	s.proxy = fccard.NewClassificationProxy(fccard.ConfigClassificationProxy{
+	s.delegate = company_mock.NewClassificationGateway(s.T())
+	s.proxy = fccompany.NewClassificationProxy(fccompany.ConfigClassificationProxy{
 		Delegate: s.delegate,
 		Dir:      s.dir,
 	})
@@ -81,15 +81,15 @@ func (s *classificationProxySuite) TestFindByTickerCacheHitSkipsDelegate() {
 func (s *classificationProxySuite) TestFindByTickerDelegateErrorNotCached() {
 	s.delegate.EXPECT().
 		FindByTicker(context.Background(), "GAZP").
-		Return(domaincard.Classification{}, domaincard.ErrNotFound).
+		Return(domaincompany.Classification{}, domaincompany.ErrNotFound).
 		Twice()
 
 	_, err := s.proxy.FindByTicker(context.Background(), "GAZP")
-	s.Require().ErrorIs(err, domaincard.ErrNotFound)
+	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
 
 	// Повторный вызов должен снова уйти в делегат — отрицательных записей нет.
 	_, err = s.proxy.FindByTicker(context.Background(), "GAZP")
-	s.Require().ErrorIs(err, domaincard.ErrNotFound)
+	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
 
 	entries, readErr := os.ReadDir(s.dir)
 	s.Require().NoError(readErr)
@@ -148,8 +148,8 @@ func (s *classificationProxySuite) TestFindByTickerExpiredEntryRefreshed() {
 	synctest.Test(s.T(), func(_ *testing.T) {
 		const ttl = time.Hour
 		dir := s.T().TempDir()
-		delegate := companycard_mock.NewClassificationGateway(s.T())
-		proxy := fccard.NewClassificationProxy(fccard.ConfigClassificationProxy{
+		delegate := company_mock.NewClassificationGateway(s.T())
+		proxy := fccompany.NewClassificationProxy(fccompany.ConfigClassificationProxy{
 			Delegate: delegate,
 			Dir:      dir,
 			TTL:      ttl,
@@ -190,8 +190,8 @@ func (s *classificationProxySuite) TestFindByTickerExpiredEntryRefreshed() {
 func (s *classificationProxySuite) TestFindByTickerWithinTTLServesFromCache() {
 	synctest.Test(s.T(), func(_ *testing.T) {
 		dir := s.T().TempDir()
-		delegate := companycard_mock.NewClassificationGateway(s.T())
-		proxy := fccard.NewClassificationProxy(fccard.ConfigClassificationProxy{
+		delegate := company_mock.NewClassificationGateway(s.T())
+		proxy := fccompany.NewClassificationProxy(fccompany.ConfigClassificationProxy{
 			Delegate: delegate,
 			Dir:      dir,
 			TTL:      time.Hour,
@@ -220,8 +220,8 @@ func (s *classificationProxySuite) TestFindByTickerWithinTTLServesFromCache() {
 func (s *classificationProxySuite) TestFindByTickerZeroTTLNeverExpires() {
 	synctest.Test(s.T(), func(_ *testing.T) {
 		dir := s.T().TempDir()
-		delegate := companycard_mock.NewClassificationGateway(s.T())
-		proxy := fccard.NewClassificationProxy(fccard.ConfigClassificationProxy{
+		delegate := company_mock.NewClassificationGateway(s.T())
+		proxy := fccompany.NewClassificationProxy(fccompany.ConfigClassificationProxy{
 			Delegate: delegate,
 			Dir:      dir,
 		})
@@ -243,10 +243,10 @@ func (s *classificationProxySuite) TestFindByTickerZeroTTLNeverExpires() {
 	})
 }
 
-func sberClassification() domaincard.Classification {
-	return domaincard.Classification{
-		Exchange:            domaincard.ExchangeMOEX,
-		Currency:            domaincard.CurrencyRUB,
+func sberClassification() domaincompany.Classification {
+	return domaincompany.Classification{
+		Exchange:            domaincompany.ExchangeMOEX,
+		Currency:            domaincompany.CurrencyRUB,
 		Sector:              "Финансы",
 		Industry:            "Банковская деятельность",
 		Country:             "Россия",

@@ -13,17 +13,17 @@ import (
 
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
 	"github.com/DanilaKorobkov/financial-analyst/gen/company/v1/companyv1connect"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
-	companycard_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/companycard"
+	company_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/company"
 )
 
 type serverSuite struct {
 	suite.Suite
 
-	identities      *companycard_mock.IdentityGateway
-	classifications *companycard_mock.ClassificationGateway
+	identities      *company_mock.IdentityGateway
+	classifications *company_mock.ClassificationGateway
 	server          *httptest.Server
 	client          companyv1connect.CompanyServiceClient
 }
@@ -34,9 +34,9 @@ func TestServerSuite(t *testing.T) {
 }
 
 func (s *serverSuite) SetupTest() {
-	s.identities = companycard_mock.NewIdentityGateway(s.T())
-	s.classifications = companycard_mock.NewClassificationGateway(s.T())
-	srv := pconnect.NewServer(services.NewCompanyCardService(s.identities, s.classifications))
+	s.identities = company_mock.NewIdentityGateway(s.T())
+	s.classifications = company_mock.NewClassificationGateway(s.T())
+	srv := pconnect.NewServer(services.NewCompanyService(s.identities, s.classifications))
 
 	mux := http.NewServeMux()
 	path, handler := companyv1connect.NewCompanyServiceHandler(srv)
@@ -51,16 +51,16 @@ func (s *serverSuite) TearDownTest() {
 }
 
 func (s *serverSuite) TestGetCompanyHappyPath() {
-	s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").Return(companycard.Identity{
+	s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").Return(company.Identity{
 		Ticker:       "SBER",
 		ISIN:         "RU0009029540",
 		Name:         "Сбербанк России ПАО ао",
-		SecurityType: companycard.SecurityTypeCommonShare,
-		ListingLevel: companycard.ListingLevelFirst,
+		SecurityType: company.SecurityTypeCommonShare,
+		ListingLevel: company.ListingLevelFirst,
 	}, nil).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "SBER").Return(companycard.Classification{
-		Exchange:            companycard.ExchangeMOEX,
-		Currency:            companycard.CurrencyRUB,
+	s.classifications.EXPECT().FindByTicker(mock.Anything, "SBER").Return(company.Classification{
+		Exchange:            company.ExchangeMOEX,
+		Currency:            company.CurrencyRUB,
 		Sector:              "Финансы",
 		Industry:            "Банковская деятельность",
 		Country:             "Россия",
@@ -88,20 +88,20 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
 	cases := []struct {
 		name string
-		in   companycard.SecurityType
+		in   company.SecurityType
 		want companyv1.SecurityType
 	}{
-		{"common", companycard.SecurityTypeCommonShare, companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE},
-		{"preferred", companycard.SecurityTypePreferredShare, companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE},
-		{"depositary", companycard.SecurityTypeDepositaryReceipt, companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT},
-		{"unspecified", companycard.SecurityTypeUnspecified, companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
+		{"common", company.SecurityTypeCommonShare, companyv1.SecurityType_SECURITY_TYPE_COMMON_SHARE},
+		{"preferred", company.SecurityTypePreferredShare, companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE},
+		{"depositary", company.SecurityTypeDepositaryReceipt, companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT},
+		{"unspecified", company.SecurityTypeUnspecified, companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Identity{Ticker: "X", SecurityType: c.in}, nil).Once()
+				Return(company.Identity{Ticker: "X", SecurityType: c.in}, nil).Once()
 			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Classification{}, nil).Once()
+				Return(company.Classification{}, nil).Once()
 
 			resp, err := s.call("X")
 
@@ -114,20 +114,20 @@ func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
 func (s *serverSuite) TestGetCompanyListingLevelMapping() {
 	cases := []struct {
 		name string
-		in   companycard.ListingLevel
+		in   company.ListingLevel
 		want companyv1.ListingLevel
 	}{
-		{"first", companycard.ListingLevelFirst, companyv1.ListingLevel_LISTING_LEVEL_FIRST},
-		{"second", companycard.ListingLevelSecond, companyv1.ListingLevel_LISTING_LEVEL_SECOND},
-		{"third", companycard.ListingLevelThird, companyv1.ListingLevel_LISTING_LEVEL_THIRD},
-		{"unspecified", companycard.ListingLevelUnspecified, companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED},
+		{"first", company.ListingLevelFirst, companyv1.ListingLevel_LISTING_LEVEL_FIRST},
+		{"second", company.ListingLevelSecond, companyv1.ListingLevel_LISTING_LEVEL_SECOND},
+		{"third", company.ListingLevelThird, companyv1.ListingLevel_LISTING_LEVEL_THIRD},
+		{"unspecified", company.ListingLevelUnspecified, companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Identity{Ticker: "X", ListingLevel: c.in}, nil).Once()
+				Return(company.Identity{Ticker: "X", ListingLevel: c.in}, nil).Once()
 			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Classification{}, nil).Once()
+				Return(company.Classification{}, nil).Once()
 
 			resp, err := s.call("X")
 
@@ -140,18 +140,18 @@ func (s *serverSuite) TestGetCompanyListingLevelMapping() {
 func (s *serverSuite) TestGetCompanyExchangeMapping() {
 	cases := []struct {
 		name string
-		in   companycard.Exchange
+		in   company.Exchange
 		want companyv1.Exchange
 	}{
-		{"moex", companycard.ExchangeMOEX, companyv1.Exchange_EXCHANGE_MOEX},
-		{"unspecified", companycard.ExchangeUnspecified, companyv1.Exchange_EXCHANGE_UNSPECIFIED},
+		{"moex", company.ExchangeMOEX, companyv1.Exchange_EXCHANGE_MOEX},
+		{"unspecified", company.ExchangeUnspecified, companyv1.Exchange_EXCHANGE_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Identity{Ticker: "X"}, nil).Once()
+				Return(company.Identity{Ticker: "X"}, nil).Once()
 			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Classification{Exchange: c.in}, nil).Once()
+				Return(company.Classification{Exchange: c.in}, nil).Once()
 
 			resp, err := s.call("X")
 
@@ -164,20 +164,20 @@ func (s *serverSuite) TestGetCompanyExchangeMapping() {
 func (s *serverSuite) TestGetCompanyCurrencyMapping() {
 	cases := []struct {
 		name string
-		in   companycard.Currency
+		in   company.Currency
 		want companyv1.Currency
 	}{
-		{"rub", companycard.CurrencyRUB, companyv1.Currency_CURRENCY_RUB},
-		{"usd", companycard.CurrencyUSD, companyv1.Currency_CURRENCY_USD},
-		{"eur", companycard.CurrencyEUR, companyv1.Currency_CURRENCY_EUR},
-		{"unspecified", companycard.CurrencyUnspecified, companyv1.Currency_CURRENCY_UNSPECIFIED},
+		{"rub", company.CurrencyRUB, companyv1.Currency_CURRENCY_RUB},
+		{"usd", company.CurrencyUSD, companyv1.Currency_CURRENCY_USD},
+		{"eur", company.CurrencyEUR, companyv1.Currency_CURRENCY_EUR},
+		{"unspecified", company.CurrencyUnspecified, companyv1.Currency_CURRENCY_UNSPECIFIED},
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Identity{Ticker: "X"}, nil).Once()
+				Return(company.Identity{Ticker: "X"}, nil).Once()
 			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(companycard.Classification{Currency: c.in}, nil).Once()
+				Return(company.Classification{Currency: c.in}, nil).Once()
 
 			resp, err := s.call("X")
 
@@ -189,9 +189,9 @@ func (s *serverSuite) TestGetCompanyCurrencyMapping() {
 
 func (s *serverSuite) TestGetCompanyNotFoundFromIdentity() {
 	s.identities.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(companycard.Identity{}, companycard.ErrNotFound).Once()
+		Return(company.Identity{}, company.ErrNotFound).Once()
 	s.classifications.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(companycard.Classification{}, nil).Maybe()
+		Return(company.Classification{}, nil).Maybe()
 
 	_, err := s.call("ZZZZ")
 
@@ -202,9 +202,9 @@ func (s *serverSuite) TestGetCompanyNotFoundFromIdentity() {
 
 func (s *serverSuite) TestGetCompanyNotFoundFromClassification() {
 	s.identities.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(companycard.Identity{Ticker: "ZZZZ"}, nil).Maybe()
+		Return(company.Identity{Ticker: "ZZZZ"}, nil).Maybe()
 	s.classifications.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(companycard.Classification{}, companycard.ErrNotFound).Once()
+		Return(company.Classification{}, company.ErrNotFound).Once()
 
 	_, err := s.call("ZZZZ")
 
@@ -223,9 +223,9 @@ func (s *serverSuite) TestGetCompanyInvalidArgument() {
 
 func (s *serverSuite) TestGetCompanyInternal() {
 	s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(companycard.Identity{}, errors.New("downstream boom")).Once()
+		Return(company.Identity{}, errors.New("downstream boom")).Once()
 	s.classifications.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(companycard.Classification{}, nil).Maybe()
+		Return(company.Classification{}, nil).Maybe()
 
 	_, err := s.call("SBER")
 

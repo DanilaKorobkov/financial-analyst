@@ -1,23 +1,23 @@
-// Package companycard — агрегат «карточка эмитента»: сущность,
-// её секции (Identity, Classification), порты-gateways к внешним
+// Package company — агрегат «компания» (эмитент бумаги): сущность,
+// её секции (Identity, Classification, ...), порты-gateways к внешним
 // источникам, доменные ошибки и enum-ы.
 //
-// Card — единственный агрегат пакета. Identity и Classification —
-// value objects, секции карточки; самостоятельной жизни без эмитента
-// не имеют. Card собирается domain-сервисом из ответов двух gateway,
-// каждый из которых отвечает за свою секцию.
-package companycard
+// Company — единственный агрегат пакета. Секции — Identity,
+// Classification и далее метрики, мультипликаторы, отчётность — это
+// value objects: самостоятельной жизни без эмитента не имеют. Каждый
+// gateway отвечает за свою секцию; собирает их вместе domain-сервис.
+package company
 
-// Card — карточка эмитента. Identity и Classification встроены, чтобы
-// сохранить плоский доступ снаружи (card.Ticker, card.Sector) при
+// Company — карточка эмитента. Identity и Classification встроены,
+// чтобы сохранить плоский доступ снаружи (c.Ticker, c.Sector) при
 // явном разделении на секции, каждую из которых отдаёт свой gateway.
-type Card struct {
+type Company struct {
 	Identity
 	Classification
 }
 
-// Identity — идентификационная секция карточки: то, что однозначно
-// определяет бумагу.
+// Identity — идентификационная секция: то, что однозначно определяет
+// бумагу.
 type Identity struct {
 	// Ticker — биржевой код бумаги. Пример: "SBER".
 	Ticker string
@@ -37,9 +37,8 @@ type Identity struct {
 	ListingLevel ListingLevel
 }
 
-// Classification — классификационная секция карточки эмитента:
-// биржа, валюта, отраслевая принадлежность, страна и привязка
-// отчётности.
+// Classification — классификационная секция: биржа, валюта, отраслевая
+// принадлежность, страна и привязка отчётности.
 //
 // Порядок полей продиктован fieldalignment: pointer-содержащие
 // (string) идут до non-pointer (enum-int), чтобы GC сканировал

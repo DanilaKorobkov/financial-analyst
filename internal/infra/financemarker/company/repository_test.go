@@ -1,4 +1,4 @@
-package companycard_test
+package company_test
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	domaincard "github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
+	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker"
-	fmcard "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/companycard"
+	fmcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/company"
 )
 
 //go:embed testdata/*.json
@@ -23,7 +23,7 @@ type repositorySuite struct {
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	gateway *fmcard.ClassificationGateway
+	gateway *fmcompany.ClassificationGateway
 }
 
 func TestRepositorySuite(t *testing.T) {
@@ -43,7 +43,7 @@ func (s *repositorySuite) SetupTest() {
 		Token:   "test-token",
 		Timeout: 5 * time.Second,
 	})
-	s.gateway = fmcard.NewClassificationGateway(client)
+	s.gateway = fmcompany.NewClassificationGateway(client)
 }
 
 func (s *repositorySuite) TearDownTest() {
@@ -63,9 +63,9 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 	got, err := s.gateway.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	expected := domaincard.Classification{
-		Exchange:            domaincard.ExchangeMOEX,
-		Currency:            domaincard.CurrencyRUB,
+	expected := domaincompany.Classification{
+		Exchange:            domaincompany.ExchangeMOEX,
+		Currency:            domaincompany.CurrencyRUB,
 		Sector:              "Финансы",
 		Industry:            "Банковская деятельность",
 		Country:             "Россия",
@@ -76,7 +76,7 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 
 // TestFindByTickerErrorMapping проходит по таблице ответов FinanceMarker и
 // проверяет, что классификация HTTP-ошибок + декодер payload-а возвращают
-// ожидаемую ошибку. Только 404 поднимается как domaincard.ErrNotFound;
+// ожидаемую ошибку. Только 404 поднимается как domaincompany.ErrNotFound;
 // остальные коды (401, 403, 400+token_not_found, 5xx) едут наверх как
 // непомеченный internal сбой либо как infra-sentinel.
 func (s *repositorySuite) TestFindByTickerErrorMapping() {
@@ -91,7 +91,7 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 			name:   "not found mapped to domain ErrNotFound",
 			status: http.StatusNotFound,
 			body:   s.readFixture("not_found.json"),
-			errIs:  domaincard.ErrNotFound,
+			errIs:  domaincompany.ErrNotFound,
 		},
 		{
 			name:   "unauthorized by status reported as infra sentinel",

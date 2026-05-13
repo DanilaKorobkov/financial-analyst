@@ -2,12 +2,12 @@
 // github.com/vektra/mockery
 // template: testify
 
-package companycard_mock
+package company_mock
 
 import (
 	"context"
 
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -39,22 +39,22 @@ func (_m *IdentityGateway) EXPECT() *IdentityGateway_Expecter {
 }
 
 // FindByTicker provides a mock function for the type IdentityGateway
-func (_mock *IdentityGateway) FindByTicker(ctx context.Context, ticker string) (companycard.Identity, error) {
+func (_mock *IdentityGateway) FindByTicker(ctx context.Context, ticker string) (company.Identity, error) {
 	ret := _mock.Called(ctx, ticker)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByTicker")
 	}
 
-	var r0 companycard.Identity
+	var r0 company.Identity
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (companycard.Identity, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (company.Identity, error)); ok {
 		return returnFunc(ctx, ticker)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) companycard.Identity); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) company.Identity); ok {
 		r0 = returnFunc(ctx, ticker)
 	} else {
-		r0 = ret.Get(0).(companycard.Identity)
+		r0 = ret.Get(0).(company.Identity)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, ticker)
@@ -94,12 +94,12 @@ func (_c *IdentityGateway_FindByTicker_Call) Run(run func(ctx context.Context, t
 	return _c
 }
 
-func (_c *IdentityGateway_FindByTicker_Call) Return(identity companycard.Identity, err error) *IdentityGateway_FindByTicker_Call {
+func (_c *IdentityGateway_FindByTicker_Call) Return(identity company.Identity, err error) *IdentityGateway_FindByTicker_Call {
 	_c.Call.Return(identity, err)
 	return _c
 }
 
-func (_c *IdentityGateway_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (companycard.Identity, error)) *IdentityGateway_FindByTicker_Call {
+func (_c *IdentityGateway_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (company.Identity, error)) *IdentityGateway_FindByTicker_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -1,23 +1,23 @@
-package companycard
+package company
 
 import (
-	domaincard "github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
+	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 )
 
 var (
 	// exchangeByCode переводит строковый код биржи FinanceMarker в domain-enum.
 	// Незнакомые значения возвращают zero (ExchangeUnspecified) — набор бирж
 	// со временем расширяется.
-	exchangeByCode = map[string]domaincard.Exchange{
-		codeExchangeMOEX: domaincard.ExchangeMOEX,
+	exchangeByCode = map[string]domaincompany.Exchange{
+		codeExchangeMOEX: domaincompany.ExchangeMOEX,
 	}
 
 	// currencyByCode переводит ISO 4217-код валюты FinanceMarker в domain-enum.
 	// Незнакомые значения возвращают zero (CurrencyUnspecified).
-	currencyByCode = map[string]domaincard.Currency{
-		"RUB": domaincard.CurrencyRUB,
-		"USD": domaincard.CurrencyUSD,
-		"EUR": domaincard.CurrencyEUR,
+	currencyByCode = map[string]domaincompany.Currency{
+		"RUB": domaincompany.CurrencyRUB,
+		"USD": domaincompany.CurrencyUSD,
+		"EUR": domaincompany.CurrencyEUR,
 	}
 )
 
@@ -41,9 +41,9 @@ type stockDTO struct {
 	Info infoDTO `json:"info"`
 }
 
-// translateClassification собирает domaincard.Classification из info-блока FinanceMarker.
-func translateClassification(info *infoDTO) domaincard.Classification {
-	return domaincard.Classification{
+// translateClassification собирает domaincompany.Classification из info-блока FinanceMarker.
+func translateClassification(info *infoDTO) domaincompany.Classification {
+	return domaincompany.Classification{
 		Exchange:            exchangeByCode[info.Exchange],
 		Currency:            currencyByCode[info.Currency],
 		Sector:              info.Sector,

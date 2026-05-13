@@ -1,4 +1,4 @@
-package companycard
+package company
 
 // Численные значения зафиксированы явно: enum-ы выходят наружу через
 // proto-контракт presentation-слоя, и `iota` сделал бы порядок строк

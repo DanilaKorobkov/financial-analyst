@@ -206,11 +206,10 @@ okpo
 Refinitiv
 
 # --- Go import-алиасы (составные lowercase-идентификаторы) ---
-moexcompany       # alias для internal/infra/moex/company в composition root
-domaincard        # alias для internal/domain/companycard в подпакетах infra
-fmcard            # alias для internal/infra/financemarker/companycard в тестах
-fccard            # alias для internal/infra/filecache/companycard в тестах
-moexcard          # alias для internal/infra/moex/companycard в composition root и тестах
+domaincompany     # alias для internal/domain/company в подпакетах infra
+moexcompany       # alias для internal/infra/moex/company в composition root и тестах
+fmcompany         # alias для internal/infra/financemarker/company в composition root и тестах
+fccompany         # alias для internal/infra/filecache/company в composition root и тестах
 
 # --- Имена внешних библиотек ---
 diskv             # github.com/peterbourgon/diskv — disk-backed kv для файлового кеша

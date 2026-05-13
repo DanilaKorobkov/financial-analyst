@@ -2,12 +2,12 @@
 // github.com/vektra/mockery
 // template: testify
 
-package companycard_mock
+package company_mock
 
 import (
 	"context"
 
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -39,22 +39,22 @@ func (_m *ClassificationGateway) EXPECT() *ClassificationGateway_Expecter {
 }
 
 // FindByTicker provides a mock function for the type ClassificationGateway
-func (_mock *ClassificationGateway) FindByTicker(ctx context.Context, ticker string) (companycard.Classification, error) {
+func (_mock *ClassificationGateway) FindByTicker(ctx context.Context, ticker string) (company.Classification, error) {
 	ret := _mock.Called(ctx, ticker)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByTicker")
 	}
 
-	var r0 companycard.Classification
+	var r0 company.Classification
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (companycard.Classification, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (company.Classification, error)); ok {
 		return returnFunc(ctx, ticker)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) companycard.Classification); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) company.Classification); ok {
 		r0 = returnFunc(ctx, ticker)
 	} else {
-		r0 = ret.Get(0).(companycard.Classification)
+		r0 = ret.Get(0).(company.Classification)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, ticker)
@@ -94,12 +94,12 @@ func (_c *ClassificationGateway_FindByTicker_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *ClassificationGateway_FindByTicker_Call) Return(classification companycard.Classification, err error) *ClassificationGateway_FindByTicker_Call {
+func (_c *ClassificationGateway_FindByTicker_Call) Return(classification company.Classification, err error) *ClassificationGateway_FindByTicker_Call {
 	_c.Call.Return(classification, err)
 	return _c
 }
 
-func (_c *ClassificationGateway_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (companycard.Classification, error)) *ClassificationGateway_FindByTicker_Call {
+func (_c *ClassificationGateway_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (company.Classification, error)) *ClassificationGateway_FindByTicker_Call {
 	_c.Call.Return(run)
 	return _c
 }

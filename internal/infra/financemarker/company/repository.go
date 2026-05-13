@@ -1,13 +1,13 @@
-// Package companycard — реализация companycard.ClassificationGateway
-// поверх FinanceMarker /api/fm/v2/stocks/{exchange}:{code} (блок info).
-package companycard
+// Package company — реализация company.ClassificationGateway поверх
+// FinanceMarker /api/fm/v2/stocks/{exchange}:{code} (блок info).
+package company
 
 import (
 	"context"
 	"errors"
 	"fmt"
 
-	domaincard "github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
+	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker"
 )
 
@@ -33,15 +33,15 @@ func NewClassificationGateway(client *financemarker.Client) *ClassificationGatew
 }
 
 // FindByTicker запрашивает карточку эмитента и переводит классификационный
-// блок info в domaincard.Classification.
+// блок info в domaincompany.Classification.
 //
 // Сетевые и HTTP-ошибки приходят из общего клиента уже классифицированными
 // (см. financemarker.NewClient / classifyError), 404 здесь переводится в
-// domaincard.ErrNotFound.
+// domaincompany.ErrNotFound.
 func (g *ClassificationGateway) FindByTicker(
 	ctx context.Context,
 	ticker string,
-) (domaincard.Classification, error) {
+) (domaincompany.Classification, error) {
 	symbol := codeExchangeMOEX + ":" + ticker
 
 	var dto stockDTO
@@ -54,13 +54,13 @@ func (g *ClassificationGateway) FindByTicker(
 	if err != nil {
 		switch {
 		case resp == nil || resp.StatusCode() == 0:
-			return domaincard.Classification{}, fmt.Errorf("financemarker request: %w", err)
+			return domaincompany.Classification{}, fmt.Errorf("financemarker request: %w", err)
 		case !resp.IsError():
-			return domaincard.Classification{}, fmt.Errorf("decode financemarker payload: %w", err)
+			return domaincompany.Classification{}, fmt.Errorf("decode financemarker payload: %w", err)
 		case errors.Is(err, financemarker.ErrNotFound):
-			return domaincard.Classification{}, domaincard.ErrNotFound
+			return domaincompany.Classification{}, domaincompany.ErrNotFound
 		default:
-			return domaincard.Classification{}, err //nolint:wrapcheck // err уже сформирован classifyError общего клиента
+			return domaincompany.Classification{}, err //nolint:wrapcheck // err уже сформирован classifyError общего клиента
 		}
 	}
 
