@@ -22,50 +22,33 @@ var (
 )
 
 // infoDTO — блок `info` ответа /api/fm/v2/stocks/{exchange}:{code}.
+// Сюда вынесены только те поля, которые забирает gateway; остальные
+// поля блока (description, site, disc_link, sector_id и т.п.) пока не
+// нужны.
 type infoDTO struct {
-	Code                  string `json:"code"`
-	Name                  string `json:"name"`
-	Exchange              string `json:"exchange"`
-	Country               string `json:"country"`
-	Currency              string `json:"currency"`
-	Sector                string `json:"sector"`
-	Industry              string `json:"industry"`
-	IndustryGroup         string `json:"industry_group"`
-	PrimaryReportCode     string `json:"primary_report_code"`
-	PrimaryReportExchange string `json:"primary_report_exchange"`
-	Description           string `json:"description"`
-	Site                  string `json:"site"`
-	DiscLink              string `json:"disc_link"`
-	SectorID              int    `json:"sector_id"`
-	IndustryID            int    `json:"industry_id"`
-	IndustryGroupID       int    `json:"industry_group_id"`
+	Exchange          string `json:"exchange"`
+	Country           string `json:"country"`
+	Currency          string `json:"currency"`
+	Sector            string `json:"sector"`
+	Industry          string `json:"industry"`
+	PrimaryReportCode string `json:"primary_report_code"`
 }
 
 // stockDTO — корневой объект ответа эндпоинта по эмитенту. Здесь
 // разбирается только блок info — остальные разделы (summary / ratios / ...)
-// добавляются по мере появления соответствующих репозиториев.
+// добавляются по мере появления соответствующих gateway.
 type stockDTO struct {
 	Info infoDTO `json:"info"`
 }
 
-// translateCard собирает domaincard.Card из info-блока FinanceMarker.
-func translateCard(info *infoDTO) domaincard.Card {
-	return domaincard.Card{
-		Ticker:                info.Code,
-		Exchange:              exchangeByCode[info.Exchange],
-		Name:                  info.Name,
-		Sector:                info.Sector,
-		Industry:              info.Industry,
-		IndustryGroup:         info.IndustryGroup,
-		Country:               info.Country,
-		Currency:              currencyByCode[info.Currency],
-		PrimaryReportTicker:   info.PrimaryReportCode,
-		PrimaryReportExchange: exchangeByCode[info.PrimaryReportExchange],
-		Description:           info.Description,
-		Site:                  info.Site,
-		DiscLink:              info.DiscLink,
-		SectorID:              info.SectorID,
-		IndustryID:            info.IndustryID,
-		IndustryGroupID:       info.IndustryGroupID,
+// translateClassification собирает domaincard.Classification из info-блока FinanceMarker.
+func translateClassification(info *infoDTO) domaincard.Classification {
+	return domaincard.Classification{
+		Exchange:            exchangeByCode[info.Exchange],
+		Currency:            currencyByCode[info.Currency],
+		Sector:              info.Sector,
+		Industry:            info.Industry,
+		Country:             info.Country,
+		PrimaryReportTicker: info.PrimaryReportCode,
 	}
 }

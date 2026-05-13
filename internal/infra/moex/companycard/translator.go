@@ -1,4 +1,4 @@
-package company
+package companycard
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	domaincard "github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
 )
 
 var (
@@ -20,21 +20,21 @@ var (
 	// securityTypeByCode переводит код TYPE блока description MOEX в domain-enum.
 	// Неизвестные значения возвращают zero (SecurityTypeUnspecified) — TYPE
 	// задаётся биржей и со временем расширяется (фонды, облигации и т.п.).
-	securityTypeByCode = map[string]domaincompany.SecurityType{
-		"common_share":       domaincompany.SecurityTypeCommonShare,
-		"preferred_share":    domaincompany.SecurityTypePreferredShare,
-		"depositary_receipt": domaincompany.SecurityTypeDepositaryReceipt,
+	securityTypeByCode = map[string]domaincard.SecurityType{
+		"common_share":       domaincard.SecurityTypeCommonShare,
+		"preferred_share":    domaincard.SecurityTypePreferredShare,
+		"depositary_receipt": domaincard.SecurityTypeDepositaryReceipt,
 	}
 
 	// listingLevelByCode переводит строковое значение LISTLEVEL ("1" / "2" / "3")
 	// в domain-enum. Пустое значение — биржа не указала уровень (Unspecified).
 	// Любое другое значение в parseListingLevel — ошибка: список уровней
 	// зафиксирован MOEX.
-	listingLevelByCode = map[string]domaincompany.ListingLevel{
-		"":  domaincompany.ListingLevelUnspecified,
-		"1": domaincompany.ListingLevelFirst,
-		"2": domaincompany.ListingLevelSecond,
-		"3": domaincompany.ListingLevelThird,
+	listingLevelByCode = map[string]domaincard.ListingLevel{
+		"":  domaincard.ListingLevelUnspecified,
+		"1": domaincard.ListingLevelFirst,
+		"2": domaincard.ListingLevelSecond,
+		"3": domaincard.ListingLevelThird,
 	}
 )
 
@@ -76,19 +76,19 @@ func parseDescription(raw []byte) (map[string]string, error) {
 	return nil, errDescriptionBlockMissing
 }
 
-// mapDescription собирает domaincompany.Company из map[name]value блока description.
-// Пустой map → domaincompany.ErrNotFound (тикер не найден).
-func mapDescription(fields map[string]string) (domaincompany.Company, error) {
+// mapDescription собирает domaincard.Identity из map[name]value блока description.
+// Пустой map → domaincard.ErrNotFound (тикер не найден).
+func mapDescription(fields map[string]string) (domaincard.Identity, error) {
 	if len(fields) == 0 {
-		return domaincompany.Company{}, fmt.Errorf("empty description block: %w", domaincompany.ErrNotFound)
+		return domaincard.Identity{}, fmt.Errorf("empty description block: %w", domaincard.ErrNotFound)
 	}
 
 	listLevel, err := parseListingLevel(fields["LISTLEVEL"])
 	if err != nil {
-		return domaincompany.Company{}, fmt.Errorf("LISTLEVEL: %w", err)
+		return domaincard.Identity{}, fmt.Errorf("LISTLEVEL: %w", err)
 	}
 
-	return domaincompany.Company{
+	return domaincard.Identity{
 		Ticker:       fields["SECID"],
 		ISIN:         fields["ISIN"],
 		Name:         fields["NAME"],
@@ -100,10 +100,10 @@ func mapDescription(fields map[string]string) (domaincompany.Company, error) {
 // parseListingLevel — единственная функция, где нужна валидация (неизвестный
 // уровень — ошибка, а не Unspecified): список уровней зафиксирован MOEX и
 // должен быть пополнен сознательно, если биржа добавит новый.
-func parseListingLevel(s string) (domaincompany.ListingLevel, error) {
+func parseListingLevel(s string) (domaincard.ListingLevel, error) {
 	level, ok := listingLevelByCode[s]
 	if !ok {
-		return domaincompany.ListingLevelUnspecified, fmt.Errorf("unexpected LISTLEVEL value: %q", s)
+		return domaincard.ListingLevelUnspecified, fmt.Errorf("unexpected LISTLEVEL value: %q", s)
 	}
 	return level, nil
 }

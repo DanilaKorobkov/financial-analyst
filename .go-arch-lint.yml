@@ -20,10 +20,8 @@ allow:
 
 components:
   # Domain: каждый агрегат — отдельный компонент. Внутри агрегата лежат
-  # entity, port (интерфейс репозитория), доменные sentinel-ошибки и
-  # enum-ы, специфичные для агрегата.
-  domain-company:
-    in: internal/domain/company
+  # entity, value objects, порты (gateway-интерфейсы), доменные sentinel-
+  # ошибки и enum-ы, специфичные для агрегата.
   domain-companycard:
     in: internal/domain/companycard
   # Доменные сервисы. Знают агрегаты — никаких HTTP/gRPC/провайдеров.
@@ -37,14 +35,15 @@ components:
   # или другой провайдер.
   infra-moex:
     in: internal/infra/moex
-  infra-moex-company:
-    in: internal/infra/moex/company
+  infra-moex-companycard:
+    in: internal/infra/moex/companycard
   infra-financemarker:
     in: internal/infra/financemarker
   infra-financemarker-companycard:
     in: internal/infra/financemarker/companycard
-  # Файловый кеш-Proxy над портом карточек эмитентов. Знает только domain-
-  # contract порта и сам себя; не зависит ни от одного конкретного провайдера.
+  # Файловый кеш-Proxy над gateway-портом карточек эмитентов. Знает только
+  # domain-contract порта и сам себя; не зависит ни от одного конкретного
+  # провайдера.
   infra-filecache-companycard:
     in: internal/infra/filecache/companycard
 
@@ -72,15 +71,11 @@ components:
     in: cmd/**
 
 deps:
-  domain-company:
-    anyVendorDeps: true
-
   domain-companycard:
     anyVendorDeps: true
 
   domain-services:
     mayDependOn:
-      - domain-company
       - domain-companycard
       - domain-services
     anyVendorDeps: true
@@ -88,11 +83,11 @@ deps:
   infra-moex:
     anyVendorDeps: true
 
-  infra-moex-company:
+  infra-moex-companycard:
     mayDependOn:
-      - domain-company
+      - domain-companycard
       - infra-moex
-      - infra-moex-company
+      - infra-moex-companycard
     anyVendorDeps: true
 
   infra-financemarker:
@@ -113,7 +108,6 @@ deps:
 
   presentation:
     mayDependOn:
-      - domain-company
       - domain-companycard
       - domain-services
       - presentation
@@ -124,18 +118,16 @@ deps:
 
   mocks:
     mayDependOn:
-      - domain-company
       - domain-companycard
       - domain-services
     anyVendorDeps: true
 
   app:
     mayDependOn:
-      - domain-company
       - domain-companycard
       - domain-services
       - infra-moex
-      - infra-moex-company
+      - infra-moex-companycard
       - infra-financemarker
       - infra-financemarker-companycard
       - infra-filecache-companycard

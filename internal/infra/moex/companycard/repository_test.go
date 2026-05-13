@@ -1,4 +1,4 @@
-package company_test
+package companycard_test
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	domaincard "github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex"
-	moexcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/company"
+	moexcard "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/companycard"
 )
 
 //go:embed testdata/*.json
@@ -24,7 +24,7 @@ type repositorySuite struct {
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	repo    *moexcompany.Repository
+	gateway *moexcard.IdentityGateway
 }
 
 func TestRepositorySuite(t *testing.T) {
@@ -43,7 +43,7 @@ func (s *repositorySuite) SetupTest() {
 		BaseURL: s.server.URL + "/iss",
 		Timeout: 5 * time.Second,
 	})
-	s.repo = moexcompany.NewRepository(client)
+	s.gateway = moexcard.NewIdentityGateway(client)
 }
 
 func (s *repositorySuite) TearDownTest() {
@@ -61,15 +61,15 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	found, err := s.repo.FindByTicker(context.Background(), "SBER")
+	found, err := s.gateway.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	expected := domaincompany.Company{
+	expected := domaincard.Identity{
 		Ticker:       "SBER",
 		ISIN:         "RU0009029540",
 		Name:         "Сбербанк России ПАО ао",
-		SecurityType: domaincompany.SecurityTypeCommonShare,
-		ListingLevel: domaincompany.ListingLevelFirst,
+		SecurityType: domaincard.SecurityTypeCommonShare,
+		ListingLevel: domaincard.ListingLevelFirst,
 	}
 	s.Equal(expected, found)
 }
@@ -79,7 +79,7 @@ func (s *repositorySuite) TestFindByTickerInvalidJSON() {
 		_, _ = w.Write([]byte("not json"))
 	}
 
-	_, err := s.repo.FindByTicker(context.Background(), "SBER")
+	_, err := s.gateway.FindByTicker(context.Background(), "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "decode extended payload")
@@ -91,9 +91,9 @@ func (s *repositorySuite) TestFindByTickerNotFound() {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.repo.FindByTicker(context.Background(), "ZZZZ")
+	_, err := s.gateway.FindByTicker(context.Background(), "ZZZZ")
 
-	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
+	s.Require().ErrorIs(err, domaincard.ErrNotFound)
 }
 
 func (s *repositorySuite) TestFindByTickerServerError() {
@@ -101,7 +101,7 @@ func (s *repositorySuite) TestFindByTickerServerError() {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	_, err := s.repo.FindByTicker(context.Background(), "SBER")
+	_, err := s.gateway.FindByTicker(context.Background(), "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "moex http status 500")
@@ -111,7 +111,7 @@ func (s *repositorySuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := s.repo.FindByTicker(ctx, "SBER")
+	_, err := s.gateway.FindByTicker(ctx, "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "context canceled")
@@ -126,36 +126,36 @@ func (s *repositorySuite) TestFindByTickerTypeAndLevelMatrix() {
 		name      string
 		typeValue string
 		level     string
-		wantType  domaincompany.SecurityType
-		wantLevel domaincompany.ListingLevel
+		wantType  domaincard.SecurityType
+		wantLevel domaincard.ListingLevel
 	}{
 		{
 			name:      "preferred share with second level",
 			typeValue: "preferred_share",
 			level:     "2",
-			wantType:  domaincompany.SecurityTypePreferredShare,
-			wantLevel: domaincompany.ListingLevelSecond,
+			wantType:  domaincard.SecurityTypePreferredShare,
+			wantLevel: domaincard.ListingLevelSecond,
 		},
 		{
 			name:      "depositary receipt with third level",
 			typeValue: "depositary_receipt",
 			level:     "3",
-			wantType:  domaincompany.SecurityTypeDepositaryReceipt,
-			wantLevel: domaincompany.ListingLevelThird,
+			wantType:  domaincard.SecurityTypeDepositaryReceipt,
+			wantLevel: domaincard.ListingLevelThird,
 		},
 		{
 			name:      "неизвестный TYPE падает в Unspecified",
 			typeValue: "exotic_new_type",
 			level:     "1",
-			wantType:  domaincompany.SecurityTypeUnspecified,
-			wantLevel: domaincompany.ListingLevelFirst,
+			wantType:  domaincard.SecurityTypeUnspecified,
+			wantLevel: domaincard.ListingLevelFirst,
 		},
 		{
 			name:      "пустой LISTLEVEL трактуется как Unspecified",
 			typeValue: "common_share",
 			level:     "",
-			wantType:  domaincompany.SecurityTypeCommonShare,
-			wantLevel: domaincompany.ListingLevelUnspecified,
+			wantType:  domaincard.SecurityTypeCommonShare,
+			wantLevel: domaincard.ListingLevelUnspecified,
 		},
 	}
 	for _, c := range cases {
@@ -167,7 +167,7 @@ func (s *repositorySuite) TestFindByTickerTypeAndLevelMatrix() {
 			s.handler = func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write(body)
 			}
-			found, err := s.repo.FindByTicker(context.Background(), "X")
+			found, err := s.gateway.FindByTicker(context.Background(), "X")
 			s.Require().NoError(err)
 			s.Equal(c.wantType, found.SecurityType)
 			s.Equal(c.wantLevel, found.ListingLevel)
@@ -181,7 +181,7 @@ func (s *repositorySuite) TestFindByTickerInvalidListLevel() {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.repo.FindByTicker(context.Background(), "X")
+	_, err := s.gateway.FindByTicker(context.Background(), "X")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "LISTLEVEL")
@@ -193,7 +193,7 @@ func (s *repositorySuite) TestFindByTickerMissingDescriptionBlock() {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.repo.FindByTicker(context.Background(), "X")
+	_, err := s.gateway.FindByTicker(context.Background(), "X")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "description block missing")
@@ -206,7 +206,7 @@ func (s *repositorySuite) TestFindByTickerInvalidDescriptionBlock() {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.repo.FindByTicker(context.Background(), "X")
+	_, err := s.gateway.FindByTicker(context.Background(), "X")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "decode description block")

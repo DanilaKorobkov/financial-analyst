@@ -1,7 +1,8 @@
 // Схема Connect-сервиса CompanyService.
 //
-// Возвращает справочную карточку эмитента по тикеру: имя, ISIN,
-// тип бумаги, уровень листинга.
+// Возвращает карточку эмитента по тикеру: идентификация бумаги
+// (имя, ISIN, тип, уровень листинга) и классификация эмитента
+// (биржа, валюта, сектор, отрасль, страна, тикер основной бумаги).
 
 syntax = "proto3";
 
@@ -39,10 +40,36 @@ enum ListingLevel {
   LISTING_LEVEL_THIRD = 3;
 }
 
+// Exchange — биржа листинга бумаги.
+enum Exchange {
+  EXCHANGE_UNSPECIFIED = 0;
+  EXCHANGE_MOEX = 1;
+}
+
+// Currency — валюта торгов бумагой (ISO 4217).
+enum Currency {
+  CURRENCY_UNSPECIFIED = 0;
+  CURRENCY_RUB = 1;
+  CURRENCY_USD = 2;
+  CURRENCY_EUR = 3;
+}
+
 message Company {
+  // Идентификация бумаги.
   string ticker = 1;
   string isin = 2;
   string name = 3;
   SecurityType security_type = 4;
   ListingLevel listing_level = 5;
+
+  // Классификация эмитента.
+  Exchange exchange = 6;
+  Currency currency = 7;
+  string sector = 8;
+  string industry = 9;
+  string country = 10;
+
+  // Тикер основной бумаги эмитента, к которой привязана отчётность.
+  // Для привилегированных акций совпадает с обыкновенными.
+  string primary_report_ticker = 11;
 }

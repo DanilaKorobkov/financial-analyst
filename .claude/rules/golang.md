@@ -34,6 +34,26 @@ type CompanyInfo struct {
 
 Для внешних HTTP-вызовов используется `github.com/go-resty/resty/v2`, не голый `net/http`.
 
+## Параллелизм
+
+Для оркестрации параллельных горутин используется `github.com/sourcegraph/conc`, не голый `sync.WaitGroup` / `golang.org/x/sync/errgroup` / самописные `chan error`.
+
+- Fail-fast пул с отменой контекста по первой ошибке — `pool.New().WithErrors().WithContext(ctx)`:
+
+  ```go
+  import "github.com/sourcegraph/conc/pool"
+
+  p := pool.New().WithErrors().WithContext(ctx)
+  p.Go(func(ctx context.Context) error { return fetchA(ctx) })
+  p.Go(func(ctx context.Context) error { return fetchB(ctx) })
+  if err := p.Wait(); err != nil { ... }
+  ```
+
+- Параллельный обход коллекции — `iter.ForEach` / `iter.Map`.
+- Без оркестрации ошибок — `conc.NewWaitGroup()` вместо `sync.WaitGroup` (recover-safe).
+
+`errgroup` и голый `sync.WaitGroup` запрещены: `conc` даёт recover из паник и единый стиль на проекте.
+
 ## JSON
 
 Для разбора и сериализации JSON используется `github.com/json-iterator/go` в режиме `jsoniter.ConfigCompatibleWithStandardLibrary` — drop-in для `encoding/json` (sorted map keys, html-escape, `ValidateJsonRawMessage`), но 2–3× быстрее. Тип `json.RawMessage` остаётся из `encoding/json` — это просто `[]byte`.

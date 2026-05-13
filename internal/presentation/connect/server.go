@@ -7,18 +7,18 @@ import (
 	connectrpc "connectrpc.com/connect"
 
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 )
 
 // Server реализует companyv1connect.CompanyServiceHandler поверх domain-сервиса.
 type Server struct {
-	companyInfo *services.CompanyInfo
+	cards *services.CompanyCardService
 }
 
 // NewServer собирает Connect-сервер вокруг доменного сервиса.
-func NewServer(companyInfo *services.CompanyInfo) *Server {
-	return &Server{companyInfo: companyInfo}
+func NewServer(cards *services.CompanyCardService) *Server {
+	return &Server{cards: cards}
 }
 
 // GetCompany — unary-метод CompanyService.GetCompany.
@@ -26,12 +26,12 @@ func (s *Server) GetCompany(
 	ctx context.Context,
 	req *connectrpc.Request[companyv1.GetCompanyRequest],
 ) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
-	found, err := s.companyInfo.Lookup(ctx, req.Msg.GetTicker())
+	card, err := s.cards.GetCard(ctx, req.Msg.GetTicker())
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
 	return connectrpc.NewResponse(&companyv1.GetCompanyResponse{
-		Company: toProtoCompany(&found),
+		Company: toProtoCompany(&card),
 	}), nil
 }
 
@@ -40,7 +40,7 @@ func mapDomainError(err error) error {
 	switch {
 	case errors.Is(err, services.ErrTickerEmpty):
 		return connectrpc.NewError(connectrpc.CodeInvalidArgument, err)
-	case errors.Is(err, company.ErrNotFound):
+	case errors.Is(err, companycard.ErrNotFound):
 		return connectrpc.NewError(connectrpc.CodeNotFound, err)
 	default:
 		return connectrpc.NewError(connectrpc.CodeInternal, err)

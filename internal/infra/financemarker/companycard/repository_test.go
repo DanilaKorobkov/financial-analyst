@@ -23,7 +23,7 @@ type repositorySuite struct {
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	repo    *fmcard.Repository
+	gateway *fmcard.ClassificationGateway
 }
 
 func TestRepositorySuite(t *testing.T) {
@@ -43,7 +43,7 @@ func (s *repositorySuite) SetupTest() {
 		Token:   "test-token",
 		Timeout: 5 * time.Second,
 	})
-	s.repo = fmcard.NewRepository(client)
+	s.gateway = fmcard.NewClassificationGateway(client)
 }
 
 func (s *repositorySuite) TearDownTest() {
@@ -60,28 +60,18 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	card, err := s.repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+	got, err := s.gateway.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	expected := domaincard.Card{
-		Ticker:                "SBER",
-		Exchange:              domaincard.ExchangeMOEX,
-		Name:                  "Сбербанк",
-		Sector:                "Финансы",
-		Industry:              "Банковская деятельность",
-		IndustryGroup:         "Банковская деятельность",
-		Country:               "Россия",
-		Currency:              domaincard.CurrencyRUB,
-		PrimaryReportTicker:   "SBER",
-		PrimaryReportExchange: domaincard.ExchangeMOEX,
-		Description:           "ПАО «Сбербанк» — крупнейший универсальный банк России.",
-		Site:                  "https://www.sberbank.com",
-		DiscLink:              "https://www.sberbank.com/ru/investor-relations",
-		SectorID:              40,
-		IndustryID:            401010,
-		IndustryGroupID:       4010,
+	expected := domaincard.Classification{
+		Exchange:            domaincard.ExchangeMOEX,
+		Currency:            domaincard.CurrencyRUB,
+		Sector:              "Финансы",
+		Industry:            "Банковская деятельность",
+		Country:             "Россия",
+		PrimaryReportTicker: "SBER",
 	}
-	s.Equal(expected, card)
+	s.Equal(expected, got)
 }
 
 // TestFindByTickerErrorMapping проходит по таблице ответов FinanceMarker и
@@ -145,7 +135,7 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 				}
 			}
 
-			_, err := s.repo.FindByTicker(context.Background(), domaincard.ExchangeMOEX, "SBER")
+			_, err := s.gateway.FindByTicker(context.Background(), "SBER")
 
 			s.Require().Error(err)
 			if c.errIs != nil {
@@ -157,38 +147,11 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 	}
 }
 
-func (s *repositorySuite) TestFindByTickerExchangeValidation() {
-	cases := []struct {
-		name        string
-		errContains string
-		exchange    domaincard.Exchange
-	}{
-		{
-			name:        "unspecified exchange rejected",
-			exchange:    domaincard.ExchangeUnspecified,
-			errContains: "financemarker: exchange is unspecified",
-		},
-		{
-			name:        "unsupported exchange rejected",
-			exchange:    domaincard.Exchange(99),
-			errContains: "financemarker: unsupported exchange 99",
-		},
-	}
-
-	for _, c := range cases {
-		s.Run(c.name, func() {
-			_, err := s.repo.FindByTicker(context.Background(), c.exchange, "SBER")
-			s.Require().Error(err)
-			s.ErrorContains(err, c.errContains)
-		})
-	}
-}
-
 func (s *repositorySuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := s.repo.FindByTicker(ctx, domaincard.ExchangeMOEX, "SBER")
+	_, err := s.gateway.FindByTicker(ctx, "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "financemarker request: Get \""+s.server.URL+"/api/fm/v2/stocks/MOEX:SBER?api_token=test-token&include=info\": context canceled")
