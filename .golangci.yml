@@ -43,6 +43,13 @@ linters:
     - durationcheck   # подозрительные операции с time.Duration (умножение Duration на Duration)
     - exhaustive      # switch по enum/типу должен покрывать все варианты
     - recvcheck       # запрещает смешивание pointer/value receivers на одном типе
+    # ── Границы данных (JSON/proto) ──────────────────────────────────────────
+    # Закрывают класс «тихий zero-value на границе»: парсер MOEX/FM прочитал
+    # JSON, поле без тега не съело значение → отчёт детерминирован, но цифра
+    # неправильная. Аналогично для proto: прямой доступ к полю pointer-сообщения
+    # паникует на nil nested message, а getter возвращает zero-value.
+    - musttag         # экспортные поля структур, идущих в json.*/jsoniter.*, обязаны иметь json-тег
+    - protogetter     # доступ к полям proto-сообщений только через сгенерированные GetX()
 
     # ── Безопасность ─────────────────────────────────────────────────────────
     - gosec           # типовые security-проблемы (hardcoded secrets, weak crypto, ...)
@@ -88,6 +95,61 @@ linters:
   # SETTINGS — тонкая настройка отдельных линтеров.
   # ────────────────────────────────────────────────────────────────────────────
   settings:
+
+    musttag:
+      # Дефолтный список musttag покрывает encoding/json и encoding/xml.
+      # Достраиваем jsoniter — в проекте это де-факто основной JSON-движок
+      # (jsoniter.ConfigCompatibleWithStandardLibrary). Без этих сигнатур
+      # musttag прозевал бы парсинг через инстанс конфига.
+      #
+      # ВНИМАНИЕ: ниже покрыты Marshal/Unmarshal-API и Encoder/Decoder.
+      # Низкоуровневый стриминговый API jsoniter — (*Stream).WriteVal и
+      # (*Iterator).ReadVal — НЕ покрыт: musttag не пробрасывает тип
+      # через generic'и итератора. Если такой код появится — добавить
+      # сигнатуры сюда и проверить эффект на тестовом вызове.
+      functions:
+        # Пакетные функции jsoniter (drop-in для encoding/json).
+        - name: github.com/json-iterator/go.Marshal
+          tag: json
+          arg-pos: 0
+        - name: github.com/json-iterator/go.MarshalIndent
+          tag: json
+          arg-pos: 0
+        - name: github.com/json-iterator/go.MarshalToString
+          tag: json
+          arg-pos: 0
+        - name: github.com/json-iterator/go.Unmarshal
+          tag: json
+          arg-pos: 1
+        - name: github.com/json-iterator/go.UnmarshalFromString
+          tag: json
+          arg-pos: 1
+        # Методы интерфейса API. ConfigCompatibleWithStandardLibrary,
+        # ConfigDefault, ConfigFastest имеют статический тип
+        # jsoniter.API (Config{}.Froze() возвращает API), поэтому
+        # callee у вызова — это метод интерфейса, а не *frozenConfig.
+        - name: (github.com/json-iterator/go.API).Marshal
+          tag: json
+          arg-pos: 0
+        - name: (github.com/json-iterator/go.API).MarshalIndent
+          tag: json
+          arg-pos: 0
+        - name: (github.com/json-iterator/go.API).MarshalToString
+          tag: json
+          arg-pos: 0
+        - name: (github.com/json-iterator/go.API).Unmarshal
+          tag: json
+          arg-pos: 1
+        - name: (github.com/json-iterator/go.API).UnmarshalFromString
+          tag: json
+          arg-pos: 1
+        # Streaming API jsoniter.
+        - name: (*github.com/json-iterator/go.Encoder).Encode
+          tag: json
+          arg-pos: 0
+        - name: (*github.com/json-iterator/go.Decoder).Decode
+          tag: json
+          arg-pos: 0
 
     grouper:
       # Несколько top-level const/var в пакете — одним блоком. Одиночное
@@ -206,6 +268,14 @@ linters:
       disabled-checks:
         # ifElseChain противоречит revive.early-return — отключаем во избежание шума.
         - ifElseChain
+      settings:
+        hugeParam:
+          # Дефолт hugeParam = 80 байт. Это режет нормальные value-параметры
+          # (доменные value object'ы из 4-6 полей), заставляя без причины
+          # переходить на указатели и создавать ложный nullable-контракт.
+          # Поднимаем порог: ругаемся только на действительно громоздкие
+          # struct'ы (> ~16 полей), где копирование уже заметно.
+          sizeThreshold: 256
 
     exhaustive:
       # Жёсткий режим: каждый switch/map literal по enum-типу обязан перечислить

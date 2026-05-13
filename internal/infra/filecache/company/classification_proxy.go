@@ -48,15 +48,6 @@ type ClassificationProxy struct {
 	ttl      time.Duration
 }
 
-// classificationEnvelope — формат записи на диске. ExpiresAt хранится
-// в UTC и в RFC3339, чтобы файл оставался самодостаточным и читаемым
-// глазами: время экспирации видно прямо в JSON, без сторонних индексов
-// и mtime. Нулевое ExpiresAt означает «без экспирации».
-type classificationEnvelope struct {
-	ExpiresAt      time.Time                    `json:"expires_at"`
-	Classification domaincompany.Classification `json:"classification"`
-}
-
 // NewClassificationProxy собирает файловый кеш поверх diskv.
 func NewClassificationProxy(cfg ConfigClassificationProxy) *ClassificationProxy {
 	store := diskv.New(diskv.Options{
@@ -117,7 +108,7 @@ func (p *ClassificationProxy) readCache(key string) (domaincompany.Classificatio
 	if !envelope.ExpiresAt.IsZero() && !time.Now().UTC().Before(envelope.ExpiresAt) {
 		return domaincompany.Classification{}, false
 	}
-	return envelope.Classification, true
+	return classificationFromDTO(envelope.Classification), true
 }
 
 // writeCache упаковывает классификацию в конверт и кладёт её в diskv.
@@ -125,7 +116,7 @@ func (p *ClassificationProxy) readCache(key string) (domaincompany.Classificatio
 // писатели не дают читателю «полуписанного» файла. При TTL == 0
 // ExpiresAt остаётся нулевым — такая запись не протухает.
 func (p *ClassificationProxy) writeCache(key string, cls *domaincompany.Classification) error {
-	envelope := classificationEnvelope{Classification: *cls}
+	envelope := classificationEnvelope{Classification: classificationToDTO(*cls)}
 	if p.ttl > 0 {
 		envelope.ExpiresAt = time.Now().UTC().Add(p.ttl)
 	}

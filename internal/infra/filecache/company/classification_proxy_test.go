@@ -26,12 +26,21 @@ type classificationProxySuite struct {
 	dir      string
 }
 
-// envelopeOnDisk — формат записи, ожидаемый в файле кеша. Дублирует
-// приватный тип Proxy ровно настолько, чтобы тесты могли убедиться в
-// раскладке JSON и значении ExpiresAt.
-type envelopeOnDisk struct {
-	ExpiresAt      time.Time                    `json:"expires_at"`
-	Classification domaincompany.Classification `json:"classification"`
+// envelopeJSON — JSON-раскладка файла кеша, симметричная prod-типам
+// classificationEnvelope и classificationDTO. Описана здесь явно,
+// чтобы тест ломался, если prod-раскладка молча разъедется.
+type envelopeJSON struct {
+	ExpiresAt      time.Time          `json:"expires_at"`
+	Classification classificationJSON `json:"classification"`
+}
+
+type classificationJSON struct {
+	Sector              string                 `json:"sector"`
+	Industry            string                 `json:"industry"`
+	Country             string                 `json:"country"`
+	PrimaryReportTicker string                 `json:"primary_report_ticker"`
+	Exchange            domaincompany.Exchange `json:"exchange"`
+	Currency            domaincompany.Currency `json:"currency"`
 }
 
 func TestClassificationProxySuite(t *testing.T) {
@@ -180,8 +189,13 @@ func (s *classificationProxySuite) TestFindByTickerExpiredEntryRefreshed() {
 		s.Require().NoError(err)
 		s.Equal(second, got)
 		envelope := readEnvelope(s.T(), dir, "SBER.json")
-		s.Equal(second, envelope.Classification)
 		s.Equal(refreshedAt.Add(ttl), envelope.ExpiresAt)
+		s.Equal(second.Sector, envelope.Classification.Sector)
+		s.Equal(second.Industry, envelope.Classification.Industry)
+		s.Equal(second.Country, envelope.Classification.Country)
+		s.Equal(second.PrimaryReportTicker, envelope.Classification.PrimaryReportTicker)
+		s.Equal(second.Exchange, envelope.Classification.Exchange)
+		s.Equal(second.Currency, envelope.Classification.Currency)
 	})
 }
 
@@ -254,13 +268,13 @@ func sberClassification() domaincompany.Classification {
 	}
 }
 
-func readEnvelope(t *testing.T, dir, name string) envelopeOnDisk {
+func readEnvelope(t *testing.T, dir, name string) envelopeJSON {
 	t.Helper()
 	raw, err := os.ReadFile(filepath.Join(dir, name)) //nolint:gosec // dir = t.TempDir(), name — литерал теста
 	if err != nil {
 		t.Fatalf("read envelope file: %v", err)
 	}
-	var envelope envelopeOnDisk
+	var envelope envelopeJSON
 	if err := json.Unmarshal(raw, &envelope); err != nil {
 		t.Fatalf("unmarshal envelope: %v", err)
 	}

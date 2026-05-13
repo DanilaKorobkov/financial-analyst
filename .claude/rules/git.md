@@ -37,6 +37,20 @@
 
 То же требование применяется к **заголовку PR** — GitHub squash-merge подставляет его в commit `main`, а workflow `pull-request` гоняет тот же regex.
 
+## Ссылки на pull request
+
+Когда упоминаем pull request в любом виде — в ответе пользователю, в комментарии, в commit message — **всегда** прикладываем полную ссылку вида `https://github.com/<owner>/<repo>/pull/<number>`. Без неё короткая запись `PR #41` требует от пользователя дополнительно искать и кликать.
+
+✅ хорошо:
+
+- `PR #41 обновлён: https://github.com/DanilaKorobkov/financial-analyst/pull/41`
+- `см. https://github.com/DanilaKorobkov/financial-analyst/pull/41`
+
+❌ плохо:
+
+- `PR #41 обновлён` — ссылки нет.
+- `обновлён pull request` — ни номера, ни ссылки.
+
 ## Запрещено
 
 - `git rebase` (включая интерактивный) — теряем линейную историю и ставим под риск чужие правки.
