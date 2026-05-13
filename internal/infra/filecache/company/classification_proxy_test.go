@@ -26,12 +26,30 @@ type classificationProxySuite struct {
 	dir      string
 }
 
-// envelopeOnDisk — формат записи, ожидаемый в файле кеша. Дублирует
-// приватный тип Proxy ровно настолько, чтобы тесты могли убедиться в
-// раскладке JSON и значении ExpiresAt.
+// envelopeOnDisk — то, что тест ожидает прочитать из файла кеша.
+// JSON-проекция дублирует приватные типы Proxy ровно настолько,
+// чтобы можно было проверить раскладку файла и ExpiresAt, а поле
+// Classification возвращается тесту уже как domain-значение.
 type envelopeOnDisk struct {
-	ExpiresAt      time.Time                    `json:"expires_at"`
-	Classification domaincompany.Classification `json:"classification"`
+	ExpiresAt      time.Time
+	Classification domaincompany.Classification
+}
+
+// envelopeJSON — JSON-раскладка файла кеша, симметричная prod-типам
+// classificationEnvelope и classificationDTO. Описана здесь явно,
+// чтобы тест ломался, если prod-раскладка молча разъедется.
+type envelopeJSON struct {
+	ExpiresAt      time.Time          `json:"expires_at"`
+	Classification classificationJSON `json:"classification"`
+}
+
+type classificationJSON struct {
+	Sector              string                 `json:"sector"`
+	Industry            string                 `json:"industry"`
+	Country             string                 `json:"country"`
+	PrimaryReportTicker string                 `json:"primary_report_ticker"`
+	Exchange            domaincompany.Exchange `json:"exchange"`
+	Currency            domaincompany.Currency `json:"currency"`
 }
 
 func TestClassificationProxySuite(t *testing.T) {
@@ -260,9 +278,19 @@ func readEnvelope(t *testing.T, dir, name string) envelopeOnDisk {
 	if err != nil {
 		t.Fatalf("read envelope file: %v", err)
 	}
-	var envelope envelopeOnDisk
+	var envelope envelopeJSON
 	if err := json.Unmarshal(raw, &envelope); err != nil {
 		t.Fatalf("unmarshal envelope: %v", err)
 	}
-	return envelope
+	return envelopeOnDisk{
+		ExpiresAt: envelope.ExpiresAt,
+		Classification: domaincompany.Classification{
+			Sector:              envelope.Classification.Sector,
+			Industry:            envelope.Classification.Industry,
+			Country:             envelope.Classification.Country,
+			PrimaryReportTicker: envelope.Classification.PrimaryReportTicker,
+			Exchange:            envelope.Classification.Exchange,
+			Currency:            envelope.Classification.Currency,
+		},
+	}
 }
