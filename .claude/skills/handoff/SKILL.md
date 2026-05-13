@@ -14,7 +14,7 @@ git fetch origin main
 git merge origin/main
 ```
 
-При конфликтах — разрешаем их вручную и завершаем merge-commit (без `rebase`, см. `.claude/rules/git.md`).
+При конфликтах — разрешаем их вручную и завершаем merge-commit.
 
 ## 2. Проверки
 
