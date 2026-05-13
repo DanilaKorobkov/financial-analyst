@@ -20,10 +20,14 @@ import (
 // Источник значений — только переменные окружения; дефолтов в коде нет.
 // Отсутствие любой `required` переменной — fatal на старте.
 type Config struct {
-	Moex          MoexConfig
+	// Moex — параметры доступа к MOEX ISS REST API.
+	Moex MoexConfig
+	// FinanceMarker — параметры доступа к FinanceMarker REST API.
 	FinanceMarker FinanceMarkerConfig
-	ClassCache    ClassificationCacheConfig
-	Server        ServerConfig
+	// ClassCache — параметры файлового кеша классификационной секции.
+	ClassCache ClassificationCacheConfig
+	// Server — параметры HTTP/Connect-сервера приложения.
+	Server ServerConfig
 }
 
 // MoexConfig — параметры доступа к MOEX ISS REST API.

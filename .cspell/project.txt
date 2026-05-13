@@ -220,6 +220,7 @@ gosec             # security-линтер для Go
 caarlos           # автор github.com/caarlos0/env (упоминание в комментариях)
 mvdan             # автор встроенного POSIX-shell в go-task (mvdan/sh)
 Korobkov          # фамилия владельца репозитория, фигурирует в URL бейджей
+structfielddocs   # бинарь линтера из github.com/DanilaKorobkov/go-checkers
 
 # --- ISIN / SECID для ОФЗ ---
 RMFS
