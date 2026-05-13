@@ -51,21 +51,14 @@ func (s *serverSuite) TearDownTest() {
 }
 
 func (s *serverSuite) TestGetCompanyHappyPath() {
-	s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").Return(company.Identity{
-		Ticker:       "SBER",
-		ISIN:         "RU0009029540",
-		Name:         "Сбербанк России ПАО ао",
-		SecurityType: company.SecurityTypeCommonShare,
-		ListingLevel: company.ListingLevelFirst,
-	}, nil).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "SBER").Return(company.Classification{
-		Exchange:            company.ExchangeMOEX,
-		Currency:            company.CurrencyRUB,
-		Sector:              "Финансы",
-		Industry:            "Банковская деятельность",
-		Country:             "Россия",
-		PrimaryReportTicker: "SBER",
-	}, nil).Once()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "SBER").
+		Return(sberIdentity(), nil).
+		Once()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "SBER").
+		Return(sberClassification(), nil).
+		Once()
 
 	resp, err := s.call("SBER")
 
@@ -98,12 +91,16 @@ func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
-			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Identity{Ticker: "X", SecurityType: c.in}, nil).Once()
-			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Classification{}, nil).Once()
+			s.identities.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Identity{Ticker: "any", SecurityType: c.in}, nil).
+				Once()
+			s.classifications.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Classification{}, nil).
+				Once()
 
-			resp, err := s.call("X")
+			resp, err := s.call("any")
 
 			s.Require().NoError(err)
 			s.Equal(c.want, resp.Msg.GetCompany().GetSecurityType())
@@ -124,12 +121,16 @@ func (s *serverSuite) TestGetCompanyListingLevelMapping() {
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
-			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Identity{Ticker: "X", ListingLevel: c.in}, nil).Once()
-			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Classification{}, nil).Once()
+			s.identities.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Identity{Ticker: "any", ListingLevel: c.in}, nil).
+				Once()
+			s.classifications.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Classification{}, nil).
+				Once()
 
-			resp, err := s.call("X")
+			resp, err := s.call("any")
 
 			s.Require().NoError(err)
 			s.Equal(c.want, resp.Msg.GetCompany().GetListingLevel())
@@ -148,12 +149,16 @@ func (s *serverSuite) TestGetCompanyExchangeMapping() {
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
-			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Identity{Ticker: "X"}, nil).Once()
-			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Classification{Exchange: c.in}, nil).Once()
+			s.identities.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Identity{Ticker: "any"}, nil).
+				Once()
+			s.classifications.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Classification{Exchange: c.in}, nil).
+				Once()
 
-			resp, err := s.call("X")
+			resp, err := s.call("any")
 
 			s.Require().NoError(err)
 			s.Equal(c.want, resp.Msg.GetCompany().GetExchange())
@@ -174,12 +179,16 @@ func (s *serverSuite) TestGetCompanyCurrencyMapping() {
 	}
 	for _, c := range cases {
 		s.Run(c.name, func() {
-			s.identities.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Identity{Ticker: "X"}, nil).Once()
-			s.classifications.EXPECT().FindByTicker(mock.Anything, "X").
-				Return(company.Classification{Currency: c.in}, nil).Once()
+			s.identities.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Identity{Ticker: "any"}, nil).
+				Once()
+			s.classifications.EXPECT().
+				FindByTicker(mock.Anything, "any").
+				Return(company.Classification{Currency: c.in}, nil).
+				Once()
 
-			resp, err := s.call("X")
+			resp, err := s.call("any")
 
 			s.Require().NoError(err)
 			s.Equal(c.want, resp.Msg.GetCompany().GetCurrency())
@@ -188,12 +197,16 @@ func (s *serverSuite) TestGetCompanyCurrencyMapping() {
 }
 
 func (s *serverSuite) TestGetCompanyNotFoundFromIdentity() {
-	s.identities.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Identity{}, company.ErrNotFound).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Classification{}, nil).Maybe()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Identity{}, company.ErrNotFound).
+		Once()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Classification{}, nil).
+		Maybe()
 
-	_, err := s.call("ZZZZ")
+	_, err := s.call("missing")
 
 	var connectErr *connectrpc.Error
 	s.Require().ErrorAs(err, &connectErr)
@@ -201,12 +214,16 @@ func (s *serverSuite) TestGetCompanyNotFoundFromIdentity() {
 }
 
 func (s *serverSuite) TestGetCompanyNotFoundFromClassification() {
-	s.identities.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Identity{Ticker: "ZZZZ"}, nil).Maybe()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Classification{}, company.ErrNotFound).Once()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Identity{Ticker: "missing"}, nil).
+		Maybe()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Classification{}, company.ErrNotFound).
+		Once()
 
-	_, err := s.call("ZZZZ")
+	_, err := s.call("missing")
 
 	var connectErr *connectrpc.Error
 	s.Require().ErrorAs(err, &connectErr)
@@ -222,12 +239,16 @@ func (s *serverSuite) TestGetCompanyInvalidArgument() {
 }
 
 func (s *serverSuite) TestGetCompanyInternal() {
-	s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(company.Identity{}, errors.New("downstream boom")).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(company.Classification{}, nil).Maybe()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(company.Identity{}, errors.New("downstream boom")).
+		Once()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(company.Classification{}, nil).
+		Maybe()
 
-	_, err := s.call("SBER")
+	_, err := s.call("any")
 
 	var connectErr *connectrpc.Error
 	s.Require().ErrorAs(err, &connectErr)
@@ -239,4 +260,25 @@ func (s *serverSuite) call(ticker string) (*connectrpc.Response[companyv1.GetCom
 		context.Background(),
 		connectrpc.NewRequest(&companyv1.GetCompanyRequest{Ticker: ticker}),
 	)
+}
+
+func sberIdentity() company.Identity {
+	return company.Identity{
+		Ticker:       "SBER",
+		ISIN:         "RU0009029540",
+		Name:         "Сбербанк России ПАО ао",
+		SecurityType: company.SecurityTypeCommonShare,
+		ListingLevel: company.ListingLevelFirst,
+	}
+}
+
+func sberClassification() company.Classification {
+	return company.Classification{
+		Exchange:            company.ExchangeMOEX,
+		Currency:            company.CurrencyRUB,
+		Sector:              "Финансы",
+		Industry:            "Банковская деятельность",
+		Country:             "Россия",
+		PrimaryReportTicker: "SBER",
+	}
 }

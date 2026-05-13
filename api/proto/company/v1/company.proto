@@ -55,14 +55,12 @@ enum Currency {
 }
 
 message Company {
-  // Идентификация бумаги.
   string ticker = 1;
   string isin = 2;
   string name = 3;
   SecurityType security_type = 4;
   ListingLevel listing_level = 5;
 
-  // Классификация эмитента.
   Exchange exchange = 6;
   Currency currency = 7;
   string sector = 8;

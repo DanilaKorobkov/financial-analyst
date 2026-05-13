@@ -36,32 +36,38 @@ func NewCompanyService(
 
 // GetCompany проверяет непустоту тикера и параллельно тянет обе
 // секции. При ошибке любого gateway возвращает её, не дожидаясь
-// второго. Тикер передаётся как есть, без нормализации.
+// второго: WithFirstError отдаёт первую ошибку как есть,
+// WithCancelOnError отменяет ctx второй горутины. Тикер передаётся
+// как есть, без нормализации.
+//
+// Горутины пишут в разные поля одного экземпляра Company — гонок нет:
+// поля непересекающиеся, чтение результата идёт после Wait.
 func (s *CompanyService) GetCompany(ctx context.Context, ticker string) (company.Company, error) {
 	if ticker == "" {
 		return company.Company{}, ErrTickerEmpty
 	}
 
-	var (
-		identity       company.Identity
-		classification company.Classification
-	)
+	var result company.Company
 
-	p := pool.New().WithErrors().WithContext(ctx)
+	p := pool.New().
+		WithErrors().
+		WithFirstError().
+		WithContext(ctx).
+		WithCancelOnError()
 	p.Go(func(ctx context.Context) error {
-		found, err := s.identities.FindByTicker(ctx, ticker)
+		identity, err := s.identities.FindByTicker(ctx, ticker)
 		if err != nil {
 			return fmt.Errorf("identity: %w", err)
 		}
-		identity = found
+		result.Identity = identity
 		return nil
 	})
 	p.Go(func(ctx context.Context) error {
-		found, err := s.classifications.FindByTicker(ctx, ticker)
+		classification, err := s.classifications.FindByTicker(ctx, ticker)
 		if err != nil {
 			return fmt.Errorf("classification: %w", err)
 		}
-		classification = found
+		result.Classification = classification
 		return nil
 	})
 
@@ -69,5 +75,5 @@ func (s *CompanyService) GetCompany(ctx context.Context, ticker string) (company
 		return company.Company{}, fmt.Errorf("get company %q: %w", ticker, err)
 	}
 
-	return company.Company{Identity: identity, Classification: classification}, nil
+	return result, nil
 }

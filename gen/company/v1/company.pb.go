@@ -324,19 +324,17 @@ func (x *GetCompanyResponse) GetCompany() *Company {
 }
 
 type Company struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Идентификация бумаги.
-	Ticker       string       `protobuf:"bytes,1,opt,name=ticker,proto3" json:"ticker,omitempty"`
-	Isin         string       `protobuf:"bytes,2,opt,name=isin,proto3" json:"isin,omitempty"`
-	Name         string       `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	SecurityType SecurityType `protobuf:"varint,4,opt,name=security_type,json=securityType,proto3,enum=company.v1.SecurityType" json:"security_type,omitempty"`
-	ListingLevel ListingLevel `protobuf:"varint,5,opt,name=listing_level,json=listingLevel,proto3,enum=company.v1.ListingLevel" json:"listing_level,omitempty"`
-	// Классификация эмитента.
-	Exchange Exchange `protobuf:"varint,6,opt,name=exchange,proto3,enum=company.v1.Exchange" json:"exchange,omitempty"`
-	Currency Currency `protobuf:"varint,7,opt,name=currency,proto3,enum=company.v1.Currency" json:"currency,omitempty"`
-	Sector   string   `protobuf:"bytes,8,opt,name=sector,proto3" json:"sector,omitempty"`
-	Industry string   `protobuf:"bytes,9,opt,name=industry,proto3" json:"industry,omitempty"`
-	Country  string   `protobuf:"bytes,10,opt,name=country,proto3" json:"country,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Ticker       string                 `protobuf:"bytes,1,opt,name=ticker,proto3" json:"ticker,omitempty"`
+	Isin         string                 `protobuf:"bytes,2,opt,name=isin,proto3" json:"isin,omitempty"`
+	Name         string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	SecurityType SecurityType           `protobuf:"varint,4,opt,name=security_type,json=securityType,proto3,enum=company.v1.SecurityType" json:"security_type,omitempty"`
+	ListingLevel ListingLevel           `protobuf:"varint,5,opt,name=listing_level,json=listingLevel,proto3,enum=company.v1.ListingLevel" json:"listing_level,omitempty"`
+	Exchange     Exchange               `protobuf:"varint,6,opt,name=exchange,proto3,enum=company.v1.Exchange" json:"exchange,omitempty"`
+	Currency     Currency               `protobuf:"varint,7,opt,name=currency,proto3,enum=company.v1.Currency" json:"currency,omitempty"`
+	Sector       string                 `protobuf:"bytes,8,opt,name=sector,proto3" json:"sector,omitempty"`
+	Industry     string                 `protobuf:"bytes,9,opt,name=industry,proto3" json:"industry,omitempty"`
+	Country      string                 `protobuf:"bytes,10,opt,name=country,proto3" json:"country,omitempty"`
 	// Тикер основной бумаги эмитента, к которой привязана отчётность.
 	// Для привилегированных акций совпадает с обыкновенными.
 	PrimaryReportTicker string `protobuf:"bytes,11,opt,name=primary_report_ticker,json=primaryReportTicker,proto3" json:"primary_report_ticker,omitempty"`

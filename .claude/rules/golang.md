@@ -160,6 +160,73 @@ sentinel. В `infra` оборачиваем причину обычным `fmt.E
 
 Тесты, которым нужен `Config`, выставляют env через `t.Setenv(...)`.
 
+## Разрыв цепочки вызовов
+
+Цепочка из нескольких вызовов через `.` разбивается на строки —
+по одному звену на строку. Цель — глазами видеть последовательность
+шагов и легко комментировать или удалять отдельные звенья в diff.
+
+Касается прежде всего цепочек, которые регулярно растут вширь:
+
+- mockery EXPECT (`.EXPECT().Method(...).Return(...).Once()`);
+- resty (`client.R().SetContext(ctx).SetQueryParam(...).Get(url)`).
+
+```go
+// ✅ mocks
+s.identities.EXPECT().
+    FindByTicker(mock.Anything, "SBER").
+    Return(identity, nil).
+    Once()
+
+// ❌ mocks
+s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").Return(identity, nil).Once()
+
+// ✅ resty
+resp, err := c.client.R().
+    SetContext(ctx).
+    SetPathParam("ticker", ticker).
+    SetResult(&out).
+    Get("/iss/securities/{ticker}.json")
+
+// ❌ resty
+resp, err := c.client.R().SetContext(ctx).SetPathParam("ticker", ticker).SetResult(&out).Get("/iss/securities/{ticker}.json")
+```
+
+Короткие цепочки из двух звеньев (`foo.Bar()`) держим в одной строке —
+правило про разрыв включается с трёх звеньев и выше.
+
+## Имена тикеров в тестах
+
+Тестовые литералы тикеров отражают **семантику** проверки, а не
+случайный набор букв. Это правило сквозное по проекту и касается
+любых unit-тестов поверх domain/presentation (infra-тесты против
+реальных фикстур MOEX/FM используют настоящие тикеры — там литерал
+обязан совпасть с фикстурой).
+
+| Семантика                                            | Литерал                           |
+| ---------------------------------------------------- | --------------------------------- |
+| Тикер не найден (проверяем `ErrNotFound`/404)        | `"missing"`                       |
+| Тикер не важен (проверяем маппинг/ошибку downstream) | `"any"`                           |
+| Тикер важен по смыслу (happy-path, специальный кейс) | `"SBER"` и т.п. — настоящий тикер |
+
+```go
+// ✅ говорит, что именно проверяем
+s.identities.EXPECT().
+    FindByTicker(mock.Anything, "missing").
+    Return(company.Identity{}, company.ErrNotFound).
+    Once()
+
+// ❌ "ZZZZ" — случайный шум, читателю не помогает
+s.identities.EXPECT().
+    FindByTicker(mock.Anything, "ZZZZ").
+    Return(company.Identity{}, company.ErrNotFound).
+    Once()
+```
+
+То же относится к другим placeholder-значениям в тестах
+(идентификаторы, имена пользователей, URL-ы) — литерал должен
+называть свою роль.
+
 ## Тесты
 
 ### Имена testify suite

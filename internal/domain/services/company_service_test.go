@@ -33,23 +33,16 @@ func (s *companyServiceSuite) SetupTest() {
 }
 
 func (s *companyServiceSuite) TestGetCompanyHappyPath() {
-	identity := company.Identity{
-		Ticker:       "SBER",
-		ISIN:         "RU0009029540",
-		Name:         "Сбербанк России ПАО ао",
-		SecurityType: company.SecurityTypeCommonShare,
-		ListingLevel: company.ListingLevelFirst,
-	}
-	classification := company.Classification{
-		Exchange:            company.ExchangeMOEX,
-		Currency:            company.CurrencyRUB,
-		Sector:              "Финансы",
-		Industry:            "Банковская деятельность",
-		Country:             "Россия",
-		PrimaryReportTicker: "SBER",
-	}
-	s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").Return(identity, nil).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "SBER").Return(classification, nil).Once()
+	identity := sberIdentity()
+	classification := sberClassification()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "SBER").
+		Return(identity, nil).
+		Once()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "SBER").
+		Return(classification, nil).
+		Once()
 
 	got, err := s.service.GetCompany(context.Background(), "SBER")
 
@@ -59,10 +52,14 @@ func (s *companyServiceSuite) TestGetCompanyHappyPath() {
 
 func (s *companyServiceSuite) TestGetCompanyPassesTickerAsIs() {
 	// Источники регистронезависимы, сервис не нормализует ввод.
-	s.identities.EXPECT().FindByTicker(mock.Anything, "sBeR").
-		Return(company.Identity{Ticker: "sBeR"}, nil).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "sBeR").
-		Return(company.Classification{}, nil).Once()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "sBeR").
+		Return(company.Identity{Ticker: "sBeR"}, nil).
+		Once()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "sBeR").
+		Return(company.Classification{}, nil).
+		Once()
 
 	_, err := s.service.GetCompany(context.Background(), "sBeR")
 
@@ -76,35 +73,68 @@ func (s *companyServiceSuite) TestGetCompanyEmptyTicker() {
 }
 
 func (s *companyServiceSuite) TestGetCompanyIdentityNotFoundPropagates() {
-	s.identities.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Identity{}, company.ErrNotFound).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Classification{}, nil).Maybe()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Identity{}, company.ErrNotFound).
+		Once()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Classification{}, nil).
+		Maybe()
 
-	_, err := s.service.GetCompany(context.Background(), "ZZZZ")
+	_, err := s.service.GetCompany(context.Background(), "missing")
 
 	s.Require().ErrorIs(err, company.ErrNotFound)
 }
 
 func (s *companyServiceSuite) TestGetCompanyClassificationNotFoundPropagates() {
-	s.identities.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Identity{Ticker: "ZZZZ"}, nil).Maybe()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "ZZZZ").
-		Return(company.Classification{}, company.ErrNotFound).Once()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Identity{Ticker: "missing"}, nil).
+		Maybe()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(company.Classification{}, company.ErrNotFound).
+		Once()
 
-	_, err := s.service.GetCompany(context.Background(), "ZZZZ")
+	_, err := s.service.GetCompany(context.Background(), "missing")
 
 	s.Require().ErrorIs(err, company.ErrNotFound)
 }
 
 func (s *companyServiceSuite) TestGetCompanyArbitraryErrorPropagates() {
 	sentinel := errors.New("boom")
-	s.identities.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(company.Identity{}, sentinel).Once()
-	s.classifications.EXPECT().FindByTicker(mock.Anything, "SBER").
-		Return(company.Classification{}, nil).Maybe()
+	s.identities.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(company.Identity{}, sentinel).
+		Once()
+	s.classifications.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(company.Classification{}, nil).
+		Maybe()
 
-	_, err := s.service.GetCompany(context.Background(), "SBER")
+	_, err := s.service.GetCompany(context.Background(), "any")
 
 	s.Require().ErrorIs(err, sentinel)
+}
+
+func sberIdentity() company.Identity {
+	return company.Identity{
+		Ticker:       "SBER",
+		ISIN:         "RU0009029540",
+		Name:         "Сбербанк России ПАО ао",
+		SecurityType: company.SecurityTypeCommonShare,
+		ListingLevel: company.ListingLevelFirst,
+	}
+}
+
+func sberClassification() company.Classification {
+	return company.Classification{
+		Exchange:            company.ExchangeMOEX,
+		Currency:            company.CurrencyRUB,
+		Sector:              "Финансы",
+		Industry:            "Банковская деятельность",
+		Country:             "Россия",
+		PrimaryReportTicker: "SBER",
+	}
 }
