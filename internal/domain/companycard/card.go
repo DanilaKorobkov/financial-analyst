@@ -1,31 +1,13 @@
-package entities
-
-// Численные значения зафиксированы явно: enum-ы выходят наружу через
-// proto-контракт presentation-слоя, и `iota` сделал бы порядок строк
-// load-bearing — вставка члена в середину сдвинула бы коды.
-const (
-	// ExchangeUnspecified — биржа не определена или неподдерживаемая.
-	ExchangeUnspecified Exchange = 0
-	// ExchangeMOEX — Московская биржа.
-	ExchangeMOEX Exchange = 1
-
-	// CurrencyUnspecified — валюта не определена или неподдерживаемая.
-	CurrencyUnspecified Currency = 0
-	// CurrencyRUB — российский рубль (ISO 4217: RUB).
-	CurrencyRUB Currency = 1
-	// CurrencyUSD — доллар США (ISO 4217: USD).
-	CurrencyUSD Currency = 2
-	// CurrencyEUR — евро (ISO 4217: EUR).
-	CurrencyEUR Currency = 3
-)
-
-// CompanyCard — карточка эмитента: идентификация, классификация (страна,
-// валюта, сектор / отрасль по GICS-подобной иерархии), описание и ссылки
-// на корпоративный сайт и страницу раскрытия.
+// Package companycard — агрегат «карточка эмитента»: сущность,
+// порт доступа к коллекции и доменные ошибки (вместе с enum-ами
+// Exchange и Currency, специфичными для карточки).
 //
 // Используется как самостоятельный элемент списочных ответов и как блок-шапка
 // будущих расширенных карточек (сводные метрики, мультипликаторы, отчётность).
-type CompanyCard struct {
+package companycard
+
+// Card — карточка эмитента.
+type Card struct {
 	// Ticker — биржевой код бумаги. Пример: "SBER".
 	Ticker string
 
@@ -79,9 +61,3 @@ type CompanyCard struct {
 	// Пример: ExchangeMOEX.
 	PrimaryReportExchange Exchange
 }
-
-// Exchange — биржа листинга бумаги.
-type Exchange int
-
-// Currency — валюта торгов бумагой.
-type Currency int

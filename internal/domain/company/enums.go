@@ -1,5 +1,4 @@
-// Package entities — плоские domain-сущности (без подпапок на агрегат).
-package entities
+package company
 
 // Численные значения зафиксированы явно: enum-ы выходят наружу через
 // proto-контракт presentation-слоя, и `iota` сделал бы порядок строк
@@ -23,26 +22,6 @@ const (
 	// ListingLevelThird — третий котировальный уровень.
 	ListingLevelThird ListingLevel = 3
 )
-
-// Company — справочная карточка эмитента.
-type Company struct {
-	// Ticker — биржевой код бумаги. Пример: "SBER".
-	Ticker string
-
-	// ISIN — международный идентификатор. Пример: "RU0009029540".
-	ISIN string
-
-	// Name — полное название бумаги. Пример: "Сбербанк России ПАО ао".
-	Name string
-
-	// SecurityType — тип бумаги. SecurityTypeUnspecified — неизвестный
-	// или неподдерживаемый тип.
-	SecurityType SecurityType
-
-	// ListingLevel — котировальный уровень. ListingLevelUnspecified —
-	// уровень не указан.
-	ListingLevel ListingLevel
-}
 
 // SecurityType — тип бумаги.
 type SecurityType int

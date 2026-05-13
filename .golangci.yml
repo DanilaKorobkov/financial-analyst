@@ -228,7 +228,9 @@ linters:
 
     decorder:
       # Фиксированный порядок top-level деклараций в файле:
-      # const → var → type → func. Если в файле нет одного из видов — он просто
+      # const → var → type → func. Enum-у это не мешает: блок `const X*`
+      # лежит над `type X` в одном файле — Go-forward-references на типы
+      # внутри пакета валидны. Если в файле нет одного из видов — он просто
       # пропускается, но нарушать относительный порядок остальных нельзя.
       dec-order: [const, var, type, func]
       disable-dec-order-check: false
@@ -240,6 +242,14 @@ linters:
       disable-type-dec-num-check: true
       disable-const-dec-num-check: true
       disable-var-dec-num-check: true
+
+    testpackage:
+      # По дефолту testpackage пропускает файлы вида `*_internal_test.go`
+      # — это лазейка, через которую в репозиторий могут просочиться тесты
+      # на приватные функции. Тестируем только публичный API: ставим
+      # regexp, который не матчит ни одно реальное имя файла, чтобы
+      # линтер ругался на любой test-файл с внутренним пакетом.
+      skip-regexp: _disabled_skip_$
 
     depguard:
       # Запреты на импорты по слоям: defense-in-depth для DDD.

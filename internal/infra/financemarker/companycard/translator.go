@@ -1,6 +1,25 @@
-package financemarker
+package companycard
 
-import "github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
+import (
+	domaincard "github.com/DanilaKorobkov/financial-analyst/internal/domain/companycard"
+)
+
+var (
+	// exchangeByCode переводит строковый код биржи FinanceMarker в domain-enum.
+	// Незнакомые значения возвращают zero (ExchangeUnspecified) — набор бирж
+	// со временем расширяется.
+	exchangeByCode = map[string]domaincard.Exchange{
+		codeExchangeMOEX: domaincard.ExchangeMOEX,
+	}
+
+	// currencyByCode переводит ISO 4217-код валюты FinanceMarker в domain-enum.
+	// Незнакомые значения возвращают zero (CurrencyUnspecified).
+	currencyByCode = map[string]domaincard.Currency{
+		"RUB": domaincard.CurrencyRUB,
+		"USD": domaincard.CurrencyUSD,
+		"EUR": domaincard.CurrencyEUR,
+	}
+)
 
 // infoDTO — блок `info` ответа /api/fm/v2/stocks/{exchange}:{code}.
 type infoDTO struct {
@@ -29,51 +48,24 @@ type stockDTO struct {
 	Info infoDTO `json:"info"`
 }
 
-// translateCompanyCard собирает entities.CompanyCard из info-блока FinanceMarker.
-func translateCompanyCard(info *infoDTO) entities.CompanyCard {
-	return entities.CompanyCard{
+// translateCard собирает domaincard.Card из info-блока FinanceMarker.
+func translateCard(info *infoDTO) domaincard.Card {
+	return domaincard.Card{
 		Ticker:                info.Code,
-		Exchange:              translateExchange(info.Exchange),
+		Exchange:              exchangeByCode[info.Exchange],
 		Name:                  info.Name,
 		Sector:                info.Sector,
 		Industry:              info.Industry,
 		IndustryGroup:         info.IndustryGroup,
 		Country:               info.Country,
-		Currency:              translateCurrency(info.Currency),
+		Currency:              currencyByCode[info.Currency],
 		PrimaryReportTicker:   info.PrimaryReportCode,
-		PrimaryReportExchange: translateExchange(info.PrimaryReportExchange),
+		PrimaryReportExchange: exchangeByCode[info.PrimaryReportExchange],
 		Description:           info.Description,
 		Site:                  info.Site,
 		DiscLink:              info.DiscLink,
 		SectorID:              info.SectorID,
 		IndustryID:            info.IndustryID,
 		IndustryGroupID:       info.IndustryGroupID,
-	}
-}
-
-// translateExchange переводит строковый код биржи FinanceMarker в domain-enum.
-// Незнакомые значения становятся ExchangeUnspecified — набор бирж со временем
-// расширяется.
-func translateExchange(s string) entities.Exchange {
-	switch s {
-	case codeExchangeMOEX:
-		return entities.ExchangeMOEX
-	default:
-		return entities.ExchangeUnspecified
-	}
-}
-
-// translateCurrency переводит ISO 4217-код валюты FinanceMarker в domain-enum.
-// Незнакомые значения становятся CurrencyUnspecified.
-func translateCurrency(s string) entities.Currency {
-	switch s {
-	case "RUB":
-		return entities.CurrencyRUB
-	case "USD":
-		return entities.CurrencyUSD
-	case "EUR":
-		return entities.CurrencyEUR
-	default:
-		return entities.CurrencyUnspecified
 	}
 }

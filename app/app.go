@@ -6,15 +6,20 @@ import (
 	"github.com/DanilaKorobkov/financial-analyst/gen/company/v1/companyv1connect"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex"
+	moexcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/company"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
 )
 
 // New собирает все слои приложения и возвращает готовый http.Handler.
 //
-// Чистая композиция: resty client → MoexRepository → CompanyInfo →
+// Чистая композиция: общий MOEX-клиент → companyRepository → CompanyInfo →
 // Connect handler → http.ServeMux.
 func New(cfg Config) http.Handler {
-	companies := moex.NewCompanyRepository(cfg.Moex.BaseURL, cfg.Moex.Timeout)
+	moexClient := moex.NewClient(moex.ConfigClient{
+		BaseURL: cfg.Moex.BaseURL,
+		Timeout: cfg.Moex.Timeout,
+	})
+	companies := moexcompany.NewRepository(moexClient)
 	companyInfo := services.NewCompanyInfo(companies)
 	srv := pconnect.NewServer(companyInfo)
 

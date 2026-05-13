@@ -7,7 +7,7 @@ import (
 	connectrpc "connectrpc.com/connect"
 
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 )
 
@@ -26,12 +26,12 @@ func (s *Server) GetCompany(
 	ctx context.Context,
 	req *connectrpc.Request[companyv1.GetCompanyRequest],
 ) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
-	company, err := s.companyInfo.Lookup(ctx, req.Msg.GetTicker())
+	found, err := s.companyInfo.Lookup(ctx, req.Msg.GetTicker())
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
 	return connectrpc.NewResponse(&companyv1.GetCompanyResponse{
-		Company: toProtoCompany(&company),
+		Company: toProtoCompany(&found),
 	}), nil
 }
 
@@ -40,7 +40,7 @@ func mapDomainError(err error) error {
 	switch {
 	case errors.Is(err, services.ErrTickerEmpty):
 		return connectrpc.NewError(connectrpc.CodeInvalidArgument, err)
-	case errors.Is(err, entities.ErrMissingCompany):
+	case errors.Is(err, company.ErrNotFound):
 		return connectrpc.NewError(connectrpc.CodeNotFound, err)
 	default:
 		return connectrpc.NewError(connectrpc.CodeInternal, err)

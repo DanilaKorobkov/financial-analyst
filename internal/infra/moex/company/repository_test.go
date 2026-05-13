@@ -1,4 +1,4 @@
-package moex_test
+package company_test
 
 import (
 	"context"
@@ -11,8 +11,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/entities"
+	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex"
+	moexcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/company"
 )
 
 //go:embed testdata/*.json
@@ -23,7 +24,7 @@ type repositorySuite struct {
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	repo    *moex.CompanyRepository
+	repo    *moexcompany.Repository
 }
 
 func TestRepositorySuite(t *testing.T) {
@@ -38,7 +39,11 @@ func (s *repositorySuite) SetupTest() {
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.handler(w, r)
 	}))
-	s.repo = moex.NewCompanyRepository(s.server.URL+"/iss", 5*time.Second)
+	client := moex.NewClient(moex.ConfigClient{
+		BaseURL: s.server.URL + "/iss",
+		Timeout: 5 * time.Second,
+	})
+	s.repo = moexcompany.NewRepository(client)
 }
 
 func (s *repositorySuite) TearDownTest() {
@@ -56,17 +61,17 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	company, err := s.repo.FindByTicker(context.Background(), "SBER")
+	found, err := s.repo.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	expected := entities.Company{
+	expected := domaincompany.Company{
 		Ticker:       "SBER",
 		ISIN:         "RU0009029540",
 		Name:         "Сбербанк России ПАО ао",
-		SecurityType: entities.SecurityTypeCommonShare,
-		ListingLevel: entities.ListingLevelFirst,
+		SecurityType: domaincompany.SecurityTypeCommonShare,
+		ListingLevel: domaincompany.ListingLevelFirst,
 	}
-	s.Equal(expected, company)
+	s.Equal(expected, found)
 }
 
 func (s *repositorySuite) TestFindByTickerInvalidJSON() {
@@ -88,7 +93,7 @@ func (s *repositorySuite) TestFindByTickerNotFound() {
 
 	_, err := s.repo.FindByTicker(context.Background(), "ZZZZ")
 
-	s.Require().ErrorIs(err, entities.ErrMissingCompany)
+	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
 }
 
 func (s *repositorySuite) TestFindByTickerServerError() {
@@ -114,43 +119,43 @@ func (s *repositorySuite) TestFindByTickerContextCancelled() {
 }
 
 // TestFindByTickerTypeAndLevelMatrix проходит по всем ожидаемым значениям полей
-// TYPE и LISTLEVEL блока description — каждая ветка `parseSecurityType` и
-// `parseListingLevel` выполняется хотя бы один раз.
+// TYPE и LISTLEVEL блока description — каждое значение в маппинг-таблицах
+// и ветка-fallback для неизвестного TYPE проверяются хотя бы один раз.
 func (s *repositorySuite) TestFindByTickerTypeAndLevelMatrix() {
 	cases := []struct {
 		name      string
 		typeValue string
 		level     string
-		wantType  entities.SecurityType
-		wantLevel entities.ListingLevel
+		wantType  domaincompany.SecurityType
+		wantLevel domaincompany.ListingLevel
 	}{
 		{
 			name:      "preferred share with second level",
 			typeValue: "preferred_share",
 			level:     "2",
-			wantType:  entities.SecurityTypePreferredShare,
-			wantLevel: entities.ListingLevelSecond,
+			wantType:  domaincompany.SecurityTypePreferredShare,
+			wantLevel: domaincompany.ListingLevelSecond,
 		},
 		{
 			name:      "depositary receipt with third level",
 			typeValue: "depositary_receipt",
 			level:     "3",
-			wantType:  entities.SecurityTypeDepositaryReceipt,
-			wantLevel: entities.ListingLevelThird,
+			wantType:  domaincompany.SecurityTypeDepositaryReceipt,
+			wantLevel: domaincompany.ListingLevelThird,
 		},
 		{
 			name:      "неизвестный TYPE падает в Unspecified",
 			typeValue: "exotic_new_type",
 			level:     "1",
-			wantType:  entities.SecurityTypeUnspecified,
-			wantLevel: entities.ListingLevelFirst,
+			wantType:  domaincompany.SecurityTypeUnspecified,
+			wantLevel: domaincompany.ListingLevelFirst,
 		},
 		{
 			name:      "пустой LISTLEVEL трактуется как Unspecified",
 			typeValue: "common_share",
 			level:     "",
-			wantType:  entities.SecurityTypeCommonShare,
-			wantLevel: entities.ListingLevelUnspecified,
+			wantType:  domaincompany.SecurityTypeCommonShare,
+			wantLevel: domaincompany.ListingLevelUnspecified,
 		},
 	}
 	for _, c := range cases {
@@ -162,10 +167,10 @@ func (s *repositorySuite) TestFindByTickerTypeAndLevelMatrix() {
 			s.handler = func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write(body)
 			}
-			company, err := s.repo.FindByTicker(context.Background(), "X")
+			found, err := s.repo.FindByTicker(context.Background(), "X")
 			s.Require().NoError(err)
-			s.Equal(c.wantType, company.SecurityType)
-			s.Equal(c.wantLevel, company.ListingLevel)
+			s.Equal(c.wantType, found.SecurityType)
+			s.Equal(c.wantLevel, found.ListingLevel)
 		})
 	}
 }
