@@ -18,7 +18,7 @@ import (
 //go:embed testdata/*.json
 var testdataFS embed.FS
 
-type repositorySuite struct {
+type classificationGatewaySuite struct {
 	suite.Suite
 
 	handler func(http.ResponseWriter, *http.Request)
@@ -26,12 +26,12 @@ type repositorySuite struct {
 	gateway *fmcompany.ClassificationGateway
 }
 
-func TestRepositorySuite(t *testing.T) {
+func TestClassificationGatewaySuite(t *testing.T) {
 	t.Parallel()
-	suite.Run(t, new(repositorySuite))
+	suite.Run(t, new(classificationGatewaySuite))
 }
 
-func (s *repositorySuite) SetupTest() {
+func (s *classificationGatewaySuite) SetupTest() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -46,11 +46,11 @@ func (s *repositorySuite) SetupTest() {
 	s.gateway = fmcompany.NewClassificationGateway(client)
 }
 
-func (s *repositorySuite) TearDownTest() {
+func (s *classificationGatewaySuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *repositorySuite) TestFindByTickerHappyPath() {
+func (s *classificationGatewaySuite) TestFindByTickerHappyPath() {
 	body := s.readFixture("sber_card.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/api/fm/v2/stocks/MOEX:SBER", r.URL.Path)
@@ -79,7 +79,7 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 // ожидаемую ошибку. Только 404 поднимается как domaincompany.ErrNotFound;
 // остальные коды (401, 403, 400+token_not_found, 5xx) едут наверх как
 // непомеченный internal сбой либо как infra-sentinel.
-func (s *repositorySuite) TestFindByTickerErrorMapping() {
+func (s *classificationGatewaySuite) TestFindByTickerErrorMapping() {
 	cases := []struct {
 		errIs       error // если задан — проверяем errors.Is.
 		name        string
@@ -147,7 +147,7 @@ func (s *repositorySuite) TestFindByTickerErrorMapping() {
 	}
 }
 
-func (s *repositorySuite) TestFindByTickerContextCancelled() {
+func (s *classificationGatewaySuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -157,7 +157,7 @@ func (s *repositorySuite) TestFindByTickerContextCancelled() {
 	s.ErrorContains(err, "financemarker request: Get \""+s.server.URL+"/api/fm/v2/stocks/MOEX:SBER?api_token=test-token&include=info\": context canceled")
 }
 
-func (s *repositorySuite) readFixture(name string) []byte {
+func (s *classificationGatewaySuite) readFixture(name string) []byte {
 	s.T().Helper()
 	raw, err := testdataFS.ReadFile("testdata/" + name)
 	s.Require().NoError(err)

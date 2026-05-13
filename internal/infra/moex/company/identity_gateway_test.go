@@ -19,7 +19,7 @@ import (
 //go:embed testdata/*.json
 var testdataFS embed.FS
 
-type repositorySuite struct {
+type identityGatewaySuite struct {
 	suite.Suite
 
 	handler func(http.ResponseWriter, *http.Request)
@@ -27,12 +27,12 @@ type repositorySuite struct {
 	gateway *moexcompany.IdentityGateway
 }
 
-func TestRepositorySuite(t *testing.T) {
+func TestIdentityGatewaySuite(t *testing.T) {
 	t.Parallel()
-	suite.Run(t, new(repositorySuite))
+	suite.Run(t, new(identityGatewaySuite))
 }
 
-func (s *repositorySuite) SetupTest() {
+func (s *identityGatewaySuite) SetupTest() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -46,11 +46,11 @@ func (s *repositorySuite) SetupTest() {
 	s.gateway = moexcompany.NewIdentityGateway(client)
 }
 
-func (s *repositorySuite) TearDownTest() {
+func (s *identityGatewaySuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *repositorySuite) TestFindByTickerHappyPath() {
+func (s *identityGatewaySuite) TestFindByTickerHappyPath() {
 	body := s.readFixture("sber.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/iss/securities/SBER.json", r.URL.Path)
@@ -74,7 +74,7 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 	s.Equal(expected, found)
 }
 
-func (s *repositorySuite) TestFindByTickerInvalidJSON() {
+func (s *identityGatewaySuite) TestFindByTickerInvalidJSON() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("not json"))
 	}
@@ -85,7 +85,7 @@ func (s *repositorySuite) TestFindByTickerInvalidJSON() {
 	s.ErrorContains(err, "decode extended payload")
 }
 
-func (s *repositorySuite) TestFindByTickerNotFound() {
+func (s *identityGatewaySuite) TestFindByTickerNotFound() {
 	body := s.readFixture("not_found.json")
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
@@ -96,7 +96,7 @@ func (s *repositorySuite) TestFindByTickerNotFound() {
 	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
 }
 
-func (s *repositorySuite) TestFindByTickerServerError() {
+func (s *identityGatewaySuite) TestFindByTickerServerError() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -107,7 +107,7 @@ func (s *repositorySuite) TestFindByTickerServerError() {
 	s.ErrorContains(err, "moex http status 500")
 }
 
-func (s *repositorySuite) TestFindByTickerContextCancelled() {
+func (s *identityGatewaySuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -121,7 +121,7 @@ func (s *repositorySuite) TestFindByTickerContextCancelled() {
 // TestFindByTickerTypeAndLevelMatrix проходит по всем ожидаемым значениям полей
 // TYPE и LISTLEVEL блока description — каждое значение в маппинг-таблицах
 // и ветка-fallback для неизвестного TYPE проверяются хотя бы один раз.
-func (s *repositorySuite) TestFindByTickerTypeAndLevelMatrix() {
+func (s *identityGatewaySuite) TestFindByTickerTypeAndLevelMatrix() {
 	cases := []struct {
 		name      string
 		typeValue string
@@ -175,7 +175,7 @@ func (s *repositorySuite) TestFindByTickerTypeAndLevelMatrix() {
 	}
 }
 
-func (s *repositorySuite) TestFindByTickerInvalidListLevel() {
+func (s *identityGatewaySuite) TestFindByTickerInvalidListLevel() {
 	body := []byte(`[{"description":[{"name":"SECID","value":"X"},{"name":"LISTLEVEL","value":"9"}]}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
@@ -187,7 +187,7 @@ func (s *repositorySuite) TestFindByTickerInvalidListLevel() {
 	s.ErrorContains(err, "LISTLEVEL")
 }
 
-func (s *repositorySuite) TestFindByTickerMissingDescriptionBlock() {
+func (s *identityGatewaySuite) TestFindByTickerMissingDescriptionBlock() {
 	body := []byte(`[{"charsetinfo":{"name":"utf-8"}},{"securities":[]}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
@@ -199,7 +199,7 @@ func (s *repositorySuite) TestFindByTickerMissingDescriptionBlock() {
 	s.ErrorContains(err, "description block missing")
 }
 
-func (s *repositorySuite) TestFindByTickerInvalidDescriptionBlock() {
+func (s *identityGatewaySuite) TestFindByTickerInvalidDescriptionBlock() {
 	// description присутствует, но это не массив объектов {name, value}.
 	body := []byte(`[{"description": 123}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
@@ -212,7 +212,7 @@ func (s *repositorySuite) TestFindByTickerInvalidDescriptionBlock() {
 	s.ErrorContains(err, "decode description block")
 }
 
-func (s *repositorySuite) readFixture(name string) []byte {
+func (s *identityGatewaySuite) readFixture(name string) []byte {
 	s.T().Helper()
 	raw, err := testdataFS.ReadFile("testdata/" + name)
 	s.Require().NoError(err)
