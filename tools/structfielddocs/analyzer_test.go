@@ -1,6 +1,7 @@
 package structfielddocs_test
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -25,7 +26,7 @@ type Company struct {
 	Ticker string
 }`)
 	s.Equal([]string{
-		"exported field Ticker of exported struct Company must have a doc comment",
+		"p.go:3:2: exported field Ticker of exported struct Company must have a doc comment",
 	}, got)
 }
 
@@ -44,7 +45,7 @@ type Company struct {
 	Ticker string // тикер бумаги
 }`)
 	s.Equal([]string{
-		"exported field Ticker of exported struct Company must have a doc comment",
+		"p.go:3:2: exported field Ticker of exported struct Company must have a doc comment",
 	}, got)
 }
 
@@ -89,8 +90,8 @@ type Company struct {
 	Ticker, Name string
 }`)
 	s.ElementsMatch([]string{
-		"exported field Ticker of exported struct Company must have a doc comment",
-		"exported field Name of exported struct Company must have a doc comment",
+		"p.go:3:2: exported field Ticker of exported struct Company must have a doc comment",
+		"p.go:3:10: exported field Name of exported struct Company must have a doc comment",
 	}, got)
 }
 
@@ -112,7 +113,7 @@ type Company struct {
 	age int
 }`)
 	s.Equal([]string{
-		"exported field Name of exported struct Company must have a doc comment",
+		"p.go:5:2: exported field Name of exported struct Company must have a doc comment",
 	}, got)
 }
 
@@ -138,7 +139,7 @@ type (
 	}
 )`)
 	s.Equal([]string{
-		"exported field Bar of exported struct Foo must have a doc comment",
+		"p.go:4:3: exported field Bar of exported struct Foo must have a doc comment",
 	}, got)
 }
 
@@ -156,7 +157,11 @@ func (s *analyzerSuite) run(src string) []string {
 		Fset:     fset,
 		Files:    []*ast.File{file},
 		Report: func(d analysis.Diagnostic) {
-			diags = append(diags, d.Message)
+			// В формате `file:line:col: message` — тот же вид, что
+			// печатает singlechecker в реальном CLI, и тот же, что
+			// ожидают IDE/grep-tools для перехода к месту репорта.
+			pos := fset.Position(d.Pos)
+			diags = append(diags, fmt.Sprintf("%s:%d:%d: %s", pos.Filename, pos.Line, pos.Column, d.Message))
 		},
 	}
 	_, err = structfielddocs.Analyzer.Run(pass)
