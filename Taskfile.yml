@@ -33,12 +33,10 @@ tasks:
 
   lint-structfielddocs:
     desc: Проектный анализатор — doc-комментарии у экспортируемых полей структур.
-    # Standalone go/analysis CLI живёт в tools/structfielddocs. Запускается
-    # через `go run` — Go build cache обеспечивает инкрементальную компиляцию.
-    # Когда анализатор стабилизируется, его можно будет вынести в отдельный
-    # репозиторий и поставить через mise.
+    # Исполняемый файл ставится через mise, версия зафиксирована в mise.toml.
+    # Источник — go:github.com/DanilaKorobkov/go-checkers/cmd/structfielddocs.
     cmds:
-      - go run ./tools/structfielddocs/cmd/structfielddocs ./...
+      - structfielddocs ./...
 
   lint-arch:
     desc: go-arch-lint — проверка слоёной архитектуры (.go-arch-lint.yml).

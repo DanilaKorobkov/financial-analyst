@@ -71,12 +71,6 @@ components:
   cmd:
     in: cmd/**
 
-  # Утилиты разработки: статические анализаторы, plugin-обёртки для
-  # golangci-lint и прочая инструментовка. Не связаны со слоями приложения,
-  # импортируют только stdlib и vendor (golang.org/x/tools, plugin-module-register).
-  tools:
-    in: tools/**
-
 deps:
   domain-company:
     anyVendorDeps: true
@@ -151,11 +145,6 @@ deps:
   cmd:
     mayDependOn:
       - app
-    anyVendorDeps: true
-
-  tools:
-    mayDependOn:
-      - tools
     anyVendorDeps: true
 
 # generated и mocks — служебные компоненты, доступные всем без явного
