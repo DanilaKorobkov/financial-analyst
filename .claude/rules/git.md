@@ -6,7 +6,7 @@
 
 ## Типы
 
-- `feat` `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
+Закрытый список допустимых `<type>` для заголовков commit и pull request — поле `types:` в [`.github/workflows/pr-title.yml`](../../.github/workflows/pr-title.yml). Этот workflow — единственный источник правды; CI отклоняет PR с типом, которого там нет.
 
 ## Ветки
 

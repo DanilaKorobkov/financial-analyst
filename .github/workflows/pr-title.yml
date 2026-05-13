@@ -1,0 +1,79 @@
+# Проверка заголовка pull request на соответствие conventional commits.
+#
+# Зачем: при merge в main GitHub по умолчанию подставляет заголовок PR в
+# squash-commit. Если заголовок не соответствует формату `<type>: <описание>`,
+# в историю main попадёт коммит вне convention — и любые автоматизации поверх
+# git log (changelog, release notes, фильтры в `git log --grep`) ломаются.
+#
+# Этот файл — единственный источник правды по допустимому списку `<type>` для
+# commit / PR-заголовков. Документация (.claude/rules/git.md) ссылается на
+# поле `types:` ниже; при расширении или сужении списка правится ТОЛЬКО здесь.
+name: pull-request
+
+on:
+  pull_request:
+    # opened — первая проверка при создании PR.
+    # edited — заголовок отредактировали уже после открытия.
+    # synchronize — на всякий случай при push в ветку (заголовок мог измениться
+    # через API между событиями).
+    types: [opened, edited, synchronize]
+
+# Минимальные права: action только читает PR и пишет статус-чек.
+permissions:
+  pull-requests: read
+  statuses: write
+
+jobs:
+  lint-title:
+    name: lint title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Разрешённые типы — единственный источник правды для всего проекта.
+          # Документация (.claude/rules/git.md → раздел «Типы») ссылается сюда.
+          types: |
+            feat
+            fix
+            refactor
+            docs
+            test
+            chore
+            perf
+            ci
+          # Scope опционален и без whitelist'а — проект пока однокомпонентный,
+          # жёстко фиксировать список областей преждевременно.
+          requireScope: false
+          # Требования к subject'у (часть после `<type>: `):
+          #   1. Начинается со строчной буквы (ru/en). Иначе `Feat: Добавлено`
+          #      пройдёт, что ломает единый стиль истории.
+          #   2. Не заканчивается точкой. Conventional-commits-стиль: заголовок —
+          #      не предложение, точка в конце визуально удлиняет ленту коммитов
+          #      без смысловой нагрузки.
+          # Lookbehind `(?<!\.)` перед якорем `$` — поддерживается JS regex
+          # (Node.js runtime action'а).
+          subjectPattern: ^[a-zа-я].+(?<!\.)$
+          subjectPatternError: |
+            Описание после `<type>: ` должно начинаться со строчной буквы
+            и не заканчиваться точкой (см. .claude/rules/git.md).
+            Пример: `feat: добавлена проверка X`.
+          # Структура заголовка + жёсткий лимит длины ≤ 72 символа (правило из
+          # .claude/rules/git.md). Lookahead `(?=.{1,72}$)` в начале режет любые
+          # заголовки длиннее 72 ещё до проверки структуры. Это единственный
+          # способ навязать length-cap у action-semantic-pull-request — отдельной
+          # настройки maxLength у него нет.
+          headerPattern: '^(?=.{1,72}$)(\w+)(?:\(([\w$.\-*/ ]+)\))?: (.+)$'
+          headerPatternCorrespondence: type, scope, subject
+          # WIP-черновики должны жить в нативном GitHub draft-статусе, а не в
+          # заголовке `[WIP] feat: ...`. Иначе action пропустит «черновой» PR
+          # без проверки convention, и его легко забыть переименовать перед
+          # merge — грязный заголовок уедет в main.
+          wip: false
+          # validateSingleCommit оставляем выключенным: в проекте используется
+          # squash-merge, и GitHub берёт в коммит main именно заголовок PR
+          # (уже проверенный выше). Если когда-нибудь разрешим rebase-merge —
+          # переключить в `true`, иначе через rebase можно протащить грязное
+          # сообщение единственного commit'а мимо проверки.
+          validateSingleCommit: false
