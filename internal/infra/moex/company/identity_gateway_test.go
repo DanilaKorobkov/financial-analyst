@@ -114,8 +114,8 @@ func (s *identityGatewaySuite) TestFindByTickerContextCancelled() {
 	_, err := s.gateway.FindByTicker(ctx, "SBER")
 
 	s.Require().Error(err)
-	s.ErrorContains(err, "context canceled")
-	s.ErrorContains(err, "moex request")
+	s.Require().ErrorContains(err, "context canceled")
+	s.Require().ErrorContains(err, "moex request")
 }
 
 // TestFindByTickerTypeAndLevelMatrix проходит по всем ожидаемым значениям полей
