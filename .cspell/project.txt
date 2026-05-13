@@ -210,6 +210,10 @@ moexcompany       # alias для internal/infra/moex/company в composition root
 domaincompany     # alias для internal/domain/company в подпакете infra/moex/company
 domaincard        # alias для internal/domain/companycard в подпакете infra/financemarker/companycard
 fmcard            # alias для internal/infra/financemarker/companycard в тестах
+fccard            # alias для internal/infra/filecache/companycard в тестах
+
+# --- Имена внешних библиотек ---
+diskv             # github.com/peterbourgon/diskv — disk-backed kv для файлового кеша
 
 # --- Имена инструментов разработки ---
 govulncheck       # официальный сканер CVE для Go (golang.org/x/vuln)

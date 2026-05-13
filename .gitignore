@@ -43,3 +43,7 @@ go.work.sum
 # через mise.toml [env] (GOLANGCI_LINT_CACHE, GOCACHE) — см. там обоснование.
 .golangci-cache/
 .gocache/
+
+# Файловый кеш карточек эмитентов (internal/infra/filecache/companycard
+# поверх diskv). Локальный артефакт рантайма, в репозиторий не уезжает.
+.cache/
