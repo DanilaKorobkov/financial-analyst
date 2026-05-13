@@ -43,22 +43,6 @@ type classificationJSON struct {
 	Currency            domaincompany.Currency `json:"currency"`
 }
 
-// toDomain сворачивает прочитанную JSON-проекцию обратно в
-// domain-значение для сравнений в s.Equal. Дублирует приватный
-// classificationFromDTO осознанно: тест-пакет (`company_test`)
-// не видит приватные функции prod-пакета, а экспортировать
-// translator только ради теста — раздувать публичный API.
-func (c classificationJSON) toDomain() domaincompany.Classification {
-	return domaincompany.Classification{
-		Sector:              c.Sector,
-		Industry:            c.Industry,
-		Country:             c.Country,
-		PrimaryReportTicker: c.PrimaryReportTicker,
-		Exchange:            c.Exchange,
-		Currency:            c.Currency,
-	}
-}
-
 func TestClassificationProxySuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, new(classificationProxySuite))
@@ -205,8 +189,13 @@ func (s *classificationProxySuite) TestFindByTickerExpiredEntryRefreshed() {
 		s.Require().NoError(err)
 		s.Equal(second, got)
 		envelope := readEnvelope(s.T(), dir, "SBER.json")
-		s.Equal(second, envelope.Classification.toDomain())
 		s.Equal(refreshedAt.Add(ttl), envelope.ExpiresAt)
+		s.Equal(second.Sector, envelope.Classification.Sector)
+		s.Equal(second.Industry, envelope.Classification.Industry)
+		s.Equal(second.Country, envelope.Classification.Country)
+		s.Equal(second.PrimaryReportTicker, envelope.Classification.PrimaryReportTicker)
+		s.Equal(second.Exchange, envelope.Classification.Exchange)
+		s.Equal(second.Currency, envelope.Classification.Currency)
 	})
 }
 
