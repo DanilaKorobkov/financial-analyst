@@ -88,7 +88,7 @@ func (s *serverSuite) TestGetCompanySecurityTypeMapping() {
 		{"preferred", company.SecurityTypePreferredShare, companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE},
 		{"depositary", company.SecurityTypeDepositaryReceipt, companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT},
 		{"unspecified", company.SecurityTypeUnspecified, companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
-		// invalid — значение вне enum'а; safety-net default-ветка должна
+		// invalid — значение вне enum'а; fallback после switch должен
 		// деградировать до UNSPECIFIED, а не паниковать.
 		{"invalid", company.SecurityType(99), companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED},
 	}

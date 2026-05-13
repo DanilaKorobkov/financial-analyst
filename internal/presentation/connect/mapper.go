@@ -34,9 +34,8 @@ func toProtoSecurityType(t company.SecurityType) companyv1.SecurityType {
 		return companyv1.SecurityType_SECURITY_TYPE_PREFERRED_SHARE
 	case company.SecurityTypeDepositaryReceipt:
 		return companyv1.SecurityType_SECURITY_TYPE_DEPOSITARY_RECEIPT
-	default:
-		return companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED
 	}
+	return companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED
 }
 
 // toProtoListingLevel переводит domain-enum в proto-enum.
@@ -50,9 +49,8 @@ func toProtoListingLevel(level company.ListingLevel) companyv1.ListingLevel {
 		return companyv1.ListingLevel_LISTING_LEVEL_SECOND
 	case company.ListingLevelThird:
 		return companyv1.ListingLevel_LISTING_LEVEL_THIRD
-	default:
-		return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED
 	}
+	return companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED
 }
 
 // toProtoExchange переводит domain-enum в proto-enum.
@@ -62,9 +60,8 @@ func toProtoExchange(exchange company.Exchange) companyv1.Exchange {
 		return companyv1.Exchange_EXCHANGE_UNSPECIFIED
 	case company.ExchangeMOEX:
 		return companyv1.Exchange_EXCHANGE_MOEX
-	default:
-		return companyv1.Exchange_EXCHANGE_UNSPECIFIED
 	}
+	return companyv1.Exchange_EXCHANGE_UNSPECIFIED
 }
 
 // toProtoCurrency переводит domain-enum в proto-enum.
@@ -78,7 +75,6 @@ func toProtoCurrency(currency company.Currency) companyv1.Currency {
 		return companyv1.Currency_CURRENCY_USD
 	case company.CurrencyEUR:
 		return companyv1.Currency_CURRENCY_EUR
-	default:
-		return companyv1.Currency_CURRENCY_UNSPECIFIED
 	}
+	return companyv1.Currency_CURRENCY_UNSPECIFIED
 }
