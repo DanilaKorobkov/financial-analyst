@@ -19,15 +19,30 @@ import (
 //
 // Источник значений — только переменные окружения; дефолтов в коде нет.
 // Отсутствие любой `required` переменной — fatal на старте.
+//
+// Состав карточки компании конфигом не управляется — он вшит в
+// исполняемый файл через `internal/spec`. В env живут только
+// операционные параметры: адреса/токены провайдеров и параметры
+// HTTP-сервера.
 type Config struct {
-	// Moex — параметры доступа к MOEX ISS REST API.
-	Moex MoexConfig
+	// Cache — операционные параметры файлового кеша.
+	Cache CacheConfig
 	// FinanceMarker — параметры доступа к FinanceMarker REST API.
 	FinanceMarker FinanceMarkerConfig
-	// ClassCache — параметры файлового кеша классификационной секции.
-	ClassCache ClassificationCacheConfig
+	// Moex — параметры доступа к MOEX ISS REST API.
+	Moex MoexConfig
 	// Server — параметры HTTP/Connect-сервера приложения.
 	Server ServerConfig
+}
+
+// CacheConfig — операционные параметры файлового кеша. Спецификация
+// (internal/spec) знает только про TTL конкретных секций; где физически
+// лежат файлы — деталь окружения, поэтому задаётся в env.
+type CacheConfig struct {
+	// RootDir — корневой каталог файлового кеша. Подкаталоги под
+	// секции/подсистемы формируются внутри приложения (`<root>/company/<section>`).
+	// Пример: `./.cache`.
+	RootDir string `env:"CACHE_ROOT_DIR,required"`
 }
 
 // MoexConfig — параметры доступа к MOEX ISS REST API.
@@ -53,17 +68,6 @@ type FinanceMarkerConfig struct {
 
 	// Timeout — таймаут на один HTTP-запрос.
 	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required"`
-}
-
-// ClassificationCacheConfig — параметры файлового кеша классификационной
-// секции карточки (поверх FinanceMarker). Свободный MOEX-источник идёт
-// без кеша, поэтому здесь — только параметры одного Proxy.
-type ClassificationCacheConfig struct {
-	// Dir — каталог хранения файлов кеша.
-	Dir string `env:"CLASSIFICATION_CACHE_DIR,required"`
-
-	// TTL — срок жизни записи в кеше. Ноль — без экспирации.
-	TTL time.Duration `env:"CLASSIFICATION_CACHE_TTL,required"`
 }
 
 // ServerConfig — параметры Connect-сервера financial-analyst.

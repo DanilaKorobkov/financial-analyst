@@ -24,7 +24,13 @@ components:
   # ошибки и enum-ы, специфичные для агрегата.
   domain-company:
     in: internal/domain/company
-  # Доменные сервисы. Знают агрегаты — никаких HTTP/gRPC/провайдеров.
+  # Доменный порт доступа к каноничным полям эмитента: Bundle, Registry,
+  # FieldDescriptor. Не знает про конкретные источники и про агрегаты —
+  # это «нижний» уровень domain, на который опираются все агрегаты.
+  domain-data:
+    in: internal/domain/data
+  # Доменные сервисы. Знают агрегаты и доменные порты — никаких
+  # HTTP/gRPC/провайдеров.
   domain-services:
     in: internal/domain/services
 
@@ -35,17 +41,34 @@ components:
   # или другой провайдер.
   infra-moex:
     in: internal/infra/moex
-  infra-moex-company:
-    in: internal/infra/moex/company
+  # Общий HTTP-клиент MOEX ISS и провайдер-специфичная классификация
+  # HTTP-ошибок. Не знает ни о bundles, ни о домене — самый низ MOEX-слоя.
+  infra-moex-client:
+    in: internal/infra/moex/client
+  # Реализации data.Bundle для MOEX. Каждый bundle — отдельный подпакет
+  # внутри `bundles/<имя_бандла>/`, в нём — сам Bundle, парсер, тесты и
+  # testdata. Внутри bundle делает HTTP-вызов, разбирает ответ и
+  # раскладывает значения по каноничным полям — отдельного gateway-слоя нет.
+  infra-moex-bundles:
+    in: internal/infra/moex/bundles/**
   infra-financemarker:
     in: internal/infra/financemarker
-  infra-financemarker-company:
-    in: internal/infra/financemarker/company
-  # Файловый кеш-Proxy над gateway-портом компании. Знает только
-  # domain-contract порта и сам себя; не зависит ни от одного
-  # конкретного провайдера.
-  infra-filecache-company:
-    in: internal/infra/filecache/company
+  # Общий HTTP-клиент FinanceMarker.
+  infra-financemarker-client:
+    in: internal/infra/financemarker/client
+  # Реализации data.Bundle для FinanceMarker. Каждый bundle — отдельный
+  # подпакет внутри `bundles/<имя_бандла>/`.
+  infra-financemarker-bundles:
+    in: internal/infra/financemarker/bundles/**
+  # Файловый кеш-Proxy над data.Bundle. Generic поверх любого bundle:
+  # сериализует FieldValues с учётом типов из FieldDescriptor каждого поля.
+  infra-filecache-bundle:
+    in: internal/infra/filecache/bundle
+  # Реализации company.ProfileRepository — какие поля карточки нужны
+  # для тикера. Сейчас единственный вариант — статический набор полей
+  # на все тикеры.
+  infra-companyprofile:
+    in: internal/infra/companyprofile
 
   # Транспортный слой. Знает domain и сгенерированный proto-код (generated).
   presentation:
@@ -72,43 +95,78 @@ components:
 
 deps:
   domain-company:
+    mayDependOn:
+      - domain-data
+    anyVendorDeps: true
+
+  domain-data:
+    mayDependOn:
+      - domain-data
     anyVendorDeps: true
 
   domain-services:
     mayDependOn:
       - domain-company
+      - domain-data
       - domain-services
     anyVendorDeps: true
 
   infra-moex:
+    mayDependOn:
+      - domain-data
+      - infra-moex
+      - infra-moex-bundles
+      - infra-moex-client
     anyVendorDeps: true
 
-  infra-moex-company:
+  infra-moex-client:
+    anyVendorDeps: true
+
+  infra-moex-bundles:
     mayDependOn:
       - domain-company
-      - infra-moex
-      - infra-moex-company
+      - domain-data
+      - infra-moex-bundles
+      - infra-moex-client
     anyVendorDeps: true
 
   infra-financemarker:
-    anyVendorDeps: true
-
-  infra-financemarker-company:
     mayDependOn:
-      - domain-company
+      - domain-data
+      - infra-filecache-bundle
       - infra-financemarker
-      - infra-financemarker-company
+      - infra-financemarker-bundles
+      - infra-financemarker-client
     anyVendorDeps: true
 
-  infra-filecache-company:
+  infra-financemarker-client:
+    anyVendorDeps: true
+
+  infra-financemarker-bundles:
     mayDependOn:
       - domain-company
-      - infra-filecache-company
+      - domain-data
+      - infra-financemarker-bundles
+      - infra-financemarker-client
+    anyVendorDeps: true
+
+  infra-filecache-bundle:
+    mayDependOn:
+      - domain-company
+      - domain-data
+      - infra-filecache-bundle
+    anyVendorDeps: true
+
+  infra-companyprofile:
+    mayDependOn:
+      - domain-company
+      - infra-companyprofile
     anyVendorDeps: true
 
   presentation:
     mayDependOn:
       - domain-company
+      - domain-data
       - domain-services
       - presentation
     anyVendorDeps: true
@@ -119,18 +177,21 @@ deps:
   mocks:
     mayDependOn:
       - domain-company
+      - domain-data
       - domain-services
     anyVendorDeps: true
 
   app:
     mayDependOn:
+      - app
       - domain-company
+      - domain-data
       - domain-services
       - infra-moex
-      - infra-moex-company
+      - infra-moex-bundles
       - infra-financemarker
-      - infra-financemarker-company
-      - infra-filecache-company
+      - infra-financemarker-bundles
+      - infra-companyprofile
       - presentation
     anyVendorDeps: true
 

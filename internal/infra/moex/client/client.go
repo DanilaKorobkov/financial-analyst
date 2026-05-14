@@ -1,7 +1,6 @@
-// Package moex — общий resty-клиент для MOEX ISS REST API и общие
-// провайдер-специфичные детали (классификация HTTP-ошибок). Подпакеты
-// реализуют конкретные domain-порты поверх этого клиента.
-package moex
+// Package client — общий resty-клиент MOEX ISS REST API и
+// провайдер-специфичная классификация HTTP-ошибок.
+package client
 
 import (
 	"fmt"
@@ -11,8 +10,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-// ConfigClient — параметры доступа к MOEX ISS REST API.
-type ConfigClient struct {
+// Config — параметры доступа к MOEX ISS REST API.
+type Config struct {
 	// BaseURL — корень MOEX ISS без завершающего слэша,
 	// например "https://iss.moex.com/iss".
 	BaseURL string
@@ -24,13 +23,11 @@ type ConfigClient struct {
 // Client — тонкая обёртка над resty.Client, преднастроенная под MOEX ISS:
 // jsoniter-парсер, query-параметры iss.* и middleware, переводящий не-2xx
 // статусы в типизированную ошибку.
-//
-// Встраивается в конкретные репозитории подпакетов (company, candles, ...).
 type Client struct {
 	*resty.Client
 }
 
-// NewClient собирает Client под MOEX ISS.
+// New собирает Client под MOEX ISS.
 //
 // Параметры iss.* — это управляющие query-параметры самого MOEX ISS,
 // определены в их публичной справке (https://iss.moex.com/iss/reference/),
@@ -43,12 +40,12 @@ type Client struct {
 //     marketdata и т.п.) вернуть только блок description с реквизитами
 //     эмитента — это всё, что нужно справочным репозиториям.
 //
-// Если подпакету потребуется другой набор iss.only — он переопределит
+// Если bundle-у потребуется другой набор iss.only — он переопределит
 // query-параметр на уровне своего R().SetQueryParam(...).
-func NewClient(cfg ConfigClient) *Client {
+func New(cfg Config) *Client {
 	jsonParser := jsoniter.ConfigCompatibleWithStandardLibrary
 
-	client := resty.New().
+	c := resty.New().
 		SetBaseURL(cfg.BaseURL).
 		SetTimeout(cfg.Timeout).
 		SetQueryParams(map[string]string{
@@ -64,5 +61,5 @@ func NewClient(cfg ConfigClient) *Client {
 			}
 			return nil
 		})
-	return &Client{Client: client}
+	return &Client{Client: c}
 }

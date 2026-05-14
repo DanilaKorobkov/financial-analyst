@@ -1,4 +1,4 @@
-package company_test
+package securitydescription_test
 
 import (
 	"context"
@@ -12,45 +12,50 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex"
-	moexcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/bundles/securitydescription"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
 )
 
 //go:embed testdata/*.json
 var testdataFS embed.FS
 
-type identityGatewaySuite struct {
+type bundleSuite struct {
 	suite.Suite
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	gateway *moexcompany.IdentityGateway
+	bundle  *securitydescription.Bundle
 }
 
-func TestIdentityGatewaySuite(t *testing.T) {
+func TestBundleSuite(t *testing.T) {
 	t.Parallel()
-	suite.Run(t, new(identityGatewaySuite))
+	suite.Run(t, new(bundleSuite))
 }
 
-func (s *identityGatewaySuite) SetupTest() {
+func (s *bundleSuite) SetupTest() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.handler(w, r)
 	}))
-	client := moex.NewClient(moex.ConfigClient{
+	c := client.New(client.Config{
 		BaseURL: s.server.URL + "/iss",
 		Timeout: 5 * time.Second,
 	})
-	s.gateway = moexcompany.NewIdentityGateway(client)
+	s.bundle = securitydescription.New(c)
 }
 
-func (s *identityGatewaySuite) TearDownTest() {
+func (s *bundleSuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *identityGatewaySuite) TestFindByTickerHappyPath() {
+func (s *bundleSuite) TestMetadata() {
+	s.Equal(securitydescription.ID, s.bundle.BundleID())
+	s.Require().Len(s.bundle.Fields(), 26)
+}
+
+func (s *bundleSuite) TestFetchHappyPath() {
 	body := s.readFixture("sber.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/iss/securities/SBER.json", r.URL.Path)
@@ -61,67 +66,85 @@ func (s *identityGatewaySuite) TestFindByTickerHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	found, err := s.gateway.FindByTicker(context.Background(), "SBER")
+	values, err := s.bundle.Fetch(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	expected := domaincompany.Identity{
-		Ticker:       "SBER",
-		ISIN:         "RU0009029540",
-		Name:         "Сбербанк России ПАО ао",
-		SecurityType: domaincompany.SecurityTypeCommonShare,
-		ListingLevel: domaincompany.ListingLevelFirst,
-	}
-	s.Equal(expected, found)
+	s.Equal("SBER", values[domaincompany.FieldTicker])
+	s.Equal("RU0009029540", values[domaincompany.FieldISIN])
+	s.Equal("Сбербанк России ПАО ао", values[domaincompany.FieldName])
+	s.Equal("Сбербанк", values[domaincompany.FieldShortName])
+	s.Equal("Акции обыкновенные", values[domaincompany.FieldIssueName])
+	s.Equal("Sberbank", values[domaincompany.FieldLatName])
+	s.Equal("10301481B", values[domaincompany.FieldRegNumber])
+	s.Equal("Акция обыкновенная", values[domaincompany.FieldSecurityTypeName])
+	s.Equal("stock_shares", values[domaincompany.FieldSecurityGroup])
+	s.Equal("Акции", values[domaincompany.FieldSecurityGroupName])
+	s.Equal(domaincompany.SecurityTypeCommonShare, values[domaincompany.FieldSecurityType])
+	s.Equal(domaincompany.ListingLevelFirst, values[domaincompany.FieldListingLevel])
+	s.Equal("3", values[domaincompany.FieldFaceValue])
+	s.Equal(domaincompany.CurrencyRUB, values[domaincompany.FieldFaceUnit])
+	s.Equal(int64(21586948000), values[domaincompany.FieldIssueSize])
+	s.Equal(time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC), values[domaincompany.FieldIssueDate])
+	s.Equal(time.Date(2007, 7, 11, 0, 0, 0, 0, time.UTC), values[domaincompany.FieldRegistryDate])
+	s.Equal("484", values[domaincompany.FieldEmitterID])
+	s.Equal(false, values[domaincompany.FieldHasProspectus])
+	s.Equal(false, values[domaincompany.FieldHasDefault])
+	s.Equal(false, values[domaincompany.FieldHasTechnicalDefault])
+	s.Equal(false, values[domaincompany.FieldEmitentMismatchCurrent])
+	s.Equal(false, values[domaincompany.FieldIsQualifiedInvestors])
+	s.Equal(true, values[domaincompany.FieldMorningSession])
+	s.Equal(true, values[domaincompany.FieldEveningSession])
+	s.Equal(true, values[domaincompany.FieldWeekendSession])
 }
 
-func (s *identityGatewaySuite) TestFindByTickerInvalidJSON() {
+func (s *bundleSuite) TestFetchInvalidJSON() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("not json"))
 	}
 
-	_, err := s.gateway.FindByTicker(context.Background(), "SBER")
+	_, err := s.bundle.Fetch(context.Background(), "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "decode extended payload")
 }
 
-func (s *identityGatewaySuite) TestFindByTickerNotFound() {
+func (s *bundleSuite) TestFetchNotFound() {
 	body := s.readFixture("not_found.json")
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.gateway.FindByTicker(context.Background(), "ZZZZ")
+	_, err := s.bundle.Fetch(context.Background(), "missing")
 
 	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
 }
 
-func (s *identityGatewaySuite) TestFindByTickerServerError() {
+func (s *bundleSuite) TestFetchServerError() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	_, err := s.gateway.FindByTicker(context.Background(), "SBER")
+	_, err := s.bundle.Fetch(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "moex http status 500")
 }
 
-func (s *identityGatewaySuite) TestFindByTickerContextCancelled() {
+func (s *bundleSuite) TestFetchContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := s.gateway.FindByTicker(ctx, "SBER")
+	_, err := s.bundle.Fetch(ctx, "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "context canceled")
 	s.ErrorContains(err, "moex request")
 }
 
-// TestFindByTickerTypeAndLevelMatrix проходит по всем ожидаемым значениям полей
+// TestFetchTypeAndLevelMatrix проходит по всем ожидаемым значениям полей
 // TYPE и LISTLEVEL блока description — каждое значение в маппинг-таблицах
 // и ветка-fallback для неизвестного TYPE проверяются хотя бы один раз.
-func (s *identityGatewaySuite) TestFindByTickerTypeAndLevelMatrix() {
+func (s *bundleSuite) TestFetchTypeAndLevelMatrix() {
 	cases := []struct {
 		name      string
 		typeValue string
@@ -167,52 +190,52 @@ func (s *identityGatewaySuite) TestFindByTickerTypeAndLevelMatrix() {
 			s.handler = func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write(body)
 			}
-			found, err := s.gateway.FindByTicker(context.Background(), "X")
+			values, err := s.bundle.Fetch(context.Background(), "X")
 			s.Require().NoError(err)
-			s.Equal(c.wantType, found.SecurityType)
-			s.Equal(c.wantLevel, found.ListingLevel)
+			s.Equal(c.wantType, values[domaincompany.FieldSecurityType])
+			s.Equal(c.wantLevel, values[domaincompany.FieldListingLevel])
 		})
 	}
 }
 
-func (s *identityGatewaySuite) TestFindByTickerInvalidListLevel() {
+func (s *bundleSuite) TestFetchInvalidListLevel() {
 	body := []byte(`[{"description":[{"name":"SECID","value":"X"},{"name":"LISTLEVEL","value":"9"}]}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.gateway.FindByTicker(context.Background(), "X")
+	_, err := s.bundle.Fetch(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "LISTLEVEL")
 }
 
-func (s *identityGatewaySuite) TestFindByTickerMissingDescriptionBlock() {
+func (s *bundleSuite) TestFetchMissingDescriptionBlock() {
 	body := []byte(`[{"charsetinfo":{"name":"utf-8"}},{"securities":[]}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.gateway.FindByTicker(context.Background(), "X")
+	_, err := s.bundle.Fetch(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "description block missing")
 }
 
-func (s *identityGatewaySuite) TestFindByTickerInvalidDescriptionBlock() {
+func (s *bundleSuite) TestFetchInvalidDescriptionBlock() {
 	// description присутствует, но это не массив объектов {name, value}.
 	body := []byte(`[{"description": 123}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.gateway.FindByTicker(context.Background(), "X")
+	_, err := s.bundle.Fetch(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "decode description block")
 }
 
-func (s *identityGatewaySuite) readFixture(name string) []byte {
+func (s *bundleSuite) readFixture(name string) []byte {
 	s.T().Helper()
 	raw, err := testdataFS.ReadFile("testdata/" + name)
 	s.Require().NoError(err)

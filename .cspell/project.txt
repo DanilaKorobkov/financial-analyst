@@ -237,3 +237,44 @@ MOEXIT
 MOEXOG
 ребалансировки
 субиндексе
+
+# --- Тикеры MOEX из VISION.md ---
+SNGS
+SNGSP
+ROSN
+NVTK
+TATN
+PLZL
+CHMF
+MGNT
+MTSS
+RTKM
+POSI
+IRAO
+HYDR
+PIKK
+SMLT
+AKRN
+
+# --- Авторы и имена внешних библиотек (упоминаются в комментариях/документации) ---
+santhosh
+tekuri
+govaluate
+wacc              # Weighted Average Cost of Capital
+financials        # финансовый раздел отчёта (английский)
+
+# --- Go import-алиасы новых пакетов ---
+moexbundles       # alias для internal/infra/moex/bundles
+fmbundles         # alias для internal/infra/financemarker/bundles
+fcbundle          # alias для internal/infra/filecache/bundle
+
+# --- Доменные термины проекта, активно используются автором ---
+спека             # колл. сокр. от «спецификация»
+спеке
+спекой
+скоуп             # колл. транслит «scope»
+скоупа
+скоупе
+валуация          # метод оценки fair value
+валуации
+валуаций

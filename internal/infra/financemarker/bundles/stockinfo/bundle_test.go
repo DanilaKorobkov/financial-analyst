@@ -1,4 +1,4 @@
-package company_test
+package stockinfo_test
 
 import (
 	"context"
@@ -11,46 +11,51 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker"
-	fmcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/bundles/stockinfo"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
 )
 
 //go:embed testdata/*.json
 var testdataFS embed.FS
 
-type classificationGatewaySuite struct {
+type bundleSuite struct {
 	suite.Suite
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	gateway *fmcompany.ClassificationGateway
+	bundle  *stockinfo.Bundle
 }
 
-func TestClassificationGatewaySuite(t *testing.T) {
+func TestBundleSuite(t *testing.T) {
 	t.Parallel()
-	suite.Run(t, new(classificationGatewaySuite))
+	suite.Run(t, new(bundleSuite))
 }
 
-func (s *classificationGatewaySuite) SetupTest() {
+func (s *bundleSuite) SetupTest() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.handler(w, r)
 	}))
-	client := financemarker.NewClient(financemarker.ConfigClient{
+	c := client.New(client.Config{
 		BaseURL: s.server.URL + "/api/fm/v2",
 		Token:   "test-token",
 		Timeout: 5 * time.Second,
 	})
-	s.gateway = fmcompany.NewClassificationGateway(client)
+	s.bundle = stockinfo.New(c)
 }
 
-func (s *classificationGatewaySuite) TearDownTest() {
+func (s *bundleSuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *classificationGatewaySuite) TestFindByTickerHappyPath() {
+func (s *bundleSuite) TestMetadata() {
+	s.Equal(stockinfo.ID, s.bundle.BundleID())
+	s.Require().Len(s.bundle.Fields(), 19)
+}
+
+func (s *bundleSuite) TestFetchHappyPath() {
 	body := s.readFixture("sber_card.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/api/fm/v2/stocks/MOEX:SBER", r.URL.Path)
@@ -60,26 +65,36 @@ func (s *classificationGatewaySuite) TestFindByTickerHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	got, err := s.gateway.FindByTicker(context.Background(), "SBER")
+	values, err := s.bundle.Fetch(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	expected := domaincompany.Classification{
-		Exchange:            domaincompany.ExchangeMOEX,
-		Currency:            domaincompany.CurrencyRUB,
-		Sector:              "Финансы",
-		Industry:            "Банковская деятельность",
-		Country:             "Россия",
-		PrimaryReportTicker: "SBER",
-	}
-	s.Equal(expected, got)
+	s.Equal("Сбербанк", values[domaincompany.FieldIssuerName])
+	s.Equal("Россия", values[domaincompany.FieldCountry])
+	s.Equal("Финансы", values[domaincompany.FieldSector])
+	s.Equal("Банковская деятельность", values[domaincompany.FieldIndustryGroup])
+	s.Equal("Банковская деятельность", values[domaincompany.FieldIndustry])
+	s.Equal("Диверсифицированные банки", values[domaincompany.FieldSubIndustry])
+	s.Equal("ПАО «Сбербанк» — крупнейший универсальный банк России.", values[domaincompany.FieldDescription])
+	s.Equal("https://www.sberbank.com", values[domaincompany.FieldSite])
+	s.Equal("https://www.sberbank.com/ru/investor-relations", values[domaincompany.FieldDisclosureLink])
+	s.Equal("SBER", values[domaincompany.FieldPrimaryReportTicker])
+	s.Equal(int64(40), values[domaincompany.FieldSectorID])
+	s.Equal(int64(4010), values[domaincompany.FieldIndustryGroupID])
+	s.Equal(int64(401010), values[domaincompany.FieldIndustryID])
+	s.Equal(int64(40101010), values[domaincompany.FieldSubIndustryID])
+	s.Equal(domaincompany.ExchangeMOEX, values[domaincompany.FieldExchange])
+	s.Equal(domaincompany.ExchangeMOEX, values[domaincompany.FieldPrimaryReportExchange])
+	s.Equal(domaincompany.CurrencyRUB, values[domaincompany.FieldCurrency])
+	s.Equal(domaincompany.ReportFrequencyQuarterly, values[domaincompany.FieldReportFrequency])
+	s.Equal(false, values[domaincompany.FieldSPB])
 }
 
-// TestFindByTickerErrorMapping проходит по таблице ответов FinanceMarker и
+// TestFetchErrorMapping проходит по таблице ответов FinanceMarker и
 // проверяет, что классификация HTTP-ошибок + декодер payload-а возвращают
 // ожидаемую ошибку. Только 404 поднимается как domaincompany.ErrNotFound;
 // остальные коды (401, 403, 400+token_not_found, 5xx) едут наверх как
 // непомеченный internal сбой либо как infra-sentinel.
-func (s *classificationGatewaySuite) TestFindByTickerErrorMapping() {
+func (s *bundleSuite) TestFetchErrorMapping() {
 	cases := []struct {
 		errIs       error // если задан — проверяем errors.Is.
 		name        string
@@ -96,19 +111,19 @@ func (s *classificationGatewaySuite) TestFindByTickerErrorMapping() {
 		{
 			name:   "unauthorized by status reported as infra sentinel",
 			status: http.StatusUnauthorized,
-			errIs:  financemarker.ErrUnauthorized,
+			errIs:  client.ErrUnauthorized,
 		},
 		{
 			name:   "token_not_found message reported as infra sentinel",
 			status: http.StatusBadRequest,
 			body:   s.readFixture("unauthorized.json"),
-			errIs:  financemarker.ErrUnauthorized,
+			errIs:  client.ErrUnauthorized,
 		},
 		{
 			name:   "quota exceeded reported as infra sentinel",
 			status: http.StatusForbidden,
 			body:   s.readFixture("quota_exceeded.json"),
-			errIs:  financemarker.ErrQuotaExceeded,
+			errIs:  client.ErrQuotaExceeded,
 		},
 		{
 			name:        "server error reported with code",
@@ -135,7 +150,7 @@ func (s *classificationGatewaySuite) TestFindByTickerErrorMapping() {
 				}
 			}
 
-			_, err := s.gateway.FindByTicker(context.Background(), "SBER")
+			_, err := s.bundle.Fetch(context.Background(), "any")
 
 			s.Require().Error(err)
 			if c.errIs != nil {
@@ -147,17 +162,17 @@ func (s *classificationGatewaySuite) TestFindByTickerErrorMapping() {
 	}
 }
 
-func (s *classificationGatewaySuite) TestFindByTickerContextCancelled() {
+func (s *bundleSuite) TestFetchContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := s.gateway.FindByTicker(ctx, "SBER")
+	_, err := s.bundle.Fetch(ctx, "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "financemarker request: Get \""+s.server.URL+"/api/fm/v2/stocks/MOEX:SBER?api_token=test-token&include=info\": context canceled")
 }
 
-func (s *classificationGatewaySuite) readFixture(name string) []byte {
+func (s *bundleSuite) readFixture(name string) []byte {
 	s.T().Helper()
 	raw, err := testdataFS.ReadFile("testdata/" + name)
 	s.Require().NoError(err)

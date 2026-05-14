@@ -1,7 +1,7 @@
-// Package financemarker — общий resty-клиент FinanceMarker REST API и
-// провайдер-специфичные детали (классификация HTTP-ошибок, error body).
-// Подпакеты реализуют конкретные domain-порты поверх этого клиента.
-package financemarker
+// Package client — общий resty-клиент FinanceMarker REST API и
+// провайдер-специфичная классификация HTTP-ошибок. Используется
+// bundles данного провайдера и его Provider в parent-пакете.
+package client
 
 import (
 	"errors"
@@ -13,7 +13,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-// Infra-уровневые ошибки FinanceMarker. Подпакеты при необходимости
+// Infra-уровневые ошибки FinanceMarker. Bundles при необходимости
 // переводят их в доменные sentinel-ы своего агрегата; всё остальное
 // едет наверх как непомеченный «внутренний сбой» (presentation → CodeInternal).
 var (
@@ -27,8 +27,8 @@ var (
 	ErrQuotaExceeded = errors.New("financemarker: quota exceeded")
 )
 
-// ConfigClient — параметры доступа к FinanceMarker REST API.
-type ConfigClient struct {
+// Config — параметры доступа к FinanceMarker REST API.
+type Config struct {
 	// BaseURL — корень FinanceMarker REST API без завершающего слэша,
 	// например "https://financemarker.ru/api/fm/v2".
 	BaseURL string
@@ -44,8 +44,6 @@ type ConfigClient struct {
 // Client — тонкая обёртка над resty.Client, преднастроенная под FinanceMarker:
 // jsoniter-парсер, api_token, тип errorBody и middleware, превращающий
 // ошибочные HTTP-ответы в типизированные ошибки.
-//
-// Встраивается в конкретные gateway подпакетов (company, ...).
 type Client struct {
 	*resty.Client
 }
@@ -58,11 +56,11 @@ type errorBody struct {
 	Code    int    `json:"code"`
 }
 
-// NewClient собирает Client под FinanceMarker.
-func NewClient(cfg ConfigClient) *Client {
+// New собирает Client под FinanceMarker.
+func New(cfg Config) *Client {
 	jsonParser := jsoniter.ConfigCompatibleWithStandardLibrary
 
-	client := resty.New().
+	c := resty.New().
 		SetBaseURL(cfg.BaseURL).
 		SetTimeout(cfg.Timeout).
 		SetQueryParam("api_token", cfg.Token).
@@ -72,16 +70,12 @@ func NewClient(cfg ConfigClient) *Client {
 		OnAfterResponse(func(_ *resty.Client, resp *resty.Response) error {
 			return classifyError(resp)
 		})
-	return &Client{Client: client}
+	return &Client{Client: c}
 }
 
 // classifyError переводит ошибочный HTTP-ответ FinanceMarker в ошибку слоя
 // infra. Вызывается middleware-ом OnAfterResponse, поэтому возвращаемая
 // ошибка приходит наверх как err из R().Get(...).
-//
-// Возвращает infra-sentinel-ы (ErrNotFound / ErrUnauthorized /
-// ErrQuotaExceeded) с обёрнутой исходной причиной — подпакет уже переводит
-// их в доменные ошибки своего агрегата.
 func classifyError(resp *resty.Response) error {
 	if !resp.IsError() {
 		return nil
