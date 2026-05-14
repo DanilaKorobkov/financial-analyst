@@ -23,30 +23,52 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// StockInfo — карточка эмитента.
+// StockInfo — карточка эмитента: классификация GICS, страна, описание,
+// корпоративные ссылки, валюта и частота отчётности.
 type StockInfo struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	IssuerName            string                 `protobuf:"bytes,1,opt,name=issuer_name,json=issuerName,proto3" json:"issuer_name,omitempty"`
-	Sector                string                 `protobuf:"bytes,2,opt,name=sector,proto3" json:"sector,omitempty"`
-	IndustryGroup         string                 `protobuf:"bytes,3,opt,name=industry_group,json=industryGroup,proto3" json:"industry_group,omitempty"`
-	Industry              string                 `protobuf:"bytes,4,opt,name=industry,proto3" json:"industry,omitempty"`
-	SubIndustry           string                 `protobuf:"bytes,5,opt,name=sub_industry,json=subIndustry,proto3" json:"sub_industry,omitempty"`
-	SectorId              int64                  `protobuf:"varint,6,opt,name=sector_id,json=sectorId,proto3" json:"sector_id,omitempty"`
-	IndustryGroupId       int64                  `protobuf:"varint,7,opt,name=industry_group_id,json=industryGroupId,proto3" json:"industry_group_id,omitempty"`
-	IndustryId            int64                  `protobuf:"varint,8,opt,name=industry_id,json=industryId,proto3" json:"industry_id,omitempty"`
-	SubIndustryId         int64                  `protobuf:"varint,9,opt,name=sub_industry_id,json=subIndustryId,proto3" json:"sub_industry_id,omitempty"`
-	Country               string                 `protobuf:"bytes,10,opt,name=country,proto3" json:"country,omitempty"`
-	Description           string                 `protobuf:"bytes,11,opt,name=description,proto3" json:"description,omitempty"`
-	Site                  string                 `protobuf:"bytes,12,opt,name=site,proto3" json:"site,omitempty"`
-	DisclosureLink        string                 `protobuf:"bytes,13,opt,name=disclosure_link,json=disclosureLink,proto3" json:"disclosure_link,omitempty"`
-	PrimaryReportTicker   string                 `protobuf:"bytes,14,opt,name=primary_report_ticker,json=primaryReportTicker,proto3" json:"primary_report_ticker,omitempty"`
-	PrimaryReportExchange Exchange               `protobuf:"varint,15,opt,name=primary_report_exchange,json=primaryReportExchange,proto3,enum=company.v1.Exchange" json:"primary_report_exchange,omitempty"`
-	Exchange              Exchange               `protobuf:"varint,16,opt,name=exchange,proto3,enum=company.v1.Exchange" json:"exchange,omitempty"`
-	Currency              Currency               `protobuf:"varint,17,opt,name=currency,proto3,enum=company.v1.Currency" json:"currency,omitempty"`
-	ReportFrequency       ReportFrequency        `protobuf:"varint,18,opt,name=report_frequency,json=reportFrequency,proto3,enum=company.v1.ReportFrequency" json:"report_frequency,omitempty"`
-	Spb                   bool                   `protobuf:"varint,19,opt,name=spb,proto3" json:"spb,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Название эмитента у справочника. Пример: "Сбербанк".
+	IssuerName string `protobuf:"bytes,1,opt,name=issuer_name,json=issuerName,proto3" json:"issuer_name,omitempty"`
+	// Сектор эмитента (GICS). Пример: "Финансы".
+	Sector string `protobuf:"bytes,2,opt,name=sector,proto3" json:"sector,omitempty"`
+	// Группа отраслей (GICS). Пример: "Банковская деятельность".
+	IndustryGroup string `protobuf:"bytes,3,opt,name=industry_group,json=industryGroup,proto3" json:"industry_group,omitempty"`
+	// Отрасль эмитента (GICS). Пример: "Банковская деятельность".
+	Industry string `protobuf:"bytes,4,opt,name=industry,proto3" json:"industry,omitempty"`
+	// Под-отрасль эмитента (GICS). Пример: "Диверсифицированные банки".
+	SubIndustry string `protobuf:"bytes,5,opt,name=sub_industry,json=subIndustry,proto3" json:"sub_industry,omitempty"`
+	// Числовой код сектора GICS. Пример: "40".
+	SectorId int64 `protobuf:"varint,6,opt,name=sector_id,json=sectorId,proto3" json:"sector_id,omitempty"`
+	// Числовой код группы отраслей GICS. Пример: "4010".
+	IndustryGroupId int64 `protobuf:"varint,7,opt,name=industry_group_id,json=industryGroupId,proto3" json:"industry_group_id,omitempty"`
+	// Числовой код отрасли GICS. Пример: "401010".
+	IndustryId int64 `protobuf:"varint,8,opt,name=industry_id,json=industryId,proto3" json:"industry_id,omitempty"`
+	// Числовой код под-отрасли GICS. Пример: "40101010".
+	SubIndustryId int64 `protobuf:"varint,9,opt,name=sub_industry_id,json=subIndustryId,proto3" json:"sub_industry_id,omitempty"`
+	// Страна регистрации эмитента. Пример: "Россия".
+	Country string `protobuf:"bytes,10,opt,name=country,proto3" json:"country,omitempty"`
+	// Текстовое описание эмитента в свободной форме.
+	// Пример: "ПАО «Сбербанк» — российский финансовый конгломерат …".
+	Description string `protobuf:"bytes,11,opt,name=description,proto3" json:"description,omitempty"`
+	// Корпоративный сайт эмитента. Пример: "https://www.sberbank.com/ru".
+	Site string `protobuf:"bytes,12,opt,name=site,proto3" json:"site,omitempty"`
+	// Ссылка на страницу раскрытия информации эмитентом.
+	// Пример: "https://www.sberbank.com/ru/investor-relations/groupresults".
+	DisclosureLink string `protobuf:"bytes,13,opt,name=disclosure_link,json=disclosureLink,proto3" json:"disclosure_link,omitempty"`
+	// Тикер основной бумаги, к которой привязана отчётность. Пример: "SBER".
+	PrimaryReportTicker string `protobuf:"bytes,14,opt,name=primary_report_ticker,json=primaryReportTicker,proto3" json:"primary_report_ticker,omitempty"`
+	// Биржа основной отчётной бумаги. Пример: "MOEX".
+	PrimaryReportExchange Exchange `protobuf:"varint,15,opt,name=primary_report_exchange,json=primaryReportExchange,proto3,enum=company.v1.Exchange" json:"primary_report_exchange,omitempty"`
+	// Биржа листинга бумаги. Пример: "MOEX".
+	Exchange Exchange `protobuf:"varint,16,opt,name=exchange,proto3,enum=company.v1.Exchange" json:"exchange,omitempty"`
+	// Валюта торгов бумагой. Пример: "RUB".
+	Currency Currency `protobuf:"varint,17,opt,name=currency,proto3,enum=company.v1.Currency" json:"currency,omitempty"`
+	// Частота публикации финансовой отчётности эмитентом. Пример: "QUARTERLY".
+	ReportFrequency ReportFrequency `protobuf:"varint,18,opt,name=report_frequency,json=reportFrequency,proto3,enum=company.v1.ReportFrequency" json:"report_frequency,omitempty"`
+	// Дополнительный листинг на СПБ-бирже. Пример: false.
+	Spb           bool `protobuf:"varint,19,opt,name=spb,proto3" json:"spb,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StockInfo) Reset() {

@@ -24,37 +24,65 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// SecurityDescription — описание ценной бумаги.
+// SecurityDescription — описание ценной бумаги: идентификаторы выпуска,
+// классификация, параметры эмиссии и режимы дополнительных торговых сессий.
 type SecurityDescription struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Ticker                 string                 `protobuf:"bytes,1,opt,name=ticker,proto3" json:"ticker,omitempty"`
-	Isin                   string                 `protobuf:"bytes,2,opt,name=isin,proto3" json:"isin,omitempty"`
-	Name                   string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	ShortName              string                 `protobuf:"bytes,4,opt,name=short_name,json=shortName,proto3" json:"short_name,omitempty"`
-	IssueName              string                 `protobuf:"bytes,5,opt,name=issue_name,json=issueName,proto3" json:"issue_name,omitempty"`
-	LatName                string                 `protobuf:"bytes,6,opt,name=lat_name,json=latName,proto3" json:"lat_name,omitempty"`
-	RegNumber              string                 `protobuf:"bytes,7,opt,name=reg_number,json=regNumber,proto3" json:"reg_number,omitempty"`
-	SecurityTypeName       string                 `protobuf:"bytes,8,opt,name=security_type_name,json=securityTypeName,proto3" json:"security_type_name,omitempty"`
-	SecurityGroup          string                 `protobuf:"bytes,9,opt,name=security_group,json=securityGroup,proto3" json:"security_group,omitempty"`
-	SecurityGroupName      string                 `protobuf:"bytes,10,opt,name=security_group_name,json=securityGroupName,proto3" json:"security_group_name,omitempty"`
-	SecurityType           SecurityType           `protobuf:"varint,11,opt,name=security_type,json=securityType,proto3,enum=company.v1.SecurityType" json:"security_type,omitempty"`
-	ListingLevel           ListingLevel           `protobuf:"varint,12,opt,name=listing_level,json=listingLevel,proto3,enum=company.v1.ListingLevel" json:"listing_level,omitempty"`
-	FaceValue              string                 `protobuf:"bytes,13,opt,name=face_value,json=faceValue,proto3" json:"face_value,omitempty"`
-	FaceUnit               Currency               `protobuf:"varint,14,opt,name=face_unit,json=faceUnit,proto3,enum=company.v1.Currency" json:"face_unit,omitempty"`
-	IssueSize              int64                  `protobuf:"varint,15,opt,name=issue_size,json=issueSize,proto3" json:"issue_size,omitempty"`
-	IssueDate              *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=issue_date,json=issueDate,proto3" json:"issue_date,omitempty"`
-	RegistryDate           *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=registry_date,json=registryDate,proto3" json:"registry_date,omitempty"`
-	EmitterId              string                 `protobuf:"bytes,18,opt,name=emitter_id,json=emitterId,proto3" json:"emitter_id,omitempty"`
-	HasProspectus          bool                   `protobuf:"varint,19,opt,name=has_prospectus,json=hasProspectus,proto3" json:"has_prospectus,omitempty"`
-	HasDefault             bool                   `protobuf:"varint,20,opt,name=has_default,json=hasDefault,proto3" json:"has_default,omitempty"`
-	HasTechnicalDefault    bool                   `protobuf:"varint,21,opt,name=has_technical_default,json=hasTechnicalDefault,proto3" json:"has_technical_default,omitempty"`
-	EmitentMismatchCurrent bool                   `protobuf:"varint,22,opt,name=emitent_mismatch_current,json=emitentMismatchCurrent,proto3" json:"emitent_mismatch_current,omitempty"`
-	IsQualifiedInvestors   bool                   `protobuf:"varint,23,opt,name=is_qualified_investors,json=isQualifiedInvestors,proto3" json:"is_qualified_investors,omitempty"`
-	MorningSession         bool                   `protobuf:"varint,24,opt,name=morning_session,json=morningSession,proto3" json:"morning_session,omitempty"`
-	EveningSession         bool                   `protobuf:"varint,25,opt,name=evening_session,json=eveningSession,proto3" json:"evening_session,omitempty"`
-	WeekendSession         bool                   `protobuf:"varint,26,opt,name=weekend_session,json=weekendSession,proto3" json:"weekend_session,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Тикер бумаги. Пример: "SBER".
+	Ticker string `protobuf:"bytes,1,opt,name=ticker,proto3" json:"ticker,omitempty"`
+	// ISIN — международный идентификатор выпуска (ISO 6166). Пример: "RU0009029540".
+	Isin string `protobuf:"bytes,2,opt,name=isin,proto3" json:"isin,omitempty"`
+	// Полное наименование бумаги. Пример: "Сбербанк России ПАО ао".
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// Краткое наименование бумаги. Пример: "Сбербанк".
+	ShortName string `protobuf:"bytes,4,opt,name=short_name,json=shortName,proto3" json:"short_name,omitempty"`
+	// Тип выпуска текстом. Пример: "Акции обыкновенные".
+	IssueName string `protobuf:"bytes,5,opt,name=issue_name,json=issueName,proto3" json:"issue_name,omitempty"`
+	// Латинское наименование эмитента. Пример: "Sberbank".
+	LatName string `protobuf:"bytes,6,opt,name=lat_name,json=latName,proto3" json:"lat_name,omitempty"`
+	// Государственный регистрационный номер выпуска. Пример: "10301481B".
+	RegNumber string `protobuf:"bytes,7,opt,name=reg_number,json=regNumber,proto3" json:"reg_number,omitempty"`
+	// Тип бумаги текстом, как он отдан источником. Пример: "Акция обыкновенная".
+	SecurityTypeName string `protobuf:"bytes,8,opt,name=security_type_name,json=securityTypeName,proto3" json:"security_type_name,omitempty"`
+	// Код группы бумаг. Пример: "stock_shares".
+	SecurityGroup string `protobuf:"bytes,9,opt,name=security_group,json=securityGroup,proto3" json:"security_group,omitempty"`
+	// Название группы бумаг текстом. Пример: "Акции".
+	SecurityGroupName string `protobuf:"bytes,10,opt,name=security_group_name,json=securityGroupName,proto3" json:"security_group_name,omitempty"`
+	// Типизированный код типа бумаги. Пример: "COMMON_SHARE".
+	SecurityType SecurityType `protobuf:"varint,11,opt,name=security_type,json=securityType,proto3,enum=company.v1.SecurityType" json:"security_type,omitempty"`
+	// Котировальный уровень листинга. Пример: "FIRST".
+	ListingLevel ListingLevel `protobuf:"varint,12,opt,name=listing_level,json=listingLevel,proto3,enum=company.v1.ListingLevel" json:"listing_level,omitempty"`
+	// Номинальная стоимость бумаги в `face_unit`. Пример: "3".
+	FaceValue string `protobuf:"bytes,13,opt,name=face_value,json=faceValue,proto3" json:"face_value,omitempty"`
+	// Валюта номинала. Пример: "RUB".
+	FaceUnit Currency `protobuf:"varint,14,opt,name=face_unit,json=faceUnit,proto3,enum=company.v1.Currency" json:"face_unit,omitempty"`
+	// Размер выпуска в штуках. Пример: "21586948000".
+	IssueSize int64 `protobuf:"varint,15,opt,name=issue_size,json=issueSize,proto3" json:"issue_size,omitempty"`
+	// Дата размещения выпуска. Пример: "2007-07-20T00:00:00Z".
+	IssueDate *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=issue_date,json=issueDate,proto3" json:"issue_date,omitempty"`
+	// Дата регистрации выпуска. Пример: "2007-07-11T00:00:00Z".
+	RegistryDate *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=registry_date,json=registryDate,proto3" json:"registry_date,omitempty"`
+	// Внутренний идентификатор эмитента у источника. Пример: "484".
+	EmitterId string `protobuf:"bytes,18,opt,name=emitter_id,json=emitterId,proto3" json:"emitter_id,omitempty"`
+	// Наличие зарегистрированного проспекта эмиссии. Пример: true.
+	HasProspectus bool `protobuf:"varint,19,opt,name=has_prospectus,json=hasProspectus,proto3" json:"has_prospectus,omitempty"`
+	// Признак дефолта по выпуску. Пример: false.
+	HasDefault bool `protobuf:"varint,20,opt,name=has_default,json=hasDefault,proto3" json:"has_default,omitempty"`
+	// Признак технического дефолта по выпуску. Пример: false.
+	HasTechnicalDefault bool `protobuf:"varint,21,opt,name=has_technical_default,json=hasTechnicalDefault,proto3" json:"has_technical_default,omitempty"`
+	// Признак расхождения текущего эмитента с эмитентом на момент выпуска.
+	// Пример: false.
+	EmitentMismatchCurrent bool `protobuf:"varint,22,opt,name=emitent_mismatch_current,json=emitentMismatchCurrent,proto3" json:"emitent_mismatch_current,omitempty"`
+	// Бумага доступна только квалифицированным инвесторам. Пример: false.
+	IsQualifiedInvestors bool `protobuf:"varint,23,opt,name=is_qualified_investors,json=isQualifiedInvestors,proto3" json:"is_qualified_investors,omitempty"`
+	// Торгуется в утреннюю дополнительную сессию. Пример: true.
+	MorningSession bool `protobuf:"varint,24,opt,name=morning_session,json=morningSession,proto3" json:"morning_session,omitempty"`
+	// Торгуется в вечернюю дополнительную сессию. Пример: true.
+	EveningSession bool `protobuf:"varint,25,opt,name=evening_session,json=eveningSession,proto3" json:"evening_session,omitempty"`
+	// Торгуется в выходные дни. Пример: true.
+	WeekendSession bool `protobuf:"varint,26,opt,name=weekend_session,json=weekendSession,proto3" json:"weekend_session,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SecurityDescription) Reset() {

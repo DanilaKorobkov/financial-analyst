@@ -31,80 +31,88 @@ const (
 type StockSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Рыночная капитализация в валюте отчётности (обычно RUB), в миллионах.
+	// Пример: 99990.5.
 	Capital float64 `protobuf:"fixed64,1,opt,name=capital,proto3" json:"capital,omitempty"`
-	// Прибыль на акцию (TTM) в валюте отчётности.
+	// Прибыль на акцию (TTM) в валюте отчётности. Пример: 78.8.
 	Eps float64 `protobuf:"fixed64,2,opt,name=eps,proto3" json:"eps,omitempty"`
-	// Отношение P/E к ожидаемому темпу роста прибыли.
+	// Отношение P/E к ожидаемому темпу роста прибыли. Пример: 0.56.
 	Peg float64 `protobuf:"fixed64,3,opt,name=peg,proto3" json:"peg,omitempty"`
-	// Целевая цена по модели Питера Линча (PEG-based).
+	// Целевая цена по модели Питера Линча (PEG-based). Пример: 93.53.
 	PeterLynchTarget float64 `protobuf:"fixed64,4,opt,name=peter_lynch_target,json=peterLynchTarget,proto3" json:"peter_lynch_target,omitempty"`
-	// Целевая цена по модели Бенджамина Грэма.
+	// Целевая цена по модели Бенджамина Грэма. Пример: 156.18.
 	GrahamTarget float64 `protobuf:"fixed64,5,opt,name=graham_target,json=grahamTarget,proto3" json:"graham_target,omitempty"`
-	// Историческое число дивидендных выплат в год.
+	// Историческое число дивидендных выплат в год
+	// (1 — годовые, 2 — полугодовые, 4 — квартальные). Пример: "1".
 	DividendFrequency int64 `protobuf:"varint,6,opt,name=dividend_frequency,json=dividendFrequency,proto3" json:"dividend_frequency,omitempty"`
 	// Сколько лет подряд эмитент не пропускал дивидендную выплату.
+	// Пример: "4".
 	DividendStrike int64 `protobuf:"varint,7,opt,name=dividend_strike,json=dividendStrike,proto3" json:"dividend_strike,omitempty"`
-	// Сколько лет подряд дивиденд рос.
+	// Сколько лет подряд дивиденд рос. Пример: "3".
 	DividendGrowth int64 `protobuf:"varint,8,opt,name=dividend_growth,json=dividendGrowth,proto3" json:"dividend_growth,omitempty"`
 	// Композитный индекс дивидендной привлекательности (от 0 до ~1).
+	// Пример: 0.7.
 	DividendIndex float64 `protobuf:"fixed64,9,opt,name=dividend_index,json=dividendIndex,proto3" json:"dividend_index,omitempty"`
-	// Дивидендная доходность за последние 12 месяцев (%).
+	// Дивидендная доходность за последние 12 месяцев (%). Пример: 10.65.
 	DividendYield_12M float64 `protobuf:"fixed64,10,opt,name=dividend_yield_12m,json=dividendYield12m,proto3" json:"dividend_yield_12m,omitempty"`
-	// Средняя дивидендная доходность за 3 года (%).
+	// Средняя дивидендная доходность за 3 года (%). Пример: 10.55.
 	DividendYield_3Y float64 `protobuf:"fixed64,11,opt,name=dividend_yield_3y,json=dividendYield3y,proto3" json:"dividend_yield_3y,omitempty"`
-	// Средняя дивидендная доходность за 5 лет (%).
+	// Средняя дивидендная доходность за 5 лет (%). Пример: 7.5.
 	DividendYield_5Y float64 `protobuf:"fixed64,12,opt,name=dividend_yield_5y,json=dividendYield5y,proto3" json:"dividend_yield_5y,omitempty"`
-	// Размер последнего дивидендного гэпа в днях до закрытия.
+	// Размер последнего дивидендного гэпа в днях до закрытия. Пример: "280".
 	DividendGapLast int64 `protobuf:"varint,13,opt,name=dividend_gap_last,json=dividendGapLast,proto3" json:"dividend_gap_last,omitempty"`
-	// Средний размер дивидендного гэпа в днях до закрытия.
+	// Средний размер дивидендного гэпа в днях до закрытия. Пример: "482".
 	DividendGapAverage int64 `protobuf:"varint,14,opt,name=dividend_gap_average,json=dividendGapAverage,proto3" json:"dividend_gap_average,omitempty"`
-	// CAGR выручки за 3 года (%).
+	// CAGR выручки за 3 года (%). Пример: 10.59.
 	GrowthRevenue_3Y float64 `protobuf:"fixed64,15,opt,name=growth_revenue_3y,json=growthRevenue3y,proto3" json:"growth_revenue_3y,omitempty"`
-	// CAGR выручки за 5 лет (%).
+	// CAGR выручки за 5 лет (%). Пример: 13.42.
 	GrowthRevenue_5Y float64 `protobuf:"fixed64,16,opt,name=growth_revenue_5y,json=growthRevenue5y,proto3" json:"growth_revenue_5y,omitempty"`
-	// CAGR чистой прибыли за 3 года (%).
+	// CAGR чистой прибыли за 3 года (%). Пример: 5.62.
 	GrowthEarnings_3Y float64 `protobuf:"fixed64,17,opt,name=growth_earnings_3y,json=growthEarnings3y,proto3" json:"growth_earnings_3y,omitempty"`
-	// CAGR чистой прибыли за 5 лет (%).
+	// CAGR чистой прибыли за 5 лет (%). Пример: 7.37.
 	GrowthEarnings_5Y float64 `protobuf:"fixed64,18,opt,name=growth_earnings_5y,json=growthEarnings5y,proto3" json:"growth_earnings_5y,omitempty"`
-	// CAGR EBITDA за 3 года (%).
+	// CAGR EBITDA за 3 года (%). Для финансовых компаний может быть 0
+	// (специфика отчётности кредитных организаций). Пример (LKOH): 28.79.
 	GrowthEbitda_3Y float64 `protobuf:"fixed64,19,opt,name=growth_ebitda_3y,json=growthEbitda3y,proto3" json:"growth_ebitda_3y,omitempty"`
-	// CAGR EBITDA за 5 лет (%).
+	// CAGR EBITDA за 5 лет (%). Для финансовых компаний может быть 0.
+	// Пример (LKOH): 14.21.
 	GrowthEbitda_5Y float64 `protobuf:"fixed64,20,opt,name=growth_ebitda_5y,json=growthEbitda5y,proto3" json:"growth_ebitda_5y,omitempty"`
-	// CAGR активов за 3 года (%).
+	// CAGR активов за 3 года (%). Пример: 9.69.
 	GrowthAssets_3Y float64 `protobuf:"fixed64,21,opt,name=growth_assets_3y,json=growthAssets3y,proto3" json:"growth_assets_3y,omitempty"`
-	// CAGR активов за 5 лет (%).
+	// CAGR активов за 5 лет (%). Пример: 10.89.
 	GrowthAssets_5Y float64 `protobuf:"fixed64,22,opt,name=growth_assets_5y,json=growthAssets5y,proto3" json:"growth_assets_5y,omitempty"`
-	// CAGR собственного капитала за 3 года (%).
+	// CAGR собственного капитала за 3 года (%). Пример: 10.45.
 	GrowthEquity_3Y float64 `protobuf:"fixed64,23,opt,name=growth_equity_3y,json=growthEquity3y,proto3" json:"growth_equity_3y,omitempty"`
-	// CAGR собственного капитала за 5 лет (%).
+	// CAGR собственного капитала за 5 лет (%). Пример: 9.72.
 	GrowthEquity_5Y float64 `protobuf:"fixed64,24,opt,name=growth_equity_5y,json=growthEquity5y,proto3" json:"growth_equity_5y,omitempty"`
 	// CAGR свободного денежного потока за 3 года (%).
+	// Пример (LKOH): 19.04.
 	GrowthFcf_3Y float64 `protobuf:"fixed64,25,opt,name=growth_fcf_3y,json=growthFcf3y,proto3" json:"growth_fcf_3y,omitempty"`
-	// CAGR свободного денежного потока за 5 лет (%).
+	// CAGR свободного денежного потока за 5 лет (%). Пример: 7.57.
 	GrowthFcf_5Y float64 `protobuf:"fixed64,26,opt,name=growth_fcf_5y,json=growthFcf5y,proto3" json:"growth_fcf_5y,omitempty"`
-	// CAGR чистого долга за 3 года (%).
+	// CAGR чистого долга за 3 года (%). Для финансовых компаний может
+	// быть 0. Пример (LKOH): -42.15.
 	GrowthNetDebt_3Y float64 `protobuf:"fixed64,27,opt,name=growth_net_debt_3y,json=growthNetDebt3y,proto3" json:"growth_net_debt_3y,omitempty"`
-	// CAGR чистого долга за 5 лет (%).
+	// CAGR чистого долга за 5 лет (%). Пример (LKOH): -27.4.
 	GrowthNetDebt_5Y float64 `protobuf:"fixed64,28,opt,name=growth_net_debt_5y,json=growthNetDebt5y,proto3" json:"growth_net_debt_5y,omitempty"`
-	// CAGR операционной прибыли за 3 года (%).
+	// CAGR операционной прибыли за 3 года (%). Пример (LKOH): 25.6.
 	GrowthOperation_3Y float64 `protobuf:"fixed64,29,opt,name=growth_operation_3y,json=growthOperation3y,proto3" json:"growth_operation_3y,omitempty"`
-	// CAGR операционной прибыли за 5 лет (%).
+	// CAGR операционной прибыли за 5 лет (%). Пример (LKOH): 12.45.
 	GrowthOperation_5Y float64 `protobuf:"fixed64,30,opt,name=growth_operation_5y,json=growthOperation5y,proto3" json:"growth_operation_5y,omitempty"`
-	// Число активных идей с рекомендацией «покупать».
+	// Число активных идей с рекомендацией «покупать». Пример: "9".
 	IdeaBuy int64 `protobuf:"varint,31,opt,name=idea_buy,json=ideaBuy,proto3" json:"idea_buy,omitempty"`
-	// Число активных идей с рекомендацией «держать».
+	// Число активных идей с рекомендацией «держать». Пример: "3".
 	IdeaHold int64 `protobuf:"varint,32,opt,name=idea_hold,json=ideaHold,proto3" json:"idea_hold,omitempty"`
-	// Число активных идей с рекомендацией «продавать».
+	// Число активных идей с рекомендацией «продавать». Пример: "0".
 	IdeaSell int64 `protobuf:"varint,33,opt,name=idea_sell,json=ideaSell,proto3" json:"idea_sell,omitempty"`
-	// Усреднённая целевая цена по активным идеям.
+	// Усреднённая целевая цена по активным идеям. Пример: 387.392.
 	IdeaTarget float64 `protobuf:"fixed64,34,opt,name=idea_target,json=ideaTarget,proto3" json:"idea_target,omitempty"`
-	// Средний потенциал к целевой цене по активным идеям (%).
+	// Средний потенциал к целевой цене по активным идеям (%). Пример: 18.923.
 	IdeaPotential float64 `protobuf:"fixed64,35,opt,name=idea_potential,json=ideaPotential,proto3" json:"idea_potential,omitempty"`
-	// Агрегированный консенсус по активным идеям.
+	// Агрегированный консенсус по активным идеям. Пример: "BUY".
 	IdeaConsensus IdeaConsensus `protobuf:"varint,36,opt,name=idea_consensus,json=ideaConsensus,proto3,enum=company.v1.IdeaConsensus" json:"idea_consensus,omitempty"`
-	// Агрегированное направление сделок инсайдеров.
+	// Агрегированное направление сделок инсайдеров. Пример: "BUYS".
 	InsiderConsensus InsiderConsensus `protobuf:"varint,37,opt,name=insider_consensus,json=insiderConsensus,proto3,enum=company.v1.InsiderConsensus" json:"insider_consensus,omitempty"`
-	// Момент пересчёта сводных метрик.
+	// Момент пересчёта сводных метрик. Пример: "2026-05-14T03:32:18Z".
 	ChangedAt     *timestamppb.Timestamp `protobuf:"bytes,38,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
