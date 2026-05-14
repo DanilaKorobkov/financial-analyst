@@ -35,6 +35,13 @@ const (
 	CurrencyUSD Currency = 2
 	// CurrencyEUR — евро (ISO 4217: EUR).
 	CurrencyEUR Currency = 3
+
+	// ReportFrequencyUnspecified — частота отчётности не определена.
+	ReportFrequencyUnspecified ReportFrequency = 0
+	// ReportFrequencyYearly — годовая отчётность.
+	ReportFrequencyYearly ReportFrequency = 1
+	// ReportFrequencyQuarterly — квартальная отчётность.
+	ReportFrequencyQuarterly ReportFrequency = 2
 )
 
 // SecurityType — тип бумаги.
@@ -48,3 +55,6 @@ type Exchange int
 
 // Currency — валюта торгов бумагой.
 type Currency int
+
+// ReportFrequency — частота публикации финансовой отчётности эмитентом.
+type ReportFrequency int

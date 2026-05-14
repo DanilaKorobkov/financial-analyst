@@ -1,12 +1,21 @@
 // Схема Connect-сервиса CompanyService.
 //
-// Возвращает карточку эмитента по тикеру: идентификация бумаги
-// (имя, ISIN, тип, уровень листинга) и классификация эмитента
-// (биржа, валюта, сектор, отрасль, страна, тикер основной бумаги).
+// Возвращает по тикеру набор каноничных полей из каталога системы:
+// какие именно — определяет сервер (сейчас — встроенная спецификация
+// отчёта по эмитенту). Контракт намеренно динамический: список и состав
+// полей меняются без изменения схемы транспорта.
+//
+// Каждое поле адресуется полным id вида `<provider>::<name>`
+// (например, `moex::ticker`). Тип значения каждого поля выбирает
+// одну ветку oneof в FieldValue. Доменные перечисления (тип бумаги,
+// котировальный уровень, валюта, биржа, частота отчётности) передаются
+// стабильным строковым кодом.
 
 syntax = "proto3";
 
 package company.v1;
+
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
 
@@ -20,54 +29,22 @@ message GetCompanyRequest {
 }
 
 message GetCompanyResponse {
-  Company company = 1;
+  // Карточка эмитента: поля, которые сервер собрал по запросу.
+  // Ключ — полный id поля в каталоге (`<provider>::<name>`).
+  // Отсутствие ключа означает, что поле не запрашивалось или источник
+  // не вернул значения.
+  map<string, FieldValue> fields = 1;
 }
 
-// SecurityType — тип бумаги. На первом шаге проекта enum покрывает
-// только акции; остальные значения добавим по мере появления потребителей.
-enum SecurityType {
-  SECURITY_TYPE_UNSPECIFIED = 0;
-  SECURITY_TYPE_COMMON_SHARE = 1;
-  SECURITY_TYPE_PREFERRED_SHARE = 2;
-  SECURITY_TYPE_DEPOSITARY_RECEIPT = 3;
-}
-
-// ListingLevel — котировальный уровень. UNSPECIFIED — уровень не указан.
-enum ListingLevel {
-  LISTING_LEVEL_UNSPECIFIED = 0;
-  LISTING_LEVEL_FIRST = 1;
-  LISTING_LEVEL_SECOND = 2;
-  LISTING_LEVEL_THIRD = 3;
-}
-
-// Exchange — биржа листинга бумаги.
-enum Exchange {
-  EXCHANGE_UNSPECIFIED = 0;
-  EXCHANGE_MOEX = 1;
-}
-
-// Currency — валюта торгов бумагой (ISO 4217).
-enum Currency {
-  CURRENCY_UNSPECIFIED = 0;
-  CURRENCY_RUB = 1;
-  CURRENCY_USD = 2;
-  CURRENCY_EUR = 3;
-}
-
-message Company {
-  string ticker = 1;
-  string isin = 2;
-  string name = 3;
-  SecurityType security_type = 4;
-  ListingLevel listing_level = 5;
-
-  Exchange exchange = 6;
-  Currency currency = 7;
-  string sector = 8;
-  string industry = 9;
-  string country = 10;
-
-  // Тикер основной бумаги эмитента, к которой привязана отчётность.
-  // Для привилегированных акций совпадает с обыкновенными.
-  string primary_report_ticker = 11;
+// FieldValue — значение одного поля. Конкретная ветка oneof выбирается
+// по типу поля в каталоге: строки и доменные перечисления — в string_value
+// (для перечислений — стабильный строковый код, см. каталог), целые —
+// в int_value, булевы — в bool_value, даты — в timestamp_value.
+message FieldValue {
+  oneof value {
+    string string_value = 1;
+    int64 int_value = 2;
+    bool bool_value = 3;
+    google.protobuf.Timestamp timestamp_value = 4;
+  }
 }

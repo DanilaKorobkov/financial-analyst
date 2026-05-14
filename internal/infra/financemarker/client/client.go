@@ -1,0 +1,124 @@
+// Package client — общий resty-клиент FinanceMarker REST API и
+// провайдер-специфичная классификация HTTP-ошибок. Используется
+// bundles данного провайдера и его Provider в parent-пакете.
+package client
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/go-resty/resty/v2"
+	jsoniter "github.com/json-iterator/go"
+
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/cache/filecache"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/cache/httpcache"
+)
+
+// Infra-уровневые ошибки FinanceMarker. Bundles при необходимости
+// переводят их в доменные sentinel-ы своего агрегата; всё остальное
+// едет наверх как непомеченный «внутренний сбой» (presentation → CodeInternal).
+var (
+	// ErrNotFound — FinanceMarker вернул HTTP 404.
+	ErrNotFound = errors.New("financemarker: not found")
+
+	// ErrUnauthorized — токен не принят (401 или 400 token_not_found).
+	ErrUnauthorized = errors.New("financemarker: unauthorized")
+
+	// ErrQuotaExceeded — превышен лимит запросов (403).
+	ErrQuotaExceeded = errors.New("financemarker: quota exceeded")
+)
+
+// Config — параметры доступа к FinanceMarker REST API.
+type Config struct {
+	// BaseURL — корень FinanceMarker REST API без завершающего слэша,
+	// например "https://financemarker.ru/api/fm/v2".
+	BaseURL string
+
+	// Token — API-токен из профиля FinanceMarker. Передаётся query-параметром
+	// "api_token" во всех запросах.
+	Token string
+
+	// CacheDir — каталог файлового кеша HTTP-ответов. Пустая строка
+	// отключает кеширование: клиент идёт в сеть на каждый запрос. Bundle
+	// решает per-request, какой запрос кешируем (httpcache.WithTTL по ctx);
+	// клиент только держит хранилище.
+	CacheDir string
+
+	// Timeout — таймаут на один HTTP-запрос.
+	Timeout time.Duration
+}
+
+// Client — тонкая обёртка над resty.Client, преднастроенная под FinanceMarker:
+// jsoniter-парсер, api_token, тип errorBody и middleware, превращающий
+// ошибочные HTTP-ответы в типизированные ошибки.
+type Client struct {
+	*resty.Client
+}
+
+// errorBody — JSON-обёртка ошибочного ответа FinanceMarker. Регистрируется
+// клиенту через SetError — resty сам разбирает её на ответах с не-2xx
+// статусом и кладёт в resp.Error().
+type errorBody struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+}
+
+// New собирает Client под FinanceMarker. Если cfg.CacheDir не пустой —
+// поверх transport ставится httpcache, который сам решает кешировать
+// запрос или нет на основе TTL из ctx (см. httpcache.WithTTL).
+func New(cfg Config) *Client {
+	jsonParser := jsoniter.ConfigCompatibleWithStandardLibrary
+
+	c := resty.New().
+		SetBaseURL(cfg.BaseURL).
+		SetTimeout(cfg.Timeout).
+		SetQueryParam("api_token", cfg.Token).
+		SetJSONUnmarshaler(jsonParser.Unmarshal).
+		SetJSONMarshaler(jsonParser.Marshal).
+		SetError(&errorBody{}).
+		OnAfterResponse(func(_ *resty.Client, resp *resty.Response) error {
+			return classifyError(resp)
+		})
+
+	if cfg.CacheDir != "" {
+		store := filecache.New[httpcache.Entry](filecache.Config{Dir: cfg.CacheDir})
+		base := c.GetClient().Transport
+		if base == nil {
+			base = http.DefaultTransport
+		}
+		c.SetTransport(httpcache.NewTransport(base, store))
+	}
+
+	return &Client{Client: c}
+}
+
+// classifyError переводит ошибочный HTTP-ответ FinanceMarker в ошибку слоя
+// infra. Вызывается middleware-ом OnAfterResponse, поэтому возвращаемая
+// ошибка приходит наверх как err из R().Get(...).
+func classifyError(resp *resty.Response) error {
+	if !resp.IsError() {
+		return nil
+	}
+
+	status := resp.StatusCode()
+
+	var message string
+	if body, ok := resp.Error().(*errorBody); ok && body != nil {
+		message = body.Message
+	}
+
+	switch {
+	case status == http.StatusNotFound:
+		return ErrNotFound
+	case status == http.StatusBadRequest && message == "token_not_found":
+		return fmt.Errorf("%w: token_not_found", ErrUnauthorized)
+	case status == http.StatusUnauthorized:
+		return fmt.Errorf("%w: http status %d", ErrUnauthorized, status)
+	case status == http.StatusForbidden:
+		return fmt.Errorf("%w: http status %d", ErrQuotaExceeded, status)
+	default:
+		return fmt.Errorf("financemarker http status %d", status)
+	}
+}
