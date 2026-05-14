@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/bundles/securitydescription"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
 )
@@ -19,20 +19,20 @@ import (
 //go:embed testdata/*.json
 var testdataFS embed.FS
 
-type bundleSuite struct {
+type sourceSuite struct {
 	suite.Suite
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	bundle  *securitydescription.Bundle
+	source  *securitydescription.Source
 }
 
-func TestBundleSuite(t *testing.T) {
+func TestSourceSuite(t *testing.T) {
 	t.Parallel()
-	suite.Run(t, new(bundleSuite))
+	suite.Run(t, new(sourceSuite))
 }
 
-func (s *bundleSuite) SetupTest() {
+func (s *sourceSuite) SetupTest() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -43,19 +43,14 @@ func (s *bundleSuite) SetupTest() {
 		BaseURL: s.server.URL + "/iss",
 		Timeout: 5 * time.Second,
 	})
-	s.bundle = securitydescription.New(c)
+	s.source = securitydescription.New(c)
 }
 
-func (s *bundleSuite) TearDownTest() {
+func (s *sourceSuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *bundleSuite) TestMetadata() {
-	s.Equal(securitydescription.ID, s.bundle.BundleID())
-	s.Require().Len(s.bundle.Fields(), 26)
-}
-
-func (s *bundleSuite) TestFetchHappyPath() {
+func (s *sourceSuite) TestFindByTickerHappyPath() {
 	body := s.readFixture("sber.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/iss/securities/SBER.json", r.URL.Path)
@@ -66,119 +61,120 @@ func (s *bundleSuite) TestFetchHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	values, err := s.bundle.Fetch(context.Background(), "SBER")
+	got, err := s.source.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	s.Equal("SBER", values[domaincompany.FieldTicker])
-	s.Equal("RU0009029540", values[domaincompany.FieldISIN])
-	s.Equal("Сбербанк России ПАО ао", values[domaincompany.FieldName])
-	s.Equal("Сбербанк", values[domaincompany.FieldShortName])
-	s.Equal("Акции обыкновенные", values[domaincompany.FieldIssueName])
-	s.Equal("Sberbank", values[domaincompany.FieldLatName])
-	s.Equal("10301481B", values[domaincompany.FieldRegNumber])
-	s.Equal("Акция обыкновенная", values[domaincompany.FieldSecurityTypeName])
-	s.Equal("stock_shares", values[domaincompany.FieldSecurityGroup])
-	s.Equal("Акции", values[domaincompany.FieldSecurityGroupName])
-	s.Equal(domaincompany.SecurityTypeCommonShare, values[domaincompany.FieldSecurityType])
-	s.Equal(domaincompany.ListingLevelFirst, values[domaincompany.FieldListingLevel])
-	s.Equal("3", values[domaincompany.FieldFaceValue])
-	s.Equal(domaincompany.CurrencyRUB, values[domaincompany.FieldFaceUnit])
-	s.Equal(int64(21586948000), values[domaincompany.FieldIssueSize])
-	s.Equal(time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC), values[domaincompany.FieldIssueDate])
-	s.Equal(time.Date(2007, 7, 11, 0, 0, 0, 0, time.UTC), values[domaincompany.FieldRegistryDate])
-	s.Equal("484", values[domaincompany.FieldEmitterID])
-	s.Equal(false, values[domaincompany.FieldHasProspectus])
-	s.Equal(false, values[domaincompany.FieldHasDefault])
-	s.Equal(false, values[domaincompany.FieldHasTechnicalDefault])
-	s.Equal(false, values[domaincompany.FieldEmitentMismatchCurrent])
-	s.Equal(false, values[domaincompany.FieldIsQualifiedInvestors])
-	s.Equal(true, values[domaincompany.FieldMorningSession])
-	s.Equal(true, values[domaincompany.FieldEveningSession])
-	s.Equal(true, values[domaincompany.FieldWeekendSession])
+	s.Require().NotNil(got)
+	s.Equal("SBER", got.Ticker)
+	s.Equal("RU0009029540", got.ISIN)
+	s.Equal("Сбербанк России ПАО ао", got.Name)
+	s.Equal("Сбербанк", got.ShortName)
+	s.Equal("Акции обыкновенные", got.IssueName)
+	s.Equal("Sberbank", got.LatName)
+	s.Equal("10301481B", got.RegNumber)
+	s.Equal("Акция обыкновенная", got.SecurityTypeName)
+	s.Equal("stock_shares", got.SecurityGroup)
+	s.Equal("Акции", got.SecurityGroupName)
+	s.Equal(company.SecurityTypeCommonShare, got.SecurityType)
+	s.Equal(company.ListingLevelFirst, got.ListingLevel)
+	s.Equal("3", got.FaceValue)
+	s.Equal(company.CurrencyRUB, got.FaceUnit)
+	s.Equal(int64(21586948000), got.IssueSize)
+	s.Equal(time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC), got.IssueDate)
+	s.Equal(time.Date(2007, 7, 11, 0, 0, 0, 0, time.UTC), got.RegistryDate)
+	s.Equal("484", got.EmitterID)
+	s.False(got.HasProspectus)
+	s.False(got.HasDefault)
+	s.False(got.HasTechnicalDefault)
+	s.False(got.EmitentMismatchCurrent)
+	s.False(got.IsQualifiedInvestors)
+	s.True(got.MorningSession)
+	s.True(got.EveningSession)
+	s.True(got.WeekendSession)
 }
 
-func (s *bundleSuite) TestFetchInvalidJSON() {
+func (s *sourceSuite) TestFindByTickerInvalidJSON() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("not json"))
 	}
 
-	_, err := s.bundle.Fetch(context.Background(), "SBER")
+	_, err := s.source.FindByTicker(context.Background(), "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "decode extended payload")
 }
 
-func (s *bundleSuite) TestFetchNotFound() {
+func (s *sourceSuite) TestFindByTickerNotFound() {
 	body := s.readFixture("not_found.json")
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.bundle.Fetch(context.Background(), "missing")
+	got, err := s.source.FindByTicker(context.Background(), "missing")
 
-	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
+	s.Require().ErrorIs(err, company.ErrNotFound)
+	s.Nil(got)
 }
 
-func (s *bundleSuite) TestFetchServerError() {
+func (s *sourceSuite) TestFindByTickerServerError() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	_, err := s.bundle.Fetch(context.Background(), "any")
+	_, err := s.source.FindByTicker(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "moex http status 500")
 }
 
-func (s *bundleSuite) TestFetchContextCancelled() {
+func (s *sourceSuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := s.bundle.Fetch(ctx, "any")
+	_, err := s.source.FindByTicker(ctx, "any")
 
 	s.Require().Error(err)
 	s.Require().ErrorContains(err, "context canceled")
 	s.Require().ErrorContains(err, "moex request")
 }
 
-// TestFetchTypeAndLevelMatrix проходит по всем ожидаемым значениям полей
-// TYPE и LISTLEVEL блока description — каждое значение в маппинг-таблицах
-// и ветка-fallback для неизвестного TYPE проверяются хотя бы один раз.
-func (s *bundleSuite) TestFetchTypeAndLevelMatrix() {
+// TestFindByTickerTypeAndLevelMatrix проходит по всем ожидаемым значениям
+// полей TYPE и LISTLEVEL блока description.
+func (s *sourceSuite) TestFindByTickerTypeAndLevelMatrix() {
 	cases := []struct {
 		name      string
 		typeValue string
 		level     string
-		wantType  domaincompany.SecurityType
-		wantLevel domaincompany.ListingLevel
+		wantType  company.SecurityType
+		wantLevel company.ListingLevel
 	}{
 		{
 			name:      "preferred share with second level",
 			typeValue: "preferred_share",
 			level:     "2",
-			wantType:  domaincompany.SecurityTypePreferredShare,
-			wantLevel: domaincompany.ListingLevelSecond,
+			wantType:  company.SecurityTypePreferredShare,
+			wantLevel: company.ListingLevelSecond,
 		},
 		{
 			name:      "depositary receipt with third level",
 			typeValue: "depositary_receipt",
 			level:     "3",
-			wantType:  domaincompany.SecurityTypeDepositaryReceipt,
-			wantLevel: domaincompany.ListingLevelThird,
+			wantType:  company.SecurityTypeDepositaryReceipt,
+			wantLevel: company.ListingLevelThird,
 		},
 		{
 			name:      "неизвестный TYPE падает в Unspecified",
 			typeValue: "exotic_new_type",
 			level:     "1",
-			wantType:  domaincompany.SecurityTypeUnspecified,
-			wantLevel: domaincompany.ListingLevelFirst,
+			wantType:  company.SecurityTypeUnspecified,
+			wantLevel: company.ListingLevelFirst,
 		},
 		{
 			name:      "пустой LISTLEVEL трактуется как Unspecified",
 			typeValue: "common_share",
 			level:     "",
-			wantType:  domaincompany.SecurityTypeCommonShare,
-			wantLevel: domaincompany.ListingLevelUnspecified,
+			wantType:  company.SecurityTypeCommonShare,
+			wantLevel: company.ListingLevelUnspecified,
 		},
 	}
 	for _, c := range cases {
@@ -190,52 +186,51 @@ func (s *bundleSuite) TestFetchTypeAndLevelMatrix() {
 			s.handler = func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write(body)
 			}
-			values, err := s.bundle.Fetch(context.Background(), "X")
+			got, err := s.source.FindByTicker(context.Background(), "X")
 			s.Require().NoError(err)
-			s.Equal(c.wantType, values[domaincompany.FieldSecurityType])
-			s.Equal(c.wantLevel, values[domaincompany.FieldListingLevel])
+			s.Equal(c.wantType, got.SecurityType)
+			s.Equal(c.wantLevel, got.ListingLevel)
 		})
 	}
 }
 
-func (s *bundleSuite) TestFetchInvalidListLevel() {
+func (s *sourceSuite) TestFindByTickerInvalidListLevel() {
 	body := []byte(`[{"description":[{"name":"SECID","value":"X"},{"name":"LISTLEVEL","value":"9"}]}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.bundle.Fetch(context.Background(), "any")
+	_, err := s.source.FindByTicker(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "LISTLEVEL")
 }
 
-func (s *bundleSuite) TestFetchMissingDescriptionBlock() {
+func (s *sourceSuite) TestFindByTickerMissingDescriptionBlock() {
 	body := []byte(`[{"charsetinfo":{"name":"utf-8"}},{"securities":[]}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.bundle.Fetch(context.Background(), "any")
+	_, err := s.source.FindByTicker(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "description block missing")
 }
 
-func (s *bundleSuite) TestFetchInvalidDescriptionBlock() {
-	// description присутствует, но это не массив объектов {name, value}.
+func (s *sourceSuite) TestFindByTickerInvalidDescriptionBlock() {
 	body := []byte(`[{"description": 123}]`)
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(body)
 	}
 
-	_, err := s.bundle.Fetch(context.Background(), "any")
+	_, err := s.source.FindByTicker(context.Background(), "any")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "decode description block")
 }
 
-func (s *bundleSuite) readFixture(name string) []byte {
+func (s *sourceSuite) readFixture(name string) []byte {
 	s.T().Helper()
 	raw, err := testdataFS.ReadFile("testdata/" + name)
 	s.Require().NoError(err)

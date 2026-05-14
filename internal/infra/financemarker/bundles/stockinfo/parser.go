@@ -1,32 +1,31 @@
 package stockinfo
 
 import (
-	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 )
 
 var (
 	// exchangeByCode переводит строковый код биржи FinanceMarker в domain-enum.
 	// Незнакомые значения возвращают zero (ExchangeUnspecified) — набор бирж
 	// со временем расширяется.
-	exchangeByCode = map[string]domaincompany.Exchange{
-		codeExchangeMOEX: domaincompany.ExchangeMOEX,
+	exchangeByCode = map[string]company.Exchange{
+		codeExchangeMOEX: company.ExchangeMOEX,
 	}
 
 	// currencyByCode переводит ISO 4217-код валюты FinanceMarker в domain-enum.
 	// Незнакомые значения возвращают zero (CurrencyUnspecified).
-	currencyByCode = map[string]domaincompany.Currency{
-		"RUB": domaincompany.CurrencyRUB,
-		"USD": domaincompany.CurrencyUSD,
-		"EUR": domaincompany.CurrencyEUR,
+	currencyByCode = map[string]company.Currency{
+		"RUB": company.CurrencyRUB,
+		"USD": company.CurrencyUSD,
+		"EUR": company.CurrencyEUR,
 	}
 
 	// reportFrequencyByCode переводит код report_frequency FinanceMarker
 	// ("Y" / "Q") в domain-enum. Незнакомые значения возвращают zero
 	// (ReportFrequencyUnspecified).
-	reportFrequencyByCode = map[string]domaincompany.ReportFrequency{
-		"Y": domaincompany.ReportFrequencyYearly,
-		"Q": domaincompany.ReportFrequencyQuarterly,
+	reportFrequencyByCode = map[string]company.ReportFrequency{
+		"Y": company.ReportFrequencyYearly,
+		"Q": company.ReportFrequencyQuarterly,
 	}
 )
 
@@ -57,33 +56,32 @@ type infoDTO struct {
 
 // stockDTO — корневой объект ответа эндпоинта по эмитенту. Здесь
 // разбирается только блок info — остальные разделы (summary / ratios / ...)
-// добавляются по мере появления соответствующих bundles.
+// добавляются по мере появления соответствующих источников.
 type stockDTO struct {
 	Info infoDTO `json:"info"`
 }
 
-// translateStockInfo раскладывает info-блок FinanceMarker по каноничным
-// полям FieldValues.
-func translateStockInfo(info *infoDTO) data.FieldValues {
-	return data.FieldValues{
-		domaincompany.FieldIssuerName:            info.Name,
-		domaincompany.FieldCountry:               info.Country,
-		domaincompany.FieldSector:                info.Sector,
-		domaincompany.FieldIndustryGroup:         info.IndustryGroup,
-		domaincompany.FieldIndustry:              info.Industry,
-		domaincompany.FieldSubIndustry:           info.SubIndustry,
-		domaincompany.FieldDescription:           info.Description,
-		domaincompany.FieldSite:                  info.Site,
-		domaincompany.FieldDisclosureLink:        info.DiscLink,
-		domaincompany.FieldPrimaryReportTicker:   info.PrimaryReportCode,
-		domaincompany.FieldSectorID:              info.SectorID,
-		domaincompany.FieldIndustryGroupID:       info.IndustryGroupID,
-		domaincompany.FieldIndustryID:            info.IndustryID,
-		domaincompany.FieldSubIndustryID:         info.SubIndustryID,
-		domaincompany.FieldExchange:              exchangeByCode[info.Exchange],
-		domaincompany.FieldPrimaryReportExchange: exchangeByCode[info.PrimaryReportExchange],
-		domaincompany.FieldCurrency:              currencyByCode[info.Currency],
-		domaincompany.FieldReportFrequency:       reportFrequencyByCode[info.ReportFrequency],
-		domaincompany.FieldSPB:                   info.SPB,
+// translateStockInfo раскладывает info-блок FinanceMarker в StockInfo.
+func translateStockInfo(info *infoDTO) *company.StockInfo {
+	return &company.StockInfo{
+		IssuerName:            info.Name,
+		Sector:                info.Sector,
+		IndustryGroup:         info.IndustryGroup,
+		Industry:              info.Industry,
+		SubIndustry:           info.SubIndustry,
+		Country:               info.Country,
+		Description:           info.Description,
+		Site:                  info.Site,
+		DisclosureLink:        info.DiscLink,
+		PrimaryReportTicker:   info.PrimaryReportCode,
+		SectorID:              info.SectorID,
+		IndustryGroupID:       info.IndustryGroupID,
+		IndustryID:            info.IndustryID,
+		SubIndustryID:         info.SubIndustryID,
+		PrimaryReportExchange: exchangeByCode[info.PrimaryReportExchange],
+		Exchange:              exchangeByCode[info.Exchange],
+		Currency:              currencyByCode[info.Currency],
+		ReportFrequency:       reportFrequencyByCode[info.ReportFrequency],
+		SPB:                   info.SPB,
 	}
 }

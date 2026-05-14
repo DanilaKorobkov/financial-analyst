@@ -6,64 +6,46 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 )
 
 // ErrTickerEmpty — клиент передал пустой тикер.
 var ErrTickerEmpty = errors.New("ticker is empty")
 
-// DataFetcher — порт получения значений полей по тикеру.
-type DataFetcher interface {
-	// Fetch возвращает значения запрошенных полей для тикера.
-	// Возвращает data.ErrFieldNotFound, если поле не зарегистрировано.
-	Fetch(ctx context.Context, ticker string, fieldIDs []data.Field) (data.FieldValues, error)
-}
-
-// CompanyService собирает карточку эмитента по тикеру. Сам сервис
-// не знает ни про источники, ни про каталог полей — состав ответа
-// определяет ProfileRepository (по тикеру), а откуда брать значения —
-// решает DataFetcher.
+// CompanyService собирает агрегат «компания» по тикеру. Сам сервис
+// не знает ни про источники, ни про их количество — сборкой управляет
+// company.Repository.
 type CompanyService struct {
-	profiles company.ProfileRepository
-	fetcher  DataFetcher
+	companies company.Repository
 }
 
 // ConfigCompanyService — параметры CompanyService.
 type ConfigCompanyService struct {
-	// Profiles — репозиторий профилей карточки.
-	Profiles company.ProfileRepository
-	// Fetcher — источник значений полей по тикеру.
-	Fetcher DataFetcher
+	// Companies — репозиторий, собирающий агрегат Company по тикеру.
+	Companies company.Repository
 }
 
-// NewCompanyService собирает сервис вокруг репозитория профилей и fetcher'а.
+// NewCompanyService собирает сервис вокруг репозитория компаний.
 func NewCompanyService(cfg ConfigCompanyService) *CompanyService {
-	return &CompanyService{profiles: cfg.Profiles, fetcher: cfg.Fetcher}
+	return &CompanyService{companies: cfg.Companies}
 }
 
-// GetCompany проверяет непустоту тикера, спрашивает у репозитория
-// профилей, какие поля нужны для этого тикера, и просит fetcher собрать
-// значения. Тикер передаётся как есть, без нормализации.
+// GetCompany проверяет непустоту тикера и просит репозиторий собрать
+// агрегат. Тикер передаётся как есть, без нормализации.
 //
 // Возможные ошибки:
 //   - ErrTickerEmpty — пустой тикер;
-//   - company.ErrProfileNotFound — для тикера не настроен профиль;
-//   - ошибки fetcher'а (включая data.ErrFieldNotFound для незнакомого
-//     полю профиля поля) — пробрасываются с пометкой тикера.
-func (s *CompanyService) GetCompany(ctx context.Context, ticker string) (data.FieldValues, error) {
+//   - company.ErrCompanyNotFound — ни один источник секции не нашёл
+//     бумагу по тикеру;
+//   - произвольная ошибка репозитория — пробрасывается с пометкой тикера.
+func (s *CompanyService) GetCompany(ctx context.Context, ticker string) (*company.Company, error) {
 	if ticker == "" {
 		return nil, ErrTickerEmpty
 	}
 
-	profile, err := s.profiles.FindByTicker(ctx, ticker)
-	if err != nil {
-		return nil, fmt.Errorf("resolve profile for %q: %w", ticker, err)
-	}
-
-	values, err := s.fetcher.Fetch(ctx, ticker, profile.FieldIDs)
+	got, err := s.companies.FindByTicker(ctx, ticker)
 	if err != nil {
 		return nil, fmt.Errorf("get company %q: %w", ticker, err)
 	}
-	return values, nil
+	return got, nil
 }

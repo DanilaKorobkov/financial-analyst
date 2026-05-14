@@ -1,15 +1,11 @@
 // Схема Connect-сервиса CompanyService.
 //
-// Возвращает по тикеру набор каноничных полей из каталога системы:
-// какие именно — определяет сервер (сейчас — встроенная спецификация
-// отчёта по эмитенту). Контракт намеренно динамический: список и состав
-// полей меняются без изменения схемы транспорта.
-//
-// Каждое поле адресуется полным id вида `<provider>::<name>`
-// (например, `moex::ticker`). Тип значения каждого поля выбирает
-// одну ветку oneof в FieldValue. Доменные перечисления (тип бумаги,
-// котировальный уровень, валюта, биржа, частота отчётности) передаются
-// стабильным строковым кодом.
+// Возвращает по тикеру типизированный агрегат Company. Агрегат состоит
+// из секций (SecurityDescription, StockInfo); отсутствие секции (поле
+// в Company равно proto-3 default = nil) означает, что соответствующий
+// источник не отдал данных. Доменные перечисления (тип бумаги,
+// котировальный уровень, валюта, биржа, частота отчётности) — отдельные
+// proto-enum-ы; *_UNSPECIFIED означает «значения нет».
 
 syntax = "proto3";
 
@@ -29,22 +25,104 @@ message GetCompanyRequest {
 }
 
 message GetCompanyResponse {
-  // Карточка эмитента: поля, которые сервер собрал по запросу.
-  // Ключ — полный id поля в каталоге (`<provider>::<name>`).
-  // Отсутствие ключа означает, что поле не запрашивалось или источник
-  // не вернул значения.
-  map<string, FieldValue> fields = 1;
+  // Карточка эмитента: агрегат «компания».
+  Company company = 1;
 }
 
-// FieldValue — значение одного поля. Конкретная ветка oneof выбирается
-// по типу поля в каталоге: строки и доменные перечисления — в string_value
-// (для перечислений — стабильный строковый код, см. каталог), целые —
-// в int_value, булевы — в bool_value, даты — в timestamp_value.
-message FieldValue {
-  oneof value {
-    string string_value = 1;
-    int64 int_value = 2;
-    bool bool_value = 3;
-    google.protobuf.Timestamp timestamp_value = 4;
-  }
+// Company — агрегат «компания». Каждое поле — отдельная секция;
+// отсутствие секции (nil) означает, что соответствующий источник не
+// отдал данных.
+message Company {
+  SecurityDescription security_description = 1;
+  StockInfo stock_info = 2;
+}
+
+// SecurityType — тип бумаги.
+enum SecurityType {
+  SECURITY_TYPE_UNSPECIFIED = 0;
+  COMMON_SHARE = 1;
+  PREFERRED_SHARE = 2;
+  DEPOSITARY_RECEIPT = 3;
+}
+
+// ListingLevel — котировальный уровень бумаги.
+enum ListingLevel {
+  LISTING_LEVEL_UNSPECIFIED = 0;
+  FIRST = 1;
+  SECOND = 2;
+  THIRD = 3;
+}
+
+// Exchange — биржа листинга бумаги.
+enum Exchange {
+  EXCHANGE_UNSPECIFIED = 0;
+  MOEX = 1;
+}
+
+// Currency — валюта.
+enum Currency {
+  CURRENCY_UNSPECIFIED = 0;
+  RUB = 1;
+  USD = 2;
+  EUR = 3;
+}
+
+// ReportFrequency — частота публикации финансовой отчётности эмитентом.
+enum ReportFrequency {
+  REPORT_FREQUENCY_UNSPECIFIED = 0;
+  YEARLY = 1;
+  QUARTERLY = 2;
+}
+
+// SecurityDescription — описание ценной бумаги.
+message SecurityDescription {
+  string ticker = 1;
+  string isin = 2;
+  string name = 3;
+  string short_name = 4;
+  string issue_name = 5;
+  string lat_name = 6;
+  string reg_number = 7;
+  string security_type_name = 8;
+  string security_group = 9;
+  string security_group_name = 10;
+  SecurityType security_type = 11;
+  ListingLevel listing_level = 12;
+  string face_value = 13;
+  Currency face_unit = 14;
+  int64 issue_size = 15;
+  google.protobuf.Timestamp issue_date = 16;
+  google.protobuf.Timestamp registry_date = 17;
+  string emitter_id = 18;
+  bool has_prospectus = 19;
+  bool has_default = 20;
+  bool has_technical_default = 21;
+  bool emitent_mismatch_current = 22;
+  bool is_qualified_investors = 23;
+  bool morning_session = 24;
+  bool evening_session = 25;
+  bool weekend_session = 26;
+}
+
+// StockInfo — карточка эмитента.
+message StockInfo {
+  string issuer_name = 1;
+  string sector = 2;
+  string industry_group = 3;
+  string industry = 4;
+  string sub_industry = 5;
+  int64 sector_id = 6;
+  int64 industry_group_id = 7;
+  int64 industry_id = 8;
+  int64 sub_industry_id = 9;
+  string country = 10;
+  string description = 11;
+  string site = 12;
+  string disclosure_link = 13;
+  string primary_report_ticker = 14;
+  Exchange primary_report_exchange = 15;
+  Exchange exchange = 16;
+  Currency currency = 17;
+  ReportFrequency report_frequency = 18;
+  bool spb = 19;
 }

@@ -1,7 +1,7 @@
-// Package stockinfo — bundle карточки эмитента поверх блока info
+// Package stockinfo — источник секции StockInfo поверх блока info
 // эндпоинта FinanceMarker /api/fm/v2/stocks/{exchange}:{code}. Делает
-// один HTTP-вызов, парсит ответ и раскладывает значения по каноничным
-// полям.
+// один HTTP-вызов, парсит ответ и возвращает заполненный
+// company.StockInfo.
 //
 // Поддерживается только MOEX: единственная биржа, по которой проект
 // возвращает карточки.
@@ -13,16 +13,12 @@ import (
 	"fmt"
 	"time"
 
-	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/cache/httpcache"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
 )
 
 const (
-	// ID — стабильный идентификатор bundle в реестре.
-	ID = "stock-info"
-
 	// includeInfo — значение query-параметра include, ограничивающее ответ
 	// блоком info (классификация, описание, ссылки).
 	includeInfo = "info"
@@ -32,69 +28,38 @@ const (
 
 	// cacheTTL — срок жизни HTTP-ответа /stocks в кеше клиента. Блок info
 	// (классификация, описание эмитента, ссылки) меняется крайне редко,
-	// поэтому раз в месяц достаточно. Bundle декларирует свой TTL у
+	// поэтому раз в месяц достаточно. Источник декларирует свой TTL у
 	// каждого исходящего запроса через ctx — фактическое хранение
 	// принадлежит httpcache-уровню клиента (см. httpcache.WithTTL).
 	cacheTTL = 30 * 24 * time.Hour
 )
 
-// fields — полный набор полей, которые bundle раскладывает в
-// FieldValues после HTTP-ответа FinanceMarker. Расширение списка требует
-// синхронной правки translateStockInfo.
-var fields = []data.FieldDescriptor{
-	{ID: domaincompany.FieldIssuerName, Type: data.TypeString, Description: "Название эмитента у справочника."},
-	{ID: domaincompany.FieldSector, Type: data.TypeString, Description: "Сектор эмитента (GICS)."},
-	{ID: domaincompany.FieldSectorID, Type: data.TypeInt64, Description: "Числовой код сектора GICS."},
-	{ID: domaincompany.FieldIndustryGroup, Type: data.TypeString, Description: "Группа отраслей GICS."},
-	{ID: domaincompany.FieldIndustryGroupID, Type: data.TypeInt64, Description: "Числовой код группы отраслей GICS."},
-	{ID: domaincompany.FieldIndustry, Type: data.TypeString, Description: "Отрасль эмитента (GICS)."},
-	{ID: domaincompany.FieldIndustryID, Type: data.TypeInt64, Description: "Числовой код отрасли GICS."},
-	{ID: domaincompany.FieldSubIndustry, Type: data.TypeString, Description: "Под-отрасль эмитента (GICS)."},
-	{ID: domaincompany.FieldSubIndustryID, Type: data.TypeInt64, Description: "Числовой код под-отрасли GICS."},
-	{ID: domaincompany.FieldCountry, Type: data.TypeString, Description: "Страна регистрации эмитента."},
-	{ID: domaincompany.FieldDescription, Type: data.TypeString, Description: "Текстовое описание эмитента."},
-	{ID: domaincompany.FieldSite, Type: data.TypeString, Description: "Корпоративный сайт эмитента."},
-	{ID: domaincompany.FieldDisclosureLink, Type: data.TypeString, Description: "Ссылка на страницу раскрытия эмитента."},
-	{ID: domaincompany.FieldPrimaryReportTicker, Type: data.TypeString, Description: "Тикер основной бумаги, к которой привязана отчётность."},
-	{ID: domaincompany.FieldPrimaryReportExchange, Type: data.TypeExchange, Description: "Биржа основной отчётной бумаги."},
-	{ID: domaincompany.FieldExchange, Type: data.TypeExchange, Description: "Биржа листинга бумаги."},
-	{ID: domaincompany.FieldCurrency, Type: data.TypeCurrency, Description: "Валюта торгов бумагой."},
-	{ID: domaincompany.FieldReportFrequency, Type: data.TypeReportFrequency, Description: "Частота публикации отчётности эмитентом."},
-	{ID: domaincompany.FieldSPB, Type: data.TypeBool, Description: "Дополнительный листинг на СПБ-бирже."},
-}
-
-// Bundle — реализация data.Bundle для блока info FinanceMarker.
-// Кеширование живёт уровнем ниже, на http-transport клиента; bundle
+// Source — реализация company.StockInfoSource для блока info FinanceMarker.
+// Кеширование живёт уровнем ниже, на http-transport клиента; источник
 // только декларирует TTL у своего запроса через ctx (httpcache.WithTTL).
-type Bundle struct {
+type Source struct {
 	client *client.Client
 }
 
-// New собирает bundle поверх общего FinanceMarker-клиента.
-func New(c *client.Client) *Bundle {
-	return &Bundle{client: c}
+// New собирает источник поверх общего FinanceMarker-клиента.
+func New(c *client.Client) *Source {
+	return &Source{client: c}
 }
 
-// BundleID — реализация data.Bundle.
-func (*Bundle) BundleID() string { return ID }
-
-// Fields — реализация data.Bundle.
-func (*Bundle) Fields() []data.FieldDescriptor { return fields }
-
-// Fetch запрашивает карточку эмитента, переводит блок info в плоский
-// FieldValues. Сетевые и HTTP-ошибки приходят из общего клиента уже
+// FindByTicker запрашивает карточку эмитента, переводит блок info в
+// StockInfo. Сетевые и HTTP-ошибки приходят из общего клиента уже
 // классифицированными (см. client.New / classifyError), 404 здесь
-// переводится в domaincompany.ErrNotFound.
+// переводится в company.ErrNotFound.
 //
 // TTL для http-кеша выставляется на ctx через httpcache.WithTTL. Если
 // у клиента кеш не подключён (CacheDir пустой) — аннотация остаётся в
 // ctx без эффекта, и запрос идёт в сеть как есть.
-func (b *Bundle) Fetch(ctx context.Context, ticker string) (data.FieldValues, error) {
+func (s *Source) FindByTicker(ctx context.Context, ticker string) (*company.StockInfo, error) {
 	ctx = httpcache.WithTTL(ctx, cacheTTL)
 	symbol := codeExchangeMOEX + ":" + ticker
 
 	var dto stockDTO
-	resp, err := b.client.R().
+	resp, err := s.client.R().
 		SetContext(ctx).
 		SetPathParam("symbol", symbol).
 		SetQueryParam("include", includeInfo).
@@ -107,7 +72,7 @@ func (b *Bundle) Fetch(ctx context.Context, ticker string) (data.FieldValues, er
 		case !resp.IsError():
 			return nil, fmt.Errorf("decode financemarker payload: %w", err)
 		case errors.Is(err, client.ErrNotFound):
-			return nil, domaincompany.ErrNotFound
+			return nil, company.ErrNotFound
 		default:
 			return nil, err //nolint:wrapcheck // err уже сформирован classifyError общего клиента
 		}

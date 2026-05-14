@@ -2,164 +2,128 @@
 package connect
 
 import (
-	"fmt"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 )
 
-// Стабильные строковые коды доменных enum-ов. Менять значения нельзя —
-// это часть внешнего контракта (попадает в ответ клиента).
-// *Unspecified трактуется как «нет значения» — пустая строка, поле
-// выпадает из map в encodeEnum.
+// Таблицы перевода доменных enum-ов в proto enum-ы. Численные значения
+// домена и proto-схемы фиксированы и совпадают, но явные таблицы
+// держат маппинг под контролем: добавление нового значения в домен
+// либо появляется здесь сознательно, либо упадёт в default-ветке
+// proto-enum как Unspecified.
 var (
-	securityTypeCode = map[company.SecurityType]string{
-		company.SecurityTypeUnspecified:       "",
-		company.SecurityTypeCommonShare:       "common_share",
-		company.SecurityTypePreferredShare:    "preferred_share",
-		company.SecurityTypeDepositaryReceipt: "depositary_receipt",
+	securityTypeProto = map[company.SecurityType]companyv1.SecurityType{
+		company.SecurityTypeUnspecified:       companyv1.SecurityType_SECURITY_TYPE_UNSPECIFIED,
+		company.SecurityTypeCommonShare:       companyv1.SecurityType_COMMON_SHARE,
+		company.SecurityTypePreferredShare:    companyv1.SecurityType_PREFERRED_SHARE,
+		company.SecurityTypeDepositaryReceipt: companyv1.SecurityType_DEPOSITARY_RECEIPT,
 	}
-	listingLevelCode = map[company.ListingLevel]string{
-		company.ListingLevelUnspecified: "",
-		company.ListingLevelFirst:       "first",
-		company.ListingLevelSecond:      "second",
-		company.ListingLevelThird:       "third",
+	listingLevelProto = map[company.ListingLevel]companyv1.ListingLevel{
+		company.ListingLevelUnspecified: companyv1.ListingLevel_LISTING_LEVEL_UNSPECIFIED,
+		company.ListingLevelFirst:       companyv1.ListingLevel_FIRST,
+		company.ListingLevelSecond:      companyv1.ListingLevel_SECOND,
+		company.ListingLevelThird:       companyv1.ListingLevel_THIRD,
 	}
-	currencyCode = map[company.Currency]string{
-		company.CurrencyUnspecified: "",
-		company.CurrencyRUB:         "RUB",
-		company.CurrencyUSD:         "USD",
-		company.CurrencyEUR:         "EUR",
+	currencyProto = map[company.Currency]companyv1.Currency{
+		company.CurrencyUnspecified: companyv1.Currency_CURRENCY_UNSPECIFIED,
+		company.CurrencyRUB:         companyv1.Currency_RUB,
+		company.CurrencyUSD:         companyv1.Currency_USD,
+		company.CurrencyEUR:         companyv1.Currency_EUR,
 	}
-	exchangeCode = map[company.Exchange]string{
-		company.ExchangeUnspecified: "",
-		company.ExchangeMOEX:        "moex",
+	exchangeProto = map[company.Exchange]companyv1.Exchange{
+		company.ExchangeUnspecified: companyv1.Exchange_EXCHANGE_UNSPECIFIED,
+		company.ExchangeMOEX:        companyv1.Exchange_MOEX,
 	}
-	reportFrequencyCode = map[company.ReportFrequency]string{
-		company.ReportFrequencyUnspecified: "",
-		company.ReportFrequencyYearly:      "yearly",
-		company.ReportFrequencyQuarterly:   "quarterly",
+	reportFrequencyProto = map[company.ReportFrequency]companyv1.ReportFrequency{
+		company.ReportFrequencyUnspecified: companyv1.ReportFrequency_REPORT_FREQUENCY_UNSPECIFIED,
+		company.ReportFrequencyYearly:      companyv1.ReportFrequency_YEARLY,
+		company.ReportFrequencyQuarterly:   companyv1.ReportFrequency_QUARTERLY,
 	}
 )
 
-// fieldTypeResolver — поиск типа поля по id. Сервер строит его поверх
-// data.Registry; mapper остаётся независимым от того, откуда берётся
-// метаданные.
-type fieldTypeResolver func(id data.Field) (data.FieldType, bool)
-
-// toProtoFields упаковывает значения, собранные сервисом, в карту полей
-// proto-ответа. Тип каждой ветки oneof выбирается по типу поля,
-// найденному в реестре.
-// «Значения нет» (нулевая дата, *Unspecified) — поля в map не будет,
-// а не пустой строки/нулевой ветки.
-func toProtoFields(values data.FieldValues, fieldType fieldTypeResolver) (map[string]*companyv1.FieldValue, error) {
-	out := make(map[string]*companyv1.FieldValue, len(values))
-	for fieldID, raw := range values {
-		t, ok := fieldType(fieldID)
-		if !ok {
-			return nil, fmt.Errorf("field %q is not in registry", fieldID)
-		}
-		fv, err := encodeFieldValue(t, raw)
-		if err != nil {
-			return nil, fmt.Errorf("encode %s: %w", fieldID, err)
-		}
-		if fv == nil {
-			continue
-		}
-		out[string(fieldID)] = fv
+// toProtoCompany переводит domain-агрегат в proto-сообщение. nil-секции
+// агрегата превращаются в nil-поля proto (отсутствуют по семантике proto-3).
+func toProtoCompany(c *company.Company) *companyv1.Company {
+	if c == nil {
+		return nil
 	}
-	return out, nil
-}
-
-// encodeFieldValue выбирает ветку oneof по типу поля. Возвращает (nil, nil),
-// если значение трактуется как «отсутствует» — для нулевого time.Time
-// и для *Unspecified enum-ов.
-func encodeFieldValue(t data.FieldType, raw any) (*companyv1.FieldValue, error) {
-	switch t {
-	case data.TypeString:
-		return encodeString(raw)
-	case data.TypeInt64:
-		return encodeInt64(raw)
-	case data.TypeBool:
-		return encodeBool(raw)
-	case data.TypeDate:
-		return encodeDate(raw)
-	case data.TypeSecurityType:
-		return encodeEnum(raw, securityTypeCode)
-	case data.TypeListingLevel:
-		return encodeEnum(raw, listingLevelCode)
-	case data.TypeCurrency:
-		return encodeEnum(raw, currencyCode)
-	case data.TypeExchange:
-		return encodeEnum(raw, exchangeCode)
-	case data.TypeReportFrequency:
-		return encodeEnum(raw, reportFrequencyCode)
-	default:
-		return nil, fmt.Errorf("unsupported field type %d", t)
+	return &companyv1.Company{
+		SecurityDescription: toProtoSecurityDescription(c.SecurityDescription),
+		StockInfo:           toProtoStockInfo(c.StockInfo),
 	}
 }
 
-func encodeString(raw any) (*companyv1.FieldValue, error) {
-	v, ok := raw.(string)
-	if !ok {
-		return nil, fmt.Errorf("expected string, got %T", raw)
+func toProtoSecurityDescription(d *company.SecurityDescription) *companyv1.SecurityDescription {
+	if d == nil {
+		return nil
 	}
-	return stringValue(v), nil
+	return &companyv1.SecurityDescription{
+		Ticker:                 d.Ticker,
+		Isin:                   d.ISIN,
+		Name:                   d.Name,
+		ShortName:              d.ShortName,
+		IssueName:              d.IssueName,
+		LatName:                d.LatName,
+		RegNumber:              d.RegNumber,
+		SecurityTypeName:       d.SecurityTypeName,
+		SecurityGroup:          d.SecurityGroup,
+		SecurityGroupName:      d.SecurityGroupName,
+		SecurityType:           securityTypeProto[d.SecurityType],
+		ListingLevel:           listingLevelProto[d.ListingLevel],
+		FaceValue:              d.FaceValue,
+		FaceUnit:               currencyProto[d.FaceUnit],
+		IssueSize:              d.IssueSize,
+		IssueDate:              encodeDate(d.IssueDate),
+		RegistryDate:           encodeDate(d.RegistryDate),
+		EmitterId:              d.EmitterID,
+		HasProspectus:          d.HasProspectus,
+		HasDefault:             d.HasDefault,
+		HasTechnicalDefault:    d.HasTechnicalDefault,
+		EmitentMismatchCurrent: d.EmitentMismatchCurrent,
+		IsQualifiedInvestors:   d.IsQualifiedInvestors,
+		MorningSession:         d.MorningSession,
+		EveningSession:         d.EveningSession,
+		WeekendSession:         d.WeekendSession,
+	}
 }
 
-func encodeInt64(raw any) (*companyv1.FieldValue, error) {
-	v, ok := raw.(int64)
-	if !ok {
-		return nil, fmt.Errorf("expected int64, got %T", raw)
+func toProtoStockInfo(i *company.StockInfo) *companyv1.StockInfo {
+	if i == nil {
+		return nil
 	}
-	return &companyv1.FieldValue{Value: &companyv1.FieldValue_IntValue{IntValue: v}}, nil
-}
-
-func encodeBool(raw any) (*companyv1.FieldValue, error) {
-	v, ok := raw.(bool)
-	if !ok {
-		return nil, fmt.Errorf("expected bool, got %T", raw)
+	return &companyv1.StockInfo{
+		IssuerName:            i.IssuerName,
+		Sector:                i.Sector,
+		IndustryGroup:         i.IndustryGroup,
+		Industry:              i.Industry,
+		SubIndustry:           i.SubIndustry,
+		SectorId:              i.SectorID,
+		IndustryGroupId:       i.IndustryGroupID,
+		IndustryId:            i.IndustryID,
+		SubIndustryId:         i.SubIndustryID,
+		Country:               i.Country,
+		Description:           i.Description,
+		Site:                  i.Site,
+		DisclosureLink:        i.DisclosureLink,
+		PrimaryReportTicker:   i.PrimaryReportTicker,
+		PrimaryReportExchange: exchangeProto[i.PrimaryReportExchange],
+		Exchange:              exchangeProto[i.Exchange],
+		Currency:              currencyProto[i.Currency],
+		ReportFrequency:       reportFrequencyProto[i.ReportFrequency],
+		Spb:                   i.SPB,
 	}
-	return &companyv1.FieldValue{Value: &companyv1.FieldValue_BoolValue{BoolValue: v}}, nil
 }
 
 // encodeDate переводит time.Time в Timestamp. Нулевой time.Time
-// (поле не отдано источником) превращается в (nil, nil) — поле выпадает
-// из map, что соответствует семантике proto-3 «значения нет».
-//
-//nolint:nilnil // (nil, nil) — каноничный «пропустить поле» для динамического контракта.
-func encodeDate(raw any) (*companyv1.FieldValue, error) {
-	v, ok := raw.(time.Time)
-	if !ok {
-		return nil, fmt.Errorf("expected time.Time, got %T", raw)
+// (поле не отдано источником) превращается в nil — поле в proto-сообщении
+// будет отсутствовать.
+func encodeDate(t time.Time) *timestamppb.Timestamp {
+	if t.IsZero() {
+		return nil
 	}
-	if v.IsZero() {
-		return nil, nil
-	}
-	return &companyv1.FieldValue{Value: &companyv1.FieldValue_TimestampValue{TimestampValue: timestamppb.New(v)}}, nil
-}
-
-// encodeEnum переводит доменный enum в string_value по таблице стабильных
-// кодов. Пустой код в таблице (стандартный маркер *Unspecified) или
-// отсутствие ключа — это «нет значения», поле выпадает из map.
-//
-//nolint:nilnil // (nil, nil) — каноничный «пропустить поле» для динамического контракта.
-func encodeEnum[T comparable](raw any, table map[T]string) (*companyv1.FieldValue, error) {
-	v, ok := raw.(T)
-	if !ok {
-		return nil, fmt.Errorf("expected %T, got %T", *new(T), raw)
-	}
-	code, found := table[v]
-	if !found || code == "" {
-		return nil, nil
-	}
-	return stringValue(code), nil
-}
-
-func stringValue(v string) *companyv1.FieldValue {
-	return &companyv1.FieldValue{Value: &companyv1.FieldValue_StringValue{StringValue: v}}
+	return timestamppb.New(t)
 }

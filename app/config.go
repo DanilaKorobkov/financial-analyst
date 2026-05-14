@@ -36,7 +36,7 @@ type Config struct {
 type MoexConfig struct {
 	// BaseURL — корень MOEX ISS без завершающего слэша.
 	// Пример: `https://iss.moex.com/iss`.
-	BaseURL string `env:"MOEX_BASE_URL,required"`
+	BaseURL string `env:"MOEX_BASE_URL,required,notEmpty"`
 
 	// Timeout — таймаут на один HTTP-запрос к MOEX ISS.
 	// Пример: `10s`.
@@ -47,16 +47,16 @@ type MoexConfig struct {
 type FinanceMarkerConfig struct {
 	// BaseURL — корень FinanceMarker без завершающего слэша.
 	// Пример: `https://financemarker.ru/api/fm/v2`.
-	BaseURL string `env:"FINANCEMARKER_BASE_URL,required"`
+	BaseURL string `env:"FINANCEMARKER_BASE_URL,required,notEmpty"`
 
 	// Token — API-токен FinanceMarker. Передаётся query-параметром
 	// `api_token` во всех запросах.
-	Token string `env:"FINANCEMARKER_TOKEN,required"`
+	Token string `env:"FINANCEMARKER_TOKEN,required,notEmpty"`
 
 	// CacheRootDir — корневой каталог файлового кеша FinanceMarker.
 	// Внутри провайдер раскладывает данные по подкаталогам
 	// `<CacheRootDir>/<provider>/<bundle>`. Пример: `./.cache`.
-	CacheRootDir string `env:"FINANCEMARKER_CACHE_ROOT_DIR,required"`
+	CacheRootDir string `env:"FINANCEMARKER_CACHE_ROOT_DIR,required,notEmpty"`
 
 	// Timeout — таймаут на один HTTP-запрос.
 	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required"`

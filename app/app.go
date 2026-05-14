@@ -5,55 +5,50 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/DanilaKorobkov/financial-analyst/gen/company/v1/companyv1connect"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/companyprofile"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex"
+	infracompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/bundles/stockinfo"
+	fmclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/bundles/securitydescription"
+	moexclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
 )
 
 // New собирает все слои приложения и возвращает готовый http.Handler.
 //
 // Поток сборки:
-//  1. Поднимаем Provider-ы внешних источников (каждый со своим клиентом
-//     и при необходимости — со своим кешем).
-//  2. Собираем реестр bundles, давая каждому Provider зарегистрировать
-//     свои bundles.
-//  3. Поднимаем репозиторий профилей карточки эмитента (сейчас статический).
-//  4. Создаём CompanyService поверх репозитория профилей и реестра.
+//  1. Поднимаем HTTP-клиенты внешних источников (каждый со своим
+//     таймаутом и при необходимости — со своим кешем).
+//  2. Поднимаем источники секций (SecurityDescriptionSource, StockInfoSource).
+//  3. Оборачиваем источники в company.Repository — он собирает агрегат
+//     параллельно из своих секций.
+//  4. Создаём CompanyService поверх репозитория.
+//  5. Поднимаем Connect-сервер.
 func New(cfg *Config) (http.Handler, error) {
-	providers := []data.Provider{
-		moex.NewProvider(moex.ConfigProvider{
-			BaseURL: cfg.Moex.BaseURL,
-			Timeout: cfg.Moex.Timeout,
-		}),
-		financemarker.NewProvider(financemarker.ConfigProvider{
-			BaseURL:   cfg.FinanceMarker.BaseURL,
-			Token:     cfg.FinanceMarker.Token,
-			Timeout:   cfg.FinanceMarker.Timeout,
-			CacheRoot: cfg.FinanceMarker.CacheRootDir,
-		}),
-	}
+	moexHTTP := moexclient.New(moexclient.Config{
+		BaseURL: cfg.Moex.BaseURL,
+		Timeout: cfg.Moex.Timeout,
+	})
 
-	registry, err := buildCompanyRegistry(providers)
-	if err != nil {
-		return nil, fmt.Errorf("build company registry: %w", err)
-	}
+	fmHTTP := fmclient.New(fmclient.Config{
+		BaseURL:  cfg.FinanceMarker.BaseURL,
+		Token:    cfg.FinanceMarker.Token,
+		Timeout:  cfg.FinanceMarker.Timeout,
+		CacheDir: filepath.Join(cfg.FinanceMarker.CacheRootDir, "financemarker"),
+	})
 
-	profiles := companyprofile.NewDefaultStatic()
+	companies := infracompany.NewRepository(infracompany.ConfigRepository{
+		SecurityDescription: securitydescription.New(moexHTTP),
+		StockInfo:           stockinfo.New(fmHTTP),
+	})
 	companyService := services.NewCompanyService(services.ConfigCompanyService{
-		Profiles: profiles,
-		Fetcher:  registry,
+		Companies: companies,
 	})
-	srv := pconnect.NewServer(pconnect.ConfigServer{
-		Companies: companyService,
-		Registry:  registry,
-	})
+	srv := pconnect.NewServer(pconnect.ConfigServer{Companies: companyService})
 
 	mux := http.NewServeMux()
 	path, handler := companyv1connect.NewCompanyServiceHandler(srv)

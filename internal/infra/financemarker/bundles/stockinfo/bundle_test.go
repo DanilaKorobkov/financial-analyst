@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/bundles/stockinfo"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
 )
@@ -18,20 +18,20 @@ import (
 //go:embed testdata/*.json
 var testdataFS embed.FS
 
-type bundleSuite struct {
+type sourceSuite struct {
 	suite.Suite
 
 	handler func(http.ResponseWriter, *http.Request)
 	server  *httptest.Server
-	bundle  *stockinfo.Bundle
+	source  *stockinfo.Source
 }
 
-func TestBundleSuite(t *testing.T) {
+func TestSourceSuite(t *testing.T) {
 	t.Parallel()
-	suite.Run(t, new(bundleSuite))
+	suite.Run(t, new(sourceSuite))
 }
 
-func (s *bundleSuite) SetupTest() {
+func (s *sourceSuite) SetupTest() {
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -43,19 +43,14 @@ func (s *bundleSuite) SetupTest() {
 		Token:   "test-token",
 		Timeout: 5 * time.Second,
 	})
-	s.bundle = stockinfo.New(c)
+	s.source = stockinfo.New(c)
 }
 
-func (s *bundleSuite) TearDownTest() {
+func (s *sourceSuite) TearDownTest() {
 	s.server.Close()
 }
 
-func (s *bundleSuite) TestMetadata() {
-	s.Equal(stockinfo.ID, s.bundle.BundleID())
-	s.Require().Len(s.bundle.Fields(), 19)
-}
-
-func (s *bundleSuite) TestFetchHappyPath() {
+func (s *sourceSuite) TestFindByTickerHappyPath() {
 	body := s.readFixture("sber_card.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/api/fm/v2/stocks/MOEX:SBER", r.URL.Path)
@@ -65,40 +60,40 @@ func (s *bundleSuite) TestFetchHappyPath() {
 		_, _ = w.Write(body)
 	}
 
-	values, err := s.bundle.Fetch(context.Background(), "SBER")
+	got, err := s.source.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	s.Equal("Сбербанк", values[domaincompany.FieldIssuerName])
-	s.Equal("Россия", values[domaincompany.FieldCountry])
-	s.Equal("Финансы", values[domaincompany.FieldSector])
-	s.Equal("Банковская деятельность", values[domaincompany.FieldIndustryGroup])
-	s.Equal("Банковская деятельность", values[domaincompany.FieldIndustry])
-	s.Equal("Диверсифицированные банки", values[domaincompany.FieldSubIndustry])
-	s.Equal("ПАО «Сбербанк» — крупнейший универсальный банк России.", values[domaincompany.FieldDescription])
-	s.Equal("https://www.sberbank.com", values[domaincompany.FieldSite])
-	s.Equal("https://www.sberbank.com/ru/investor-relations", values[domaincompany.FieldDisclosureLink])
-	s.Equal("SBER", values[domaincompany.FieldPrimaryReportTicker])
-	s.Equal(int64(40), values[domaincompany.FieldSectorID])
-	s.Equal(int64(4010), values[domaincompany.FieldIndustryGroupID])
-	s.Equal(int64(401010), values[domaincompany.FieldIndustryID])
-	s.Equal(int64(40101010), values[domaincompany.FieldSubIndustryID])
-	s.Equal(domaincompany.ExchangeMOEX, values[domaincompany.FieldExchange])
-	s.Equal(domaincompany.ExchangeMOEX, values[domaincompany.FieldPrimaryReportExchange])
-	s.Equal(domaincompany.CurrencyRUB, values[domaincompany.FieldCurrency])
-	s.Equal(domaincompany.ReportFrequencyQuarterly, values[domaincompany.FieldReportFrequency])
-	s.Equal(false, values[domaincompany.FieldSPB])
+	s.Require().NotNil(got)
+	s.Equal("Сбербанк", got.IssuerName)
+	s.Equal("Россия", got.Country)
+	s.Equal("Финансы", got.Sector)
+	s.Equal("Банковская деятельность", got.IndustryGroup)
+	s.Equal("Банковская деятельность", got.Industry)
+	s.Equal("Диверсифицированные банки", got.SubIndustry)
+	s.Equal("ПАО «Сбербанк» — крупнейший универсальный банк России.", got.Description)
+	s.Equal("https://www.sberbank.com", got.Site)
+	s.Equal("https://www.sberbank.com/ru/investor-relations", got.DisclosureLink)
+	s.Equal("SBER", got.PrimaryReportTicker)
+	s.Equal(int64(40), got.SectorID)
+	s.Equal(int64(4010), got.IndustryGroupID)
+	s.Equal(int64(401010), got.IndustryID)
+	s.Equal(int64(40101010), got.SubIndustryID)
+	s.Equal(company.ExchangeMOEX, got.Exchange)
+	s.Equal(company.ExchangeMOEX, got.PrimaryReportExchange)
+	s.Equal(company.CurrencyRUB, got.Currency)
+	s.Equal(company.ReportFrequencyQuarterly, got.ReportFrequency)
+	s.False(got.SPB)
 }
 
-// TestFetchErrorMapping проходит по таблице ответов FinanceMarker и
-// проверяет, что классификация HTTP-ошибок + декодер payload-а возвращают
-// ожидаемую ошибку. Только 404 поднимается как domaincompany.ErrNotFound;
-// остальные коды (401, 403, 400+token_not_found, 5xx) едут наверх как
-// непомеченный internal сбой либо как infra-sentinel.
-func (s *bundleSuite) TestFetchErrorMapping() {
+// TestFindByTickerErrorMapping проходит по таблице ответов FinanceMarker.
+// Только 404 поднимается как company.ErrNotFound; остальные коды (401, 403,
+// 400+token_not_found, 5xx) едут наверх как непомеченный internal сбой
+// либо как infra-sentinel.
+func (s *sourceSuite) TestFindByTickerErrorMapping() {
 	cases := []struct {
-		errIs       error // если задан — проверяем errors.Is.
+		errIs       error
 		name        string
-		errContains string // иначе — проверяем подстроку в Error().
+		errContains string
 		body        []byte
 		status      int
 	}{
@@ -106,7 +101,7 @@ func (s *bundleSuite) TestFetchErrorMapping() {
 			name:   "not found mapped to domain ErrNotFound",
 			status: http.StatusNotFound,
 			body:   s.readFixture("not_found.json"),
-			errIs:  domaincompany.ErrNotFound,
+			errIs:  company.ErrNotFound,
 		},
 		{
 			name:   "unauthorized by status reported as infra sentinel",
@@ -150,7 +145,7 @@ func (s *bundleSuite) TestFetchErrorMapping() {
 				}
 			}
 
-			_, err := s.bundle.Fetch(context.Background(), "any")
+			_, err := s.source.FindByTicker(context.Background(), "any")
 
 			s.Require().Error(err)
 			if c.errIs != nil {
@@ -162,17 +157,17 @@ func (s *bundleSuite) TestFetchErrorMapping() {
 	}
 }
 
-func (s *bundleSuite) TestFetchContextCancelled() {
+func (s *sourceSuite) TestFindByTickerContextCancelled() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := s.bundle.Fetch(ctx, "SBER")
+	_, err := s.source.FindByTicker(ctx, "SBER")
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "financemarker request: Get \""+s.server.URL+"/api/fm/v2/stocks/MOEX:SBER?api_token=test-token&include=info\": context canceled")
 }
 
-func (s *bundleSuite) readFixture(name string) []byte {
+func (s *sourceSuite) readFixture(name string) []byte {
 	s.T().Helper()
 	raw, err := testdataFS.ReadFile("testdata/" + name)
 	s.Require().NoError(err)

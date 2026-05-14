@@ -19,82 +19,59 @@ allow:
 # которому разрешено собирать всё вместе.
 
 components:
-  # Domain: каждый агрегат — отдельный компонент. Внутри агрегата лежат
-  # entity, value objects, порты (gateway-интерфейсы), доменные sentinel-
-  # ошибки и enum-ы, специфичные для агрегата.
+  # Domain: агрегат «компания». Внутри лежит сам агрегат, его секции,
+  # value objects (enum-ы), порты источников секций, порт репозитория и
+  # доменные sentinel-ошибки.
   domain-company:
-    in: internal/domain/company
-  # Доменный порт доступа к каноничным полям эмитента: Bundle, Registry,
-  # FieldDescriptor. Не знает про конкретные источники и про агрегаты —
-  # это «нижний» уровень domain, на который опираются все агрегаты.
-  domain-data:
-    in: internal/domain/data
-  # Доменные сервисы. Знают агрегаты и доменные порты — никаких
-  # HTTP/gRPC/провайдеров.
+    in: internal/domain/aggregates/company
+  # Доменные сервисы. Знают агрегаты — никаких HTTP/gRPC/провайдеров.
   domain-services:
     in: internal/domain/services
 
+  # Infra-реализация company.Repository — оркестрирует источники секций
+  # и собирает агрегат Company.
+  infra-company:
+    in: internal/infra/company
+
   # Адаптеры внешних источников данных. Каждый провайдер разбит на:
   #   - общий клиент (в корне папки провайдера) — resty, error-mapping;
-  #   - подпакеты на каждый порт, переиспользующие этот клиент.
+  #   - подпакеты на каждый порт источника секции, переиспользующие клиент.
   # Подпакет одного провайдера не должен импортировать другой подпакет
   # или другой провайдер.
-  infra-moex:
-    in: internal/infra/moex
-  # Общий HTTP-клиент MOEX ISS и провайдер-специфичная классификация
-  # HTTP-ошибок. Не знает ни о bundles, ни о домене — самый низ MOEX-слоя.
   infra-moex-client:
     in: internal/infra/moex/client
-  # Реализации data.Bundle для MOEX. Каждый bundle — отдельный подпакет
-  # внутри `bundles/<имя_бандла>/`, в нём — сам Bundle, парсер, тесты и
-  # testdata. Внутри bundle делает HTTP-вызов, разбирает ответ и
-  # раскладывает значения по каноничным полям — отдельного gateway-слоя нет.
+  # Реализации SecurityDescriptionSource (и других порт-источников MOEX).
+  # Каждый источник — отдельный подпакет внутри `bundles/<имя>/`, в нём —
+  # сам Source, парсер, тесты и testdata.
   infra-moex-bundles:
     in: internal/infra/moex/bundles/**
-  infra-financemarker:
-    in: internal/infra/financemarker
   # Общий HTTP-клиент FinanceMarker.
   infra-financemarker-client:
     in: internal/infra/financemarker/client
-  # Реализации data.Bundle для FinanceMarker. Каждый bundle — отдельный
-  # подпакет внутри `bundles/<имя_бандла>/`.
+  # Реализации StockInfoSource (и других порт-источников FinanceMarker).
   infra-financemarker-bundles:
     in: internal/infra/financemarker/bundles/**
-  # Generic файловый кеш над любым JSON-сериализуемым T. Низкоуровневый
-  # building block: предоставляет Get/Put/LoadOrFetch с per-call TTL.
-  # Используется как хранилище httpcache (Entry — байты HTTP-ответа).
+  # Generic файловый кеш над любым JSON-сериализуемым T.
   infra-cache-filecache:
     in: internal/infra/cache/filecache
-  # Кеширующий http.RoundTripper. Решает кешировать ли исходящий запрос
-  # по TTL из его context.Context (httpcache.WithTTL). Стоит в transport
-  # клиента провайдера: bundles ничего не знают про хранилище, только
-  # аннотируют свой ctx нужным TTL.
+  # Кеширующий http.RoundTripper.
   infra-cache-httpcache:
     in: internal/infra/cache/httpcache
-  # Реализации company.ProfileRepository — какие поля карточки нужны
-  # для тикера. Сейчас единственный вариант — статический набор полей
-  # на все тикеры.
-  infra-companyprofile:
-    in: internal/infra/companyprofile
 
   # Транспортный слой. Знает domain и сгенерированный proto-код (generated).
   presentation:
     in: internal/presentation/**
 
-  # Сгенерированный buf'ом proto-код. За форму его импортов отвечает кодген,
-  # поэтому внутрь не лезем, а снаружи разрешаем импортировать всем, кому надо
-  # (см. commonComponents ниже).
+  # Сгенерированный buf'ом proto-код.
   generated:
     in: gen/**
 
-  # Моки от mockery. Используются только в тестах. Доступны всем через
-  # commonComponents.
+  # Моки от mockery.
   mocks:
     in: mocks/**
 
   # Composition root приложения — собирает domain + infra + presentation
-  # в работающий процесс. Единственный компонент, которому разрешено
-  # знать обо всех остальных.
+  # в работающий процесс.
   app:
     in: app
   cmd:
@@ -102,28 +79,18 @@ components:
 
 deps:
   domain-company:
-    mayDependOn:
-      - domain-data
-    anyVendorDeps: true
-
-  domain-data:
-    mayDependOn:
-      - domain-data
     anyVendorDeps: true
 
   domain-services:
     mayDependOn:
       - domain-company
-      - domain-data
       - domain-services
     anyVendorDeps: true
 
-  infra-moex:
+  infra-company:
     mayDependOn:
-      - domain-data
-      - infra-moex
-      - infra-moex-bundles
-      - infra-moex-client
+      - domain-company
+      - infra-company
     anyVendorDeps: true
 
   infra-moex-client:
@@ -132,29 +99,20 @@ deps:
   infra-moex-bundles:
     mayDependOn:
       - domain-company
-      - domain-data
       - infra-moex-bundles
       - infra-moex-client
-    anyVendorDeps: true
-
-  infra-financemarker:
-    mayDependOn:
-      - domain-data
-      - infra-financemarker
-      - infra-financemarker-bundles
-      - infra-financemarker-client
     anyVendorDeps: true
 
   infra-financemarker-client:
     mayDependOn:
       - infra-cache-filecache
       - infra-cache-httpcache
+      - infra-financemarker-client
     anyVendorDeps: true
 
   infra-financemarker-bundles:
     mayDependOn:
       - domain-company
-      - domain-data
       - infra-cache-httpcache
       - infra-financemarker-bundles
       - infra-financemarker-client
@@ -171,17 +129,9 @@ deps:
       - infra-cache-httpcache
     anyVendorDeps: true
 
-  infra-companyprofile:
-    mayDependOn:
-      - domain-company
-      - domain-data
-      - infra-companyprofile
-    anyVendorDeps: true
-
   presentation:
     mayDependOn:
       - domain-company
-      - domain-data
       - domain-services
       - presentation
     anyVendorDeps: true
@@ -192,7 +142,6 @@ deps:
   mocks:
     mayDependOn:
       - domain-company
-      - domain-data
       - domain-services
     anyVendorDeps: true
 
@@ -200,13 +149,12 @@ deps:
     mayDependOn:
       - app
       - domain-company
-      - domain-data
       - domain-services
-      - infra-moex
+      - infra-company
       - infra-moex-bundles
-      - infra-financemarker
+      - infra-moex-client
       - infra-financemarker-bundles
-      - infra-companyprofile
+      - infra-financemarker-client
       - presentation
     anyVendorDeps: true
 
