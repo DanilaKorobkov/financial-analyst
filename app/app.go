@@ -6,7 +6,6 @@ package app
 
 import (
 	"net/http"
-	"path/filepath"
 
 	"github.com/DanilaKorobkov/financial-analyst/gen/company/v1/companyv1connect"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
@@ -38,7 +37,7 @@ func New(cfg *Config) (http.Handler, error) {
 		BaseURL:  cfg.FinanceMarker.BaseURL,
 		Token:    cfg.FinanceMarker.Token,
 		Timeout:  cfg.FinanceMarker.Timeout,
-		CacheDir: filepath.Join(cfg.FinanceMarker.CacheRootDir, "financemarker"),
+		CacheDir: cfg.FinanceMarker.CacheDir,
 	})
 
 	companies := infracompany.NewRepository(infracompany.ConfigRepository{

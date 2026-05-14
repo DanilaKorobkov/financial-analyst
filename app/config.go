@@ -53,10 +53,10 @@ type FinanceMarkerConfig struct {
 	// `api_token` во всех запросах.
 	Token string `env:"FINANCEMARKER_TOKEN,required,notEmpty"`
 
-	// CacheRootDir — корневой каталог файлового кеша FinanceMarker.
-	// Внутри провайдер раскладывает данные по подкаталогам
-	// `<CacheRootDir>/<provider>/<bundle>`. Пример: `./.cache`.
-	CacheRootDir string `env:"FINANCEMARKER_CACHE_ROOT_DIR,required,notEmpty"`
+	// CacheDir — каталог файлового кеша FinanceMarker. В env задаётся
+	// полным путём (например, `./.cache/financemarker`); composition
+	// root передаёт значение в HTTP-клиент как есть.
+	CacheDir string `env:"FINANCEMARKER_CACHE_DIR,required,notEmpty"`
 
 	// Timeout — таймаут на один HTTP-запрос.
 	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required,notEmpty"`
