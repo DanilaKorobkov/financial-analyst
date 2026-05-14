@@ -57,8 +57,8 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	issueDate := time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC)
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "SBER").
-		Return(&company.Company{
-			SecurityDescription: &company.SecurityDescription{
+		Return(company.Company{
+			SecurityDescription: company.SecurityDescription{
 				Ticker:       "SBER",
 				ISIN:         "RU0009029540",
 				Name:         "Сбербанк России ПАО ао",
@@ -66,9 +66,8 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 				ListingLevel: company.ListingLevelFirst,
 				IssueDate:    issueDate,
 				IssueSize:    21586948000,
-				HasDefault:   false,
 			},
-			StockInfo: &company.StockInfo{
+			StockInfo: company.StockInfo{
 				IssuerName:          "Сбербанк",
 				Sector:              "Финансы",
 				Industry:            "Банковская деятельность",
@@ -92,7 +91,6 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	s.Equal(companyv1.ListingLevel_FIRST, desc.GetListingLevel())
 	s.Equal(int64(21586948000), desc.GetIssueSize())
 	s.Equal(issueDate.Unix(), desc.GetIssueDate().GetSeconds())
-	s.False(desc.GetHasDefault())
 
 	info := resp.Msg.GetCompany().GetStockInfo()
 	s.Require().NotNil(info)
@@ -104,12 +102,12 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 func (s *serverSuite) TestGetCompanyEnumCodes() {
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "SBER").
-		Return(&company.Company{
-			SecurityDescription: &company.SecurityDescription{
+		Return(company.Company{
+			SecurityDescription: company.SecurityDescription{
 				SecurityType: company.SecurityTypePreferredShare,
 				ListingLevel: company.ListingLevelSecond,
 			},
-			StockInfo: &company.StockInfo{
+			StockInfo: company.StockInfo{
 				Exchange:        company.ExchangeMOEX,
 				Currency:        company.CurrencyUSD,
 				ReportFrequency: company.ReportFrequencyQuarterly,
@@ -135,8 +133,8 @@ func (s *serverSuite) TestGetCompanyEnumCodes() {
 func (s *serverSuite) TestGetCompanyEnumUnspecifiedEncodedExplicitly() {
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "any").
-		Return(&company.Company{
-			SecurityDescription: &company.SecurityDescription{
+		Return(company.Company{
+			SecurityDescription: company.SecurityDescription{
 				SecurityType: company.SecurityTypeUnspecified,
 			},
 		}, nil).
@@ -154,9 +152,7 @@ func (s *serverSuite) TestGetCompanyEnumUnspecifiedEncodedExplicitly() {
 func (s *serverSuite) TestGetCompanyZeroDateIsNilTimestamp() {
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "any").
-		Return(&company.Company{
-			SecurityDescription: &company.SecurityDescription{},
-		}, nil).
+		Return(company.Company{}, nil).
 		Once()
 
 	resp, err := s.call("any")
@@ -167,51 +163,10 @@ func (s *serverSuite) TestGetCompanyZeroDateIsNilTimestamp() {
 	s.Nil(desc.GetRegistryDate())
 }
 
-func (s *serverSuite) TestGetCompanyNilCompanyReturnsEmptyResponse() {
-	s.companies.EXPECT().
-		FindByTicker(mock.Anything, "any").
-		Return(nil, nil).
-		Once()
-
-	resp, err := s.call("any")
-	s.Require().NoError(err)
-	s.Nil(resp.Msg.GetCompany())
-}
-
-func (s *serverSuite) TestGetCompanyMissingSecurityDescriptionSection() {
-	s.companies.EXPECT().
-		FindByTicker(mock.Anything, "SBER").
-		Return(&company.Company{
-			StockInfo: &company.StockInfo{IssuerName: "Сбербанк"},
-		}, nil).
-		Once()
-
-	resp, err := s.call("SBER")
-	s.Require().NoError(err)
-
-	s.Nil(resp.Msg.GetCompany().GetSecurityDescription())
-	s.NotNil(resp.Msg.GetCompany().GetStockInfo())
-}
-
-func (s *serverSuite) TestGetCompanyMissingStockInfoSection() {
-	s.companies.EXPECT().
-		FindByTicker(mock.Anything, "SBER").
-		Return(&company.Company{
-			SecurityDescription: &company.SecurityDescription{Ticker: "SBER"},
-		}, nil).
-		Once()
-
-	resp, err := s.call("SBER")
-	s.Require().NoError(err)
-
-	s.NotNil(resp.Msg.GetCompany().GetSecurityDescription())
-	s.Nil(resp.Msg.GetCompany().GetStockInfo())
-}
-
 func (s *serverSuite) TestGetCompanyNotFoundIsCodeNotFound() {
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "missing").
-		Return(nil, company.ErrCompanyNotFound).
+		Return(company.Company{}, company.ErrNotFound).
 		Once()
 
 	_, err := s.call("missing")
@@ -232,7 +187,7 @@ func (s *serverSuite) TestGetCompanyInvalidArgument() {
 func (s *serverSuite) TestGetCompanyInternal() {
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "any").
-		Return(nil, errors.New("downstream boom")).
+		Return(company.Company{}, errors.New("downstream boom")).
 		Once()
 
 	_, err := s.call("any")

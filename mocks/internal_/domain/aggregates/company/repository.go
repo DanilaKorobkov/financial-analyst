@@ -39,24 +39,22 @@ func (_m *Repository) EXPECT() *Repository_Expecter {
 }
 
 // FindByTicker provides a mock function for the type Repository
-func (_mock *Repository) FindByTicker(ctx context.Context, ticker string) (*company.Company, error) {
+func (_mock *Repository) FindByTicker(ctx context.Context, ticker string) (company.Company, error) {
 	ret := _mock.Called(ctx, ticker)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByTicker")
 	}
 
-	var r0 *company.Company
+	var r0 company.Company
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*company.Company, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (company.Company, error)); ok {
 		return returnFunc(ctx, ticker)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *company.Company); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) company.Company); ok {
 		r0 = returnFunc(ctx, ticker)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*company.Company)
-		}
+		r0 = ret.Get(0).(company.Company)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, ticker)
@@ -96,12 +94,12 @@ func (_c *Repository_FindByTicker_Call) Run(run func(ctx context.Context, ticker
 	return _c
 }
 
-func (_c *Repository_FindByTicker_Call) Return(company1 *company.Company, err error) *Repository_FindByTicker_Call {
+func (_c *Repository_FindByTicker_Call) Return(company1 company.Company, err error) *Repository_FindByTicker_Call {
 	_c.Call.Return(company1, err)
 	return _c
 }
 
-func (_c *Repository_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (*company.Company, error)) *Repository_FindByTicker_Call {
+func (_c *Repository_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (company.Company, error)) *Repository_FindByTicker_Call {
 	_c.Call.Return(run)
 	return _c
 }

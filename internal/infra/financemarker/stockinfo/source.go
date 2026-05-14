@@ -54,7 +54,7 @@ func New(c *client.Client) *Source {
 // TTL для http-кеша выставляется на ctx через httpcache.WithTTL. Если
 // у клиента кеш не подключён (CacheDir пустой) — аннотация остаётся в
 // ctx без эффекта, и запрос идёт в сеть как есть.
-func (s *Source) FindByTicker(ctx context.Context, ticker string) (*company.StockInfo, error) {
+func (s *Source) FindByTicker(ctx context.Context, ticker string) (company.StockInfo, error) {
 	ctx = httpcache.WithTTL(ctx, cacheTTL)
 	symbol := codeExchangeMOEX + ":" + ticker
 
@@ -68,13 +68,13 @@ func (s *Source) FindByTicker(ctx context.Context, ticker string) (*company.Stoc
 	if err != nil {
 		switch {
 		case resp == nil || resp.StatusCode() == 0:
-			return nil, fmt.Errorf("financemarker request: %w", err)
+			return company.StockInfo{}, fmt.Errorf("financemarker request: %w", err)
 		case !resp.IsError():
-			return nil, fmt.Errorf("decode financemarker payload: %w", err)
+			return company.StockInfo{}, fmt.Errorf("decode financemarker payload: %w", err)
 		case errors.Is(err, client.ErrNotFound):
-			return nil, company.ErrNotFound
+			return company.StockInfo{}, company.ErrNotFound
 		default:
-			return nil, err //nolint:wrapcheck // err уже сформирован classifyError общего клиента
+			return company.StockInfo{}, err //nolint:wrapcheck // err уже сформирован classifyError общего клиента
 		}
 	}
 

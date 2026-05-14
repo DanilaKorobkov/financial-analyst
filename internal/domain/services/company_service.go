@@ -35,17 +35,17 @@ func NewCompanyService(cfg ConfigCompanyService) *CompanyService {
 //
 // Возможные ошибки:
 //   - ErrTickerEmpty — пустой тикер;
-//   - company.ErrCompanyNotFound — ни один источник секции не нашёл
+//   - company.ErrNotFound — хотя бы один источник секции не нашёл
 //     бумагу по тикеру;
 //   - произвольная ошибка репозитория — пробрасывается с пометкой тикера.
-func (s *CompanyService) GetCompany(ctx context.Context, ticker string) (*company.Company, error) {
+func (s *CompanyService) GetCompany(ctx context.Context, ticker string) (company.Company, error) {
 	if ticker == "" {
-		return nil, ErrTickerEmpty
+		return company.Company{}, ErrTickerEmpty
 	}
 
 	got, err := s.companies.FindByTicker(ctx, ticker)
 	if err != nil {
-		return nil, fmt.Errorf("get company %q: %w", ticker, err)
+		return company.Company{}, fmt.Errorf("get company %q: %w", ticker, err)
 	}
 	return got, nil
 }

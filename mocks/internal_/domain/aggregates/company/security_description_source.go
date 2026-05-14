@@ -39,24 +39,22 @@ func (_m *SecurityDescriptionSource) EXPECT() *SecurityDescriptionSource_Expecte
 }
 
 // FindByTicker provides a mock function for the type SecurityDescriptionSource
-func (_mock *SecurityDescriptionSource) FindByTicker(ctx context.Context, ticker string) (*company.SecurityDescription, error) {
+func (_mock *SecurityDescriptionSource) FindByTicker(ctx context.Context, ticker string) (company.SecurityDescription, error) {
 	ret := _mock.Called(ctx, ticker)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByTicker")
 	}
 
-	var r0 *company.SecurityDescription
+	var r0 company.SecurityDescription
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*company.SecurityDescription, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (company.SecurityDescription, error)); ok {
 		return returnFunc(ctx, ticker)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *company.SecurityDescription); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) company.SecurityDescription); ok {
 		r0 = returnFunc(ctx, ticker)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*company.SecurityDescription)
-		}
+		r0 = ret.Get(0).(company.SecurityDescription)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, ticker)
@@ -96,12 +94,12 @@ func (_c *SecurityDescriptionSource_FindByTicker_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *SecurityDescriptionSource_FindByTicker_Call) Return(securityDescription *company.SecurityDescription, err error) *SecurityDescriptionSource_FindByTicker_Call {
+func (_c *SecurityDescriptionSource_FindByTicker_Call) Return(securityDescription company.SecurityDescription, err error) *SecurityDescriptionSource_FindByTicker_Call {
 	_c.Call.Return(securityDescription, err)
 	return _c
 }
 
-func (_c *SecurityDescriptionSource_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (*company.SecurityDescription, error)) *SecurityDescriptionSource_FindByTicker_Call {
+func (_c *SecurityDescriptionSource_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (company.SecurityDescription, error)) *SecurityDescriptionSource_FindByTicker_Call {
 	_c.Call.Return(run)
 	return _c
 }

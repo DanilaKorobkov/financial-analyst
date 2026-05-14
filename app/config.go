@@ -40,7 +40,7 @@ type MoexConfig struct {
 
 	// Timeout — таймаут на один HTTP-запрос к MOEX ISS.
 	// Пример: `10s`.
-	Timeout time.Duration `env:"MOEX_TIMEOUT,required"`
+	Timeout time.Duration `env:"MOEX_TIMEOUT,required,notEmpty"`
 }
 
 // FinanceMarkerConfig — параметры доступа к FinanceMarker REST API.
@@ -59,17 +59,17 @@ type FinanceMarkerConfig struct {
 	CacheRootDir string `env:"FINANCEMARKER_CACHE_ROOT_DIR,required,notEmpty"`
 
 	// Timeout — таймаут на один HTTP-запрос.
-	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required"`
+	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required,notEmpty"`
 }
 
 // ServerConfig — параметры Connect-сервера financial-analyst.
 type ServerConfig struct {
 	// Port — TCP-порт, который слушает сервер. Bind по всем интерфейсам.
-	Port uint16 `env:"SERVER_PORT,required"`
+	Port uint16 `env:"SERVER_PORT,required,notEmpty"`
 
 	// ReadHeaderTimeout — лимит на чтение заголовков HTTP-запроса.
 	// Защищает от Slowloris-атак; см. http.Server.ReadHeaderTimeout.
-	ReadHeaderTimeout time.Duration `env:"SERVER_READ_HEADER_TIMEOUT,required"`
+	ReadHeaderTimeout time.Duration `env:"SERVER_READ_HEADER_TIMEOUT,required,notEmpty"`
 }
 
 // LoadConfig читает Config из переменных окружения. Перед разбором env

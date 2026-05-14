@@ -2,14 +2,8 @@ package company
 
 import "errors"
 
-var (
-	// ErrNotFound — источник секции не нашёл бумагу по тикеру. Возвращается
-	// реализациями <Section>Source как маркер «нет данных», репозиторий
-	// различает её, чтобы решить, считать ли всю компанию ненайденной.
-	ErrNotFound = errors.New("section not found")
-
-	// ErrCompanyNotFound — репозиторий не собрал ни одной секции: все
-	// источники ответили ErrNotFound. Транспортный слой превращает её
-	// в 404 / CodeNotFound.
-	ErrCompanyNotFound = errors.New("company not found")
-)
+// ErrNotFound — компании (или одной из её секций) по такому тикеру нет.
+// Возвращается источниками секций как маркер «нет данных» и репозиторием —
+// когда хотя бы одна секция не нашлась. Транспортный слой переводит её
+// в 404 / CodeNotFound.
+var ErrNotFound = errors.New("company not found")

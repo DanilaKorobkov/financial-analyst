@@ -66,6 +66,6 @@ type StockInfo struct {
 // StockInfoSource — порт источника секции StockInfo.
 type StockInfoSource interface {
 	// FindByTicker возвращает карточку эмитента по тикеру.
-	// Возвращает (nil, ErrNotFound), если источник не знает тикер.
-	FindByTicker(ctx context.Context, ticker string) (*StockInfo, error)
+	// Возвращает ErrNotFound, если источник не знает тикер.
+	FindByTicker(ctx context.Context, ticker string) (StockInfo, error)
 }

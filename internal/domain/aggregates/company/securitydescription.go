@@ -91,6 +91,6 @@ type SecurityDescription struct {
 // SecurityDescriptionSource — порт источника секции SecurityDescription.
 type SecurityDescriptionSource interface {
 	// FindByTicker возвращает описание бумаги по тикеру.
-	// Возвращает (nil, ErrNotFound), если источник не знает тикер.
-	FindByTicker(ctx context.Context, ticker string) (*SecurityDescription, error)
+	// Возвращает ErrNotFound, если источник не знает тикер.
+	FindByTicker(ctx context.Context, ticker string) (SecurityDescription, error)
 }

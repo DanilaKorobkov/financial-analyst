@@ -36,7 +36,7 @@ func (s *Server) GetCompany(
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
-	return connectrpc.NewResponse(&companyv1.GetCompanyResponse{Company: toProtoCompany(got)}), nil
+	return connectrpc.NewResponse(&companyv1.GetCompanyResponse{Company: toProtoCompany(&got)}), nil
 }
 
 // mapDomainError переводит domain-ошибки в Connect-коды.
@@ -44,7 +44,7 @@ func mapDomainError(err error) error {
 	switch {
 	case errors.Is(err, services.ErrTickerEmpty):
 		return connectrpc.NewError(connectrpc.CodeInvalidArgument, err)
-	case errors.Is(err, company.ErrCompanyNotFound):
+	case errors.Is(err, company.ErrNotFound):
 		return connectrpc.NewError(connectrpc.CodeNotFound, err)
 	default:
 		return connectrpc.NewError(connectrpc.CodeInternal, err)

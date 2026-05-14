@@ -39,24 +39,22 @@ func (_m *StockInfoSource) EXPECT() *StockInfoSource_Expecter {
 }
 
 // FindByTicker provides a mock function for the type StockInfoSource
-func (_mock *StockInfoSource) FindByTicker(ctx context.Context, ticker string) (*company.StockInfo, error) {
+func (_mock *StockInfoSource) FindByTicker(ctx context.Context, ticker string) (company.StockInfo, error) {
 	ret := _mock.Called(ctx, ticker)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByTicker")
 	}
 
-	var r0 *company.StockInfo
+	var r0 company.StockInfo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*company.StockInfo, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (company.StockInfo, error)); ok {
 		return returnFunc(ctx, ticker)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *company.StockInfo); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) company.StockInfo); ok {
 		r0 = returnFunc(ctx, ticker)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*company.StockInfo)
-		}
+		r0 = ret.Get(0).(company.StockInfo)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, ticker)
@@ -96,12 +94,12 @@ func (_c *StockInfoSource_FindByTicker_Call) Run(run func(ctx context.Context, t
 	return _c
 }
 
-func (_c *StockInfoSource_FindByTicker_Call) Return(stockInfo *company.StockInfo, err error) *StockInfoSource_FindByTicker_Call {
+func (_c *StockInfoSource_FindByTicker_Call) Return(stockInfo company.StockInfo, err error) *StockInfoSource_FindByTicker_Call {
 	_c.Call.Return(stockInfo, err)
 	return _c
 }
 
-func (_c *StockInfoSource_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (*company.StockInfo, error)) *StockInfoSource_FindByTicker_Call {
+func (_c *StockInfoSource_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string) (company.StockInfo, error)) *StockInfoSource_FindByTicker_Call {
 	_c.Call.Return(run)
 	return _c
 }

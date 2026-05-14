@@ -106,9 +106,9 @@ func parseDescription(raw []byte) (map[string]string, error) {
 
 // mapDescription раскладывает map[name]value блока description по полям
 // SecurityDescription. Пустой map → company.ErrNotFound (тикер не найден).
-func mapDescription(fields map[string]string) (*company.SecurityDescription, error) {
+func mapDescription(fields map[string]string) (company.SecurityDescription, error) {
 	if len(fields) == 0 {
-		return nil, fmt.Errorf("empty description block: %w", company.ErrNotFound)
+		return company.SecurityDescription{}, fmt.Errorf("empty description block: %w", company.ErrNotFound)
 	}
 
 	p := descriptionParser{fields: fields}
@@ -125,10 +125,10 @@ func mapDescription(fields map[string]string) (*company.SecurityDescription, err
 	eveningSession := p.bool("EVENINGSESSION")
 	weekendSession := p.bool("WEEKENDSESSION")
 	if p.err != nil {
-		return nil, p.err
+		return company.SecurityDescription{}, p.err
 	}
 
-	return &company.SecurityDescription{
+	return company.SecurityDescription{
 		Ticker:                 fields["SECID"],
 		ISIN:                   fields["ISIN"],
 		Name:                   fields["NAME"],

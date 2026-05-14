@@ -45,22 +45,18 @@ var (
 	}
 )
 
-// toProtoCompany переводит domain-агрегат в proto-сообщение. nil-секции
-// агрегата превращаются в nil-поля proto (отсутствуют по семантике proto-3).
+// toProtoCompany переводит domain-агрегат в proto-сообщение. Принимает
+// указатель: домен оперирует value-типами, но Company содержит две
+// тяжёлые секции (общий размер ~512 байт) — копировать на каждый вызов
+// маппера незачем.
 func toProtoCompany(c *company.Company) *companyv1.Company {
-	if c == nil {
-		return nil
-	}
 	return &companyv1.Company{
-		SecurityDescription: toProtoSecurityDescription(c.SecurityDescription),
-		StockInfo:           toProtoStockInfo(c.StockInfo),
+		SecurityDescription: toProtoSecurityDescription(&c.SecurityDescription),
+		StockInfo:           toProtoStockInfo(&c.StockInfo),
 	}
 }
 
 func toProtoSecurityDescription(d *company.SecurityDescription) *companyv1.SecurityDescription {
-	if d == nil {
-		return nil
-	}
 	return &companyv1.SecurityDescription{
 		Ticker:                 d.Ticker,
 		Isin:                   d.ISIN,
@@ -92,9 +88,6 @@ func toProtoSecurityDescription(d *company.SecurityDescription) *companyv1.Secur
 }
 
 func toProtoStockInfo(i *company.StockInfo) *companyv1.StockInfo {
-	if i == nil {
-		return nil
-	}
 	return &companyv1.StockInfo{
 		IssuerName:            i.IssuerName,
 		Sector:                i.Sector,

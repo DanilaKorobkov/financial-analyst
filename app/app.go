@@ -11,10 +11,10 @@ import (
 	"github.com/DanilaKorobkov/financial-analyst/gen/company/v1/companyv1connect"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 	infracompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/bundles/stockinfo"
 	fmclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/bundles/securitydescription"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stockinfo"
 	moexclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/securitydescription"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
 )
 

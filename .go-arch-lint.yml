@@ -41,16 +41,16 @@ components:
   infra-moex-client:
     in: internal/infra/moex/client
   # Реализации SecurityDescriptionSource (и других порт-источников MOEX).
-  # Каждый источник — отдельный подпакет внутри `bundles/<имя>/`, в нём —
-  # сам Source, парсер, тесты и testdata.
-  infra-moex-bundles:
-    in: internal/infra/moex/bundles/**
+  # Каждый источник — отдельный подпакет провайдера, в нём — сам Source,
+  # парсер, тесты и testdata.
+  infra-moex-sources:
+    in: internal/infra/moex/securitydescription
   # Общий HTTP-клиент FinanceMarker.
   infra-financemarker-client:
     in: internal/infra/financemarker/client
   # Реализации StockInfoSource (и других порт-источников FinanceMarker).
-  infra-financemarker-bundles:
-    in: internal/infra/financemarker/bundles/**
+  infra-financemarker-sources:
+    in: internal/infra/financemarker/stockinfo
   # Generic файловый кеш над любым JSON-сериализуемым T.
   infra-cache-filecache:
     in: internal/infra/cache/filecache
@@ -96,10 +96,10 @@ deps:
   infra-moex-client:
     anyVendorDeps: true
 
-  infra-moex-bundles:
+  infra-moex-sources:
     mayDependOn:
       - domain-company
-      - infra-moex-bundles
+      - infra-moex-sources
       - infra-moex-client
     anyVendorDeps: true
 
@@ -110,11 +110,11 @@ deps:
       - infra-financemarker-client
     anyVendorDeps: true
 
-  infra-financemarker-bundles:
+  infra-financemarker-sources:
     mayDependOn:
       - domain-company
       - infra-cache-httpcache
-      - infra-financemarker-bundles
+      - infra-financemarker-sources
       - infra-financemarker-client
     anyVendorDeps: true
 
@@ -151,9 +151,9 @@ deps:
       - domain-company
       - domain-services
       - infra-company
-      - infra-moex-bundles
+      - infra-moex-sources
       - infra-moex-client
-      - infra-financemarker-bundles
+      - infra-financemarker-sources
       - infra-financemarker-client
       - presentation
     anyVendorDeps: true

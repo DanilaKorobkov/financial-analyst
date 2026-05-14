@@ -34,15 +34,15 @@ func (s *companyServiceSuite) SetupTest() {
 }
 
 func (s *companyServiceSuite) TestGetCompanyHappyPath() {
-	want := &company.Company{
-		SecurityDescription: &company.SecurityDescription{
+	want := company.Company{
+		SecurityDescription: company.SecurityDescription{
 			Ticker:       "SBER",
 			ISIN:         "RU0009029540",
 			SecurityType: company.SecurityTypeCommonShare,
 			ListingLevel: company.ListingLevelFirst,
 			IssueDate:    time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC),
 		},
-		StockInfo: &company.StockInfo{
+		StockInfo: company.StockInfo{
 			IssuerName: "Сбербанк",
 			Country:    "Россия",
 			Exchange:   company.ExchangeMOEX,
@@ -63,7 +63,7 @@ func (s *companyServiceSuite) TestGetCompanyHappyPath() {
 func (s *companyServiceSuite) TestGetCompanyPassesTickerAsIs() {
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "sBeR").
-		Return(&company.Company{}, nil).
+		Return(company.Company{}, nil).
 		Once()
 
 	_, err := s.service.GetCompany(context.Background(), "sBeR")
@@ -78,18 +78,18 @@ func (s *companyServiceSuite) TestGetCompanyEmptyTickerSkipsRepository() {
 func (s *companyServiceSuite) TestGetCompanyNotFoundPropagates() {
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "missing").
-		Return(nil, company.ErrCompanyNotFound).
+		Return(company.Company{}, company.ErrNotFound).
 		Once()
 
 	_, err := s.service.GetCompany(context.Background(), "missing")
-	s.Require().ErrorIs(err, company.ErrCompanyNotFound)
+	s.Require().ErrorIs(err, company.ErrNotFound)
 }
 
 func (s *companyServiceSuite) TestGetCompanyArbitraryErrorPropagates() {
 	boom := errors.New("repository down")
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "any").
-		Return(nil, boom).
+		Return(company.Company{}, boom).
 		Once()
 
 	_, err := s.service.GetCompany(context.Background(), "any")

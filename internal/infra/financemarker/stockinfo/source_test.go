@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/bundles/stockinfo"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stockinfo"
 )
 
 //go:embed testdata/*.json
@@ -63,7 +63,6 @@ func (s *sourceSuite) TestFindByTickerHappyPath() {
 	got, err := s.source.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	s.Require().NotNil(got)
 	s.Equal("Сбербанк", got.IssuerName)
 	s.Equal("Россия", got.Country)
 	s.Equal("Финансы", got.Sector)

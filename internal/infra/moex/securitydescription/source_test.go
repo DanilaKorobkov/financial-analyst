@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/bundles/securitydescription"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/securitydescription"
 )
 
 //go:embed testdata/*.json
@@ -64,7 +64,6 @@ func (s *sourceSuite) TestFindByTickerHappyPath() {
 	got, err := s.source.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
-	s.Require().NotNil(got)
 	s.Equal("SBER", got.Ticker)
 	s.Equal("RU0009029540", got.ISIN)
 	s.Equal("Сбербанк России ПАО ао", got.Name)
@@ -110,10 +109,9 @@ func (s *sourceSuite) TestFindByTickerNotFound() {
 		_, _ = w.Write(body)
 	}
 
-	got, err := s.source.FindByTicker(context.Background(), "missing")
+	_, err := s.source.FindByTicker(context.Background(), "missing")
 
 	s.Require().ErrorIs(err, company.ErrNotFound)
-	s.Nil(got)
 }
 
 func (s *sourceSuite) TestFindByTickerServerError() {

@@ -62,8 +62,8 @@ type stockDTO struct {
 }
 
 // translateStockInfo раскладывает info-блок FinanceMarker в StockInfo.
-func translateStockInfo(info *infoDTO) *company.StockInfo {
-	return &company.StockInfo{
+func translateStockInfo(info *infoDTO) company.StockInfo {
+	return company.StockInfo{
 		IssuerName:            info.Name,
 		Sector:                info.Sector,
 		IndustryGroup:         info.IndustryGroup,

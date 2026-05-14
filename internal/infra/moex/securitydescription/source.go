@@ -25,22 +25,22 @@ func New(c *client.Client) *Source {
 
 // FindByTicker запрашивает description у MOEX ISS и возвращает заполненный
 // SecurityDescription. Если ISS вернула пустой блок description (тикер
-// не существует), возвращает (nil, company.ErrNotFound).
-func (s *Source) FindByTicker(ctx context.Context, ticker string) (*company.SecurityDescription, error) {
+// не существует), возвращает company.ErrNotFound.
+func (s *Source) FindByTicker(ctx context.Context, ticker string) (company.SecurityDescription, error) {
 	resp, err := s.client.R().
 		SetContext(ctx).
 		SetPathParam("ticker", ticker).
 		Get("/securities/{ticker}.json")
 	if err != nil {
 		if resp == nil || resp.StatusCode() == 0 {
-			return nil, fmt.Errorf("moex request: %w", err)
+			return company.SecurityDescription{}, fmt.Errorf("moex request: %w", err)
 		}
-		return nil, err //nolint:wrapcheck // err уже сформирован OnAfterResponse в client.New ("moex http status N")
+		return company.SecurityDescription{}, err //nolint:wrapcheck // err уже сформирован OnAfterResponse в client.New ("moex http status N")
 	}
 
 	parsed, err := parseDescription(resp.Body())
 	if err != nil {
-		return nil, fmt.Errorf("parse description: %w", err)
+		return company.SecurityDescription{}, fmt.Errorf("parse description: %w", err)
 	}
 
 	return mapDescription(parsed)
