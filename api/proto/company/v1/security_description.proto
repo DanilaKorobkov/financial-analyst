@@ -1,0 +1,93 @@
+// Описание ценной бумаги — одна из секций агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// SecurityDescription — описание ценной бумаги: идентификаторы выпуска,
+// классификация, параметры эмиссии и режимы дополнительных торговых сессий.
+message SecurityDescription {
+  // Тикер бумаги. Пример: "SBER".
+  string ticker = 1;
+
+  // ISIN — международный идентификатор выпуска (ISO 6166). Пример: "RU0009029540".
+  string isin = 2;
+
+  // Полное наименование бумаги. Пример: "Сбербанк России ПАО ао".
+  string name = 3;
+
+  // Краткое наименование бумаги. Пример: "Сбербанк".
+  string short_name = 4;
+
+  // Тип выпуска текстом. Пример: "Акции обыкновенные".
+  string issue_name = 5;
+
+  // Латинское наименование эмитента. Пример: "Sberbank".
+  string lat_name = 6;
+
+  // Государственный регистрационный номер выпуска. Пример: "10301481B".
+  string reg_number = 7;
+
+  // Тип бумаги текстом, как он отдан источником. Пример: "Акция обыкновенная".
+  string security_type_name = 8;
+
+  // Код группы бумаг. Пример: "stock_shares".
+  string security_group = 9;
+
+  // Название группы бумаг текстом. Пример: "Акции".
+  string security_group_name = 10;
+
+  // Типизированный код типа бумаги. Пример: "COMMON_SHARE".
+  SecurityType security_type = 11;
+
+  // Котировальный уровень листинга. Пример: "FIRST".
+  ListingLevel listing_level = 12;
+
+  // Номинальная стоимость бумаги в `face_unit`. Пример: "3".
+  string face_value = 13;
+
+  // Валюта номинала. Пример: "RUB".
+  Currency face_unit = 14;
+
+  // Размер выпуска в штуках. Пример: "21586948000".
+  int64 issue_size = 15;
+
+  // Дата размещения выпуска. Пример: "2007-07-20T00:00:00Z".
+  google.protobuf.Timestamp issue_date = 16;
+
+  // Дата регистрации выпуска. Пример: "2007-07-11T00:00:00Z".
+  google.protobuf.Timestamp registry_date = 17;
+
+  // Внутренний идентификатор эмитента у источника. Пример: "484".
+  string emitter_id = 18;
+
+  // Наличие зарегистрированного проспекта эмиссии. Пример: true.
+  bool has_prospectus = 19;
+
+  // Признак дефолта по выпуску. Пример: false.
+  bool has_default = 20;
+
+  // Признак технического дефолта по выпуску. Пример: false.
+  bool has_technical_default = 21;
+
+  // Признак расхождения текущего эмитента с эмитентом на момент выпуска.
+  // Пример: false.
+  bool emitent_mismatch_current = 22;
+
+  // Бумага доступна только квалифицированным инвесторам. Пример: false.
+  bool is_qualified_investors = 23;
+
+  // Торгуется в утреннюю дополнительную сессию. Пример: true.
+  bool morning_session = 24;
+
+  // Торгуется в вечернюю дополнительную сессию. Пример: true.
+  bool evening_session = 25;
+
+  // Торгуется в выходные дни. Пример: true.
+  bool weekend_session = 26;
+}

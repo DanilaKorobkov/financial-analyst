@@ -50,7 +50,9 @@ components:
     in: internal/infra/financemarker/client
   # Реализации StockInfoSource (и других порт-источников FinanceMarker).
   infra-financemarker-sources:
-    in: internal/infra/financemarker/stockinfo
+    in:
+      - internal/infra/financemarker/stockinfo
+      - internal/infra/financemarker/stocksummary
   # Generic файловый кеш над любым JSON-сериализуемым T.
   infra-cache-filecache:
     in: internal/infra/cache/filecache

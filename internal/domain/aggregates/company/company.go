@@ -13,4 +13,7 @@ type Company struct {
 
 	// StockInfo — карточка эмитента.
 	StockInfo StockInfo
+
+	// StockSummary — сводные метрики эмитента.
+	StockSummary StockSummary
 }

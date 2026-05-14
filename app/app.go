@@ -12,6 +12,7 @@ import (
 	infracompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/company"
 	fmclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stockinfo"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stocksummary"
 	moexclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/securitydescription"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
@@ -43,6 +44,7 @@ func New(cfg *Config) (http.Handler, error) {
 	companies := infracompany.NewRepository(infracompany.ConfigRepository{
 		SecurityDescription: securitydescription.New(moexHTTP),
 		StockInfo:           stockinfo.New(fmHTTP),
+		StockSummary:        stocksummary.New(fmHTTP),
 	})
 	companyService := services.NewCompanyService(services.ConfigCompanyService{
 		Companies: companies,

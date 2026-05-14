@@ -18,6 +18,7 @@ type repositorySuite struct {
 
 	securityDescription *company_mock.SecurityDescriptionSource
 	stockInfo           *company_mock.StockInfoSource
+	stockSummary        *company_mock.StockSummarySource
 	repo                *infracompany.Repository
 }
 
@@ -29,15 +30,18 @@ func TestRepositorySuite(t *testing.T) {
 func (s *repositorySuite) SetupTest() {
 	s.securityDescription = company_mock.NewSecurityDescriptionSource(s.T())
 	s.stockInfo = company_mock.NewStockInfoSource(s.T())
+	s.stockSummary = company_mock.NewStockSummarySource(s.T())
 	s.repo = infracompany.NewRepository(infracompany.ConfigRepository{
 		SecurityDescription: s.securityDescription,
 		StockInfo:           s.stockInfo,
+		StockSummary:        s.stockSummary,
 	})
 }
 
 func (s *repositorySuite) TestFindByTickerHappyPath() {
 	wantDesc := domaincompany.SecurityDescription{Ticker: "SBER", ISIN: "RU0009029540"}
 	wantInfo := domaincompany.StockInfo{IssuerName: "Сбербанк", Country: "Россия"}
+	wantSummary := domaincompany.StockSummary{Capital: 97627.3, EPS: 78.8, IdeaConsensus: domaincompany.IdeaConsensusBuy}
 	s.securityDescription.EXPECT().
 		FindByTicker(mock.Anything, "SBER").
 		Return(wantDesc, nil).
@@ -46,12 +50,17 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 		FindByTicker(mock.Anything, "SBER").
 		Return(wantInfo, nil).
 		Once()
+	s.stockSummary.EXPECT().
+		FindByTicker(mock.Anything, "SBER").
+		Return(wantSummary, nil).
+		Once()
 
 	got, err := s.repo.FindByTicker(context.Background(), "SBER")
 
 	s.Require().NoError(err)
 	s.Equal(wantDesc, got.SecurityDescription)
 	s.Equal(wantInfo, got.StockInfo)
+	s.Equal(wantSummary, got.StockSummary)
 }
 
 func (s *repositorySuite) TestFindByTickerSecurityDescriptionMissing() {
@@ -62,6 +71,10 @@ func (s *repositorySuite) TestFindByTickerSecurityDescriptionMissing() {
 	s.stockInfo.EXPECT().
 		FindByTicker(mock.Anything, "missing").
 		Return(domaincompany.StockInfo{}, nil).
+		Maybe()
+	s.stockSummary.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(domaincompany.StockSummary{}, nil).
 		Maybe()
 
 	_, err := s.repo.FindByTicker(context.Background(), "missing")
@@ -76,6 +89,28 @@ func (s *repositorySuite) TestFindByTickerStockInfoMissing() {
 	s.stockInfo.EXPECT().
 		FindByTicker(mock.Anything, "missing").
 		Return(domaincompany.StockInfo{}, domaincompany.ErrNotFound).
+		Once()
+	s.stockSummary.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(domaincompany.StockSummary{}, nil).
+		Maybe()
+
+	_, err := s.repo.FindByTicker(context.Background(), "missing")
+	s.Require().ErrorIs(err, domaincompany.ErrNotFound)
+}
+
+func (s *repositorySuite) TestFindByTickerStockSummaryMissing() {
+	s.securityDescription.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(domaincompany.SecurityDescription{}, nil).
+		Maybe()
+	s.stockInfo.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(domaincompany.StockInfo{}, nil).
+		Maybe()
+	s.stockSummary.EXPECT().
+		FindByTicker(mock.Anything, "missing").
+		Return(domaincompany.StockSummary{}, domaincompany.ErrNotFound).
 		Once()
 
 	_, err := s.repo.FindByTicker(context.Background(), "missing")
@@ -92,6 +127,10 @@ func (s *repositorySuite) TestFindByTickerSecurityDescriptionError() {
 		FindByTicker(mock.Anything, "any").
 		Return(domaincompany.StockInfo{}, nil).
 		Maybe()
+	s.stockSummary.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(domaincompany.StockSummary{}, nil).
+		Maybe()
 
 	_, err := s.repo.FindByTicker(context.Background(), "any")
 	s.Require().ErrorIs(err, boom)
@@ -106,6 +145,29 @@ func (s *repositorySuite) TestFindByTickerStockInfoError() {
 	s.stockInfo.EXPECT().
 		FindByTicker(mock.Anything, "any").
 		Return(domaincompany.StockInfo{}, boom).
+		Once()
+	s.stockSummary.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(domaincompany.StockSummary{}, nil).
+		Maybe()
+
+	_, err := s.repo.FindByTicker(context.Background(), "any")
+	s.Require().ErrorIs(err, boom)
+}
+
+func (s *repositorySuite) TestFindByTickerStockSummaryError() {
+	boom := errors.New("fm summary boom")
+	s.securityDescription.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(domaincompany.SecurityDescription{}, nil).
+		Maybe()
+	s.stockInfo.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(domaincompany.StockInfo{}, nil).
+		Maybe()
+	s.stockSummary.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(domaincompany.StockSummary{}, boom).
 		Once()
 
 	_, err := s.repo.FindByTicker(context.Background(), "any")

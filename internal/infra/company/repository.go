@@ -1,7 +1,7 @@
 // Package company — infra-реализация company.Repository: собирает
 // агрегат Company из источников секций (SecurityDescriptionSource,
-// StockInfoSource). Источники вызываются параллельно через conc/pool
-// с отменой контекста по первой ошибке.
+// StockInfoSource, StockSummarySource). Источники вызываются параллельно
+// через conc/pool с отменой контекста по первой ошибке.
 package company
 
 import (
@@ -17,6 +17,7 @@ import (
 type Repository struct {
 	securityDescription domaincompany.SecurityDescriptionSource
 	stockInfo           domaincompany.StockInfoSource
+	stockSummary        domaincompany.StockSummarySource
 }
 
 // ConfigRepository — параметры Repository.
@@ -26,6 +27,9 @@ type ConfigRepository struct {
 
 	// StockInfo — источник карточки эмитента.
 	StockInfo domaincompany.StockInfoSource
+
+	// StockSummary — источник сводных метрик эмитента.
+	StockSummary domaincompany.StockSummarySource
 }
 
 // NewRepository собирает Repository поверх источников секций.
@@ -33,10 +37,11 @@ func NewRepository(cfg ConfigRepository) *Repository {
 	return &Repository{
 		securityDescription: cfg.SecurityDescription,
 		stockInfo:           cfg.StockInfo,
+		stockSummary:        cfg.StockSummary,
 	}
 }
 
-// FindByTicker качает обе секции параллельно. Любая ошибка источника
+// FindByTicker качает все секции параллельно. Любая ошибка источника
 // (включая domaincompany.ErrNotFound) fail-fast отменяет пул и
 // возвращается наверх — агрегат отдаётся только целиком.
 func (r *Repository) FindByTicker(ctx context.Context, ticker string) (domaincompany.Company, error) {
@@ -57,6 +62,14 @@ func (r *Repository) FindByTicker(ctx context.Context, ticker string) (domaincom
 			return fmt.Errorf("stock info: %w", err)
 		}
 		agg.StockInfo = section
+		return nil
+	})
+	p.Go(func(ctx context.Context) error {
+		section, err := r.stockSummary.FindByTicker(ctx, ticker)
+		if err != nil {
+			return fmt.Errorf("stock summary: %w", err)
+		}
+		agg.StockSummary = section
 		return nil
 	})
 	if err := p.Wait(); err != nil {
