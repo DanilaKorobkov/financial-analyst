@@ -36,40 +36,40 @@ type Config struct {
 type MoexConfig struct {
 	// BaseURL — корень MOEX ISS без завершающего слэша.
 	// Пример: `https://iss.moex.com/iss`.
-	BaseURL string `env:"MOEX_BASE_URL,required"`
+	BaseURL string `env:"MOEX_BASE_URL,required,notEmpty"`
 
 	// Timeout — таймаут на один HTTP-запрос к MOEX ISS.
 	// Пример: `10s`.
-	Timeout time.Duration `env:"MOEX_TIMEOUT,required"`
+	Timeout time.Duration `env:"MOEX_TIMEOUT,required,notEmpty"`
 }
 
 // FinanceMarkerConfig — параметры доступа к FinanceMarker REST API.
 type FinanceMarkerConfig struct {
 	// BaseURL — корень FinanceMarker без завершающего слэша.
 	// Пример: `https://financemarker.ru/api/fm/v2`.
-	BaseURL string `env:"FINANCEMARKER_BASE_URL,required"`
+	BaseURL string `env:"FINANCEMARKER_BASE_URL,required,notEmpty"`
 
 	// Token — API-токен FinanceMarker. Передаётся query-параметром
 	// `api_token` во всех запросах.
-	Token string `env:"FINANCEMARKER_TOKEN,required"`
+	Token string `env:"FINANCEMARKER_TOKEN,required,notEmpty"`
 
-	// CacheRootDir — корневой каталог файлового кеша FinanceMarker.
-	// Внутри провайдер раскладывает данные по подкаталогам
-	// `<CacheRootDir>/<provider>/<bundle>`. Пример: `./.cache`.
-	CacheRootDir string `env:"FINANCEMARKER_CACHE_ROOT_DIR,required"`
+	// CacheDir — каталог файлового кеша FinanceMarker. В env задаётся
+	// полным путём (например, `./.cache/financemarker`); composition
+	// root передаёт значение в HTTP-клиент как есть.
+	CacheDir string `env:"FINANCEMARKER_CACHE_DIR,required,notEmpty"`
 
 	// Timeout — таймаут на один HTTP-запрос.
-	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required"`
+	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required,notEmpty"`
 }
 
 // ServerConfig — параметры Connect-сервера financial-analyst.
 type ServerConfig struct {
 	// Port — TCP-порт, который слушает сервер. Bind по всем интерфейсам.
-	Port uint16 `env:"SERVER_PORT,required"`
+	Port uint16 `env:"SERVER_PORT,required,notEmpty"`
 
 	// ReadHeaderTimeout — лимит на чтение заголовков HTTP-запроса.
 	// Защищает от Slowloris-атак; см. http.Server.ReadHeaderTimeout.
-	ReadHeaderTimeout time.Duration `env:"SERVER_READ_HEADER_TIMEOUT,required"`
+	ReadHeaderTimeout time.Duration `env:"SERVER_READ_HEADER_TIMEOUT,required,notEmpty"`
 }
 
 // LoadConfig читает Config из переменных окружения. Перед разбором env

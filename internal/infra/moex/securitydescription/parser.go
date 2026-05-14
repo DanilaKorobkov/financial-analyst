@@ -8,8 +8,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 )
 
 // dateLayout — MOEX отдаёт даты блока description в ISO-форме без
@@ -28,32 +27,32 @@ var (
 	// securityTypeByCode переводит код TYPE блока description MOEX в domain-enum.
 	// Неизвестные значения возвращают zero (SecurityTypeUnspecified) — TYPE
 	// задаётся биржей и со временем расширяется (фонды, облигации и т.п.).
-	securityTypeByCode = map[string]domaincompany.SecurityType{
-		"common_share":       domaincompany.SecurityTypeCommonShare,
-		"preferred_share":    domaincompany.SecurityTypePreferredShare,
-		"depositary_receipt": domaincompany.SecurityTypeDepositaryReceipt,
+	securityTypeByCode = map[string]company.SecurityType{
+		"common_share":       company.SecurityTypeCommonShare,
+		"preferred_share":    company.SecurityTypePreferredShare,
+		"depositary_receipt": company.SecurityTypeDepositaryReceipt,
 	}
 
 	// listingLevelByCode переводит строковое значение LISTLEVEL ("1" / "2" / "3")
 	// в domain-enum. Пустое значение — биржа не указала уровень (Unspecified).
 	// Любое другое значение в parseListingLevel — ошибка: список уровней
 	// зафиксирован MOEX.
-	listingLevelByCode = map[string]domaincompany.ListingLevel{
-		"":  domaincompany.ListingLevelUnspecified,
-		"1": domaincompany.ListingLevelFirst,
-		"2": domaincompany.ListingLevelSecond,
-		"3": domaincompany.ListingLevelThird,
+	listingLevelByCode = map[string]company.ListingLevel{
+		"":  company.ListingLevelUnspecified,
+		"1": company.ListingLevelFirst,
+		"2": company.ListingLevelSecond,
+		"3": company.ListingLevelThird,
 	}
 
 	// faceUnitByCode переводит код FACEUNIT MOEX в Currency-enum.
 	// MOEX использует исторический "SUR" для рубля; ISO-коды USD/EUR — как есть.
 	// Неизвестные значения возвращают zero (CurrencyUnspecified) — список валют
 	// со временем расширяется.
-	faceUnitByCode = map[string]domaincompany.Currency{
-		"SUR": domaincompany.CurrencyRUB,
-		"RUB": domaincompany.CurrencyRUB,
-		"USD": domaincompany.CurrencyUSD,
-		"EUR": domaincompany.CurrencyEUR,
+	faceUnitByCode = map[string]company.Currency{
+		"SUR": company.CurrencyRUB,
+		"RUB": company.CurrencyRUB,
+		"USD": company.CurrencyUSD,
+		"EUR": company.CurrencyEUR,
 	}
 )
 
@@ -105,12 +104,11 @@ func parseDescription(raw []byte) (map[string]string, error) {
 	return nil, errDescriptionBlockMissing
 }
 
-// mapDescription раскладывает map[name]value блока description по
-// каноничным полям FieldValues. Пустой map → domaincompany.ErrNotFound
-// (тикер не найден).
-func mapDescription(fields map[string]string) (data.FieldValues, error) {
+// mapDescription раскладывает map[name]value блока description по полям
+// SecurityDescription. Пустой map → company.ErrNotFound (тикер не найден).
+func mapDescription(fields map[string]string) (company.SecurityDescription, error) {
 	if len(fields) == 0 {
-		return nil, fmt.Errorf("empty description block: %w", domaincompany.ErrNotFound)
+		return company.SecurityDescription{}, fmt.Errorf("empty description block: %w", company.ErrNotFound)
 	}
 
 	p := descriptionParser{fields: fields}
@@ -127,42 +125,42 @@ func mapDescription(fields map[string]string) (data.FieldValues, error) {
 	eveningSession := p.bool("EVENINGSESSION")
 	weekendSession := p.bool("WEEKENDSESSION")
 	if p.err != nil {
-		return nil, p.err
+		return company.SecurityDescription{}, p.err
 	}
 
-	return data.FieldValues{
-		domaincompany.FieldTicker:                 fields["SECID"],
-		domaincompany.FieldISIN:                   fields["ISIN"],
-		domaincompany.FieldName:                   fields["NAME"],
-		domaincompany.FieldShortName:              fields["SHORTNAME"],
-		domaincompany.FieldIssueName:              fields["ISSUENAME"],
-		domaincompany.FieldLatName:                fields["LATNAME"],
-		domaincompany.FieldRegNumber:              fields["REGNUMBER"],
-		domaincompany.FieldSecurityTypeName:       fields["TYPENAME"],
-		domaincompany.FieldSecurityGroup:          fields["GROUP"],
-		domaincompany.FieldSecurityGroupName:      fields["GROUPNAME"],
-		domaincompany.FieldFaceValue:              fields["FACEVALUE"],
-		domaincompany.FieldEmitterID:              fields["EMITTER_ID"],
-		domaincompany.FieldIssueDate:              issueDate,
-		domaincompany.FieldRegistryDate:           registryDate,
-		domaincompany.FieldIssueSize:              issueSize,
-		domaincompany.FieldSecurityType:           securityTypeByCode[fields["TYPE"]],
-		domaincompany.FieldListingLevel:           listLevel,
-		domaincompany.FieldFaceUnit:               faceUnitByCode[fields["FACEUNIT"]],
-		domaincompany.FieldHasProspectus:          hasProspectus,
-		domaincompany.FieldHasDefault:             hasDefault,
-		domaincompany.FieldHasTechnicalDefault:    hasTechnicalDefault,
-		domaincompany.FieldEmitentMismatchCurrent: emitentMismatch,
-		domaincompany.FieldIsQualifiedInvestors:   isQualified,
-		domaincompany.FieldMorningSession:         morningSession,
-		domaincompany.FieldEveningSession:         eveningSession,
-		domaincompany.FieldWeekendSession:         weekendSession,
+	return company.SecurityDescription{
+		Ticker:                 fields["SECID"],
+		ISIN:                   fields["ISIN"],
+		Name:                   fields["NAME"],
+		ShortName:              fields["SHORTNAME"],
+		IssueName:              fields["ISSUENAME"],
+		LatName:                fields["LATNAME"],
+		RegNumber:              fields["REGNUMBER"],
+		SecurityTypeName:       fields["TYPENAME"],
+		SecurityGroup:          fields["GROUP"],
+		SecurityGroupName:      fields["GROUPNAME"],
+		FaceValue:              fields["FACEVALUE"],
+		EmitterID:              fields["EMITTER_ID"],
+		SecurityType:           securityTypeByCode[fields["TYPE"]],
+		ListingLevel:           listLevel,
+		FaceUnit:               faceUnitByCode[fields["FACEUNIT"]],
+		IssueSize:              issueSize,
+		IssueDate:              issueDate,
+		RegistryDate:           registryDate,
+		HasProspectus:          hasProspectus,
+		HasDefault:             hasDefault,
+		HasTechnicalDefault:    hasTechnicalDefault,
+		EmitentMismatchCurrent: emitentMismatch,
+		IsQualifiedInvestors:   isQualified,
+		MorningSession:         morningSession,
+		EveningSession:         eveningSession,
+		WeekendSession:         weekendSession,
 	}, nil
 }
 
-func (p *descriptionParser) listingLevel(key string) domaincompany.ListingLevel {
+func (p *descriptionParser) listingLevel(key string) company.ListingLevel {
 	if p.err != nil {
-		return domaincompany.ListingLevelUnspecified
+		return company.ListingLevelUnspecified
 	}
 	v, err := parseListingLevel(p.fields[key])
 	if err != nil {
@@ -207,10 +205,10 @@ func (p *descriptionParser) bool(key string) bool {
 // parseListingLevel — единственная функция, где нужна валидация (неизвестный
 // уровень — ошибка, а не Unspecified): список уровней зафиксирован MOEX и
 // должен быть пополнен сознательно, если биржа добавит новый.
-func parseListingLevel(s string) (domaincompany.ListingLevel, error) {
+func parseListingLevel(s string) (company.ListingLevel, error) {
 	level, ok := listingLevelByCode[s]
 	if !ok {
-		return domaincompany.ListingLevelUnspecified, fmt.Errorf("unexpected LISTLEVEL value: %q", s)
+		return company.ListingLevelUnspecified, fmt.Errorf("unexpected LISTLEVEL value: %q", s)
 	}
 	return level, nil
 }

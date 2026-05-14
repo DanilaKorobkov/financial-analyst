@@ -17,6 +17,13 @@ modules:
 lint:
   use:
     - STANDARD
+  # ENUM_VALUE_PREFIX заставляет дублировать имя enum в каждом значении
+  # (Currency.CURRENCY_RUB), что в Go выглядит как `Currency_CURRENCY_RUB`.
+  # Уникальность ненулевых значений в пакете обеспечиваем смыслом (валюты,
+  # биржи, типы бумаг не пересекаются), для нулевых остаётся
+  # ENUM_ZERO_VALUE_SUFFIX — он гарантирует уникальные имена *_UNSPECIFIED.
+  except:
+    - ENUM_VALUE_PREFIX
 
 # Breaking — проверка обратной совместимости при изменении схем.
 # Категории: https://buf.build/docs/breaking/rules

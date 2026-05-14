@@ -265,6 +265,5 @@ wacc              # Weighted Average Cost of Capital
 financials        # финансовый раздел отчёта (английский)
 
 # --- Go import-алиасы новых пакетов ---
-moexbundles       # alias для internal/infra/moex/bundles
-fmbundles         # alias для internal/infra/financemarker/bundles
-fcbundle          # alias для internal/infra/filecache/bundle
+moexclient        # alias для internal/infra/moex/client (в app/)
+fmclient          # alias для internal/infra/financemarker/client (в app/)
