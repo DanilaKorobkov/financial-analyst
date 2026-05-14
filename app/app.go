@@ -48,7 +48,7 @@ func New(cfg *Config) (http.Handler, error) {
 	profiles := companyprofile.NewDefaultStatic()
 	companyService := services.NewCompanyService(services.ConfigCompanyService{
 		Profiles: profiles,
-		Registry: registry,
+		Fetcher:  registry,
 	})
 	srv := pconnect.NewServer(pconnect.ConfigServer{
 		Companies: companyService,
