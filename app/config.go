@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -53,10 +55,12 @@ type FinanceMarkerConfig struct {
 	// `api_token` во всех запросах.
 	Token string `env:"FINANCEMARKER_TOKEN,required,notEmpty"`
 
-	// CacheDir — каталог файлового кеша FinanceMarker. В env задаётся
-	// полным путём (например, `./.cache/financemarker`); composition
-	// root передаёт значение в HTTP-клиент как есть.
-	CacheDir string `env:"FINANCEMARKER_CACHE_DIR,required,notEmpty"`
+	// CacheDir — каталог файлового кеша FinanceMarker. Необязательная
+	// переменная: при пустом значении LoadConfig подставит
+	// `os.UserCacheDir()/financial-analyst/financemarker` — кеш-каталог
+	// пользователя по соглашениям ОС (на macOS — `~/Library/Caches`,
+	// на Linux — `${XDG_CACHE_HOME:-~/.cache}`).
+	CacheDir string `env:"FINANCEMARKER_CACHE_DIR"`
 
 	// Timeout — таймаут на один HTTP-запрос.
 	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required,notEmpty"`
@@ -83,6 +87,14 @@ func LoadConfig() (Config, error) {
 	cfg, err := env.ParseAs[Config]()
 	if err != nil {
 		return Config{}, fmt.Errorf("parse env config: %w", err)
+	}
+
+	if cfg.FinanceMarker.CacheDir == "" {
+		base, err := os.UserCacheDir()
+		if err != nil {
+			return Config{}, fmt.Errorf("resolve user cache dir: %w", err)
+		}
+		cfg.FinanceMarker.CacheDir = filepath.Join(base, "financial-analyst", "financemarker")
 	}
 	return cfg, nil
 }
