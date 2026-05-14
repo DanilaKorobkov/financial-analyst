@@ -48,21 +48,14 @@ func (s *Server) GetCompany(
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
-	fields, err := toProtoFields(values, s.fieldType)
+	fields, err := toProtoFields(values, func(id string) (data.FieldType, bool) {
+		fd, ok := s.registry.FieldByID(id)
+		return fd.Type, ok
+	})
 	if err != nil {
 		return nil, connectrpc.NewError(connectrpc.CodeInternal, err)
 	}
 	return connectrpc.NewResponse(&companyv1.GetCompanyResponse{Fields: fields}), nil
-}
-
-// fieldType — резолвер типа поля поверх registry, заточенный под
-// сигнатуру mapper'а.
-func (s *Server) fieldType(id string) (data.FieldType, bool) {
-	fd, ok := s.registry.FieldByID(id)
-	if !ok {
-		return 0, false
-	}
-	return fd.Type, true
 }
 
 // mapDomainError переводит domain-ошибки в Connect-коды.

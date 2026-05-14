@@ -46,29 +46,29 @@ func (s *serverSuite) SetupTest() {
 	s.securityDescription.EXPECT().
 		Fields().
 		Return([]data.FieldDescriptor{
-			{ID: company.FieldTicker},
-			{ID: company.FieldISIN},
-			{ID: company.FieldName},
-			{ID: company.FieldSecurityType},
-			{ID: company.FieldListingLevel},
-			{ID: company.FieldIssueDate},
-			{ID: company.FieldRegistryDate},
-			{ID: company.FieldIssueSize},
-			{ID: company.FieldHasDefault},
+			{ID: company.FieldTicker, Type: data.TypeString},
+			{ID: company.FieldISIN, Type: data.TypeString},
+			{ID: company.FieldName, Type: data.TypeString},
+			{ID: company.FieldSecurityType, Type: data.TypeSecurityType},
+			{ID: company.FieldListingLevel, Type: data.TypeListingLevel},
+			{ID: company.FieldIssueDate, Type: data.TypeDate},
+			{ID: company.FieldRegistryDate, Type: data.TypeDate},
+			{ID: company.FieldIssueSize, Type: data.TypeInt64},
+			{ID: company.FieldHasDefault, Type: data.TypeBool},
 		}).
 		Maybe()
 	s.stockInfo.EXPECT().BundleID().Return("stock-info").Maybe()
 	s.stockInfo.EXPECT().
 		Fields().
 		Return([]data.FieldDescriptor{
-			{ID: company.FieldIssuerName},
-			{ID: company.FieldSector},
-			{ID: company.FieldIndustry},
-			{ID: company.FieldCountry},
-			{ID: company.FieldPrimaryReportTicker},
-			{ID: company.FieldExchange},
-			{ID: company.FieldCurrency},
-			{ID: company.FieldReportFrequency},
+			{ID: company.FieldIssuerName, Type: data.TypeString},
+			{ID: company.FieldSector, Type: data.TypeString},
+			{ID: company.FieldIndustry, Type: data.TypeString},
+			{ID: company.FieldCountry, Type: data.TypeString},
+			{ID: company.FieldPrimaryReportTicker, Type: data.TypeString},
+			{ID: company.FieldExchange, Type: data.TypeExchange},
+			{ID: company.FieldCurrency, Type: data.TypeCurrency},
+			{ID: company.FieldReportFrequency, Type: data.TypeReportFrequency},
 		}).
 		Maybe()
 
@@ -247,7 +247,7 @@ func (s *serverSuite) TestGetCompanyIntAndBool() {
 
 	fields := resp.Msg.GetFields()
 	s.Equal(int64(21586948000), fields[company.FieldIssueSize].GetIntValue())
-	s.Equal(false, fields[company.FieldHasDefault].GetBoolValue())
+	s.False(fields[company.FieldHasDefault].GetBoolValue())
 }
 
 func (s *serverSuite) TestGetCompanyProfileNotFoundIsCodeNotFound() {
@@ -350,6 +350,7 @@ func (s *serverSuite) call(ticker string) (*connectrpc.Response[companyv1.GetCom
 // Используется в тестах с особым поведением профиля; SetupTest по
 // дефолту вешает «один и тот же набор полей на любой тикер».
 func (s *serverSuite) replaceProfiles(profiles *company_mock.ProfileRepository) {
+	s.T().Helper()
 	s.profiles = profiles
 	registry := data.NewRegistry()
 	s.Require().NoError(registry.Register("moex", s.securityDescription))

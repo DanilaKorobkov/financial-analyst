@@ -20,7 +20,7 @@ func TestProviderSuite(t *testing.T) {
 	suite.Run(t, new(providerSuite))
 }
 
-func (s *providerSuite) newProvider() *moex.Provider {
+func (*providerSuite) newProvider() *moex.Provider {
 	return moex.NewProvider(moex.ConfigProvider{
 		BaseURL: "http://example.invalid",
 		Timeout: time.Second,
@@ -54,6 +54,6 @@ func (s *providerSuite) TestRegisterPropagatesError() {
 
 	err := reg.RegisterProvider(p)
 	s.Require().Error(err)
-	s.ErrorContains(err, moex.ProviderID)
-	s.ErrorContains(err, securitydescription.ID)
+	s.Require().ErrorContains(err, moex.ProviderID)
+	s.Require().ErrorContains(err, securitydescription.ID)
 }

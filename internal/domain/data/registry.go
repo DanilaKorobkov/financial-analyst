@@ -218,7 +218,7 @@ func (r *Registry) resolveBundles(fieldIDs []string) ([]Registered, error) {
 
 // fetchAll параллельно зовёт Fetch у всех bundles. Первая ошибка
 // отменяет контекст остальных и возвращается как есть.
-func (r *Registry) fetchAll(ctx context.Context, ticker string, entries []Registered) ([]FieldValues, error) {
+func (*Registry) fetchAll(ctx context.Context, ticker string, entries []Registered) ([]FieldValues, error) {
 	p := pool.NewWithResults[FieldValues]().
 		WithErrors().
 		WithFirstError().

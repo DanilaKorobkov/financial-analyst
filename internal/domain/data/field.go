@@ -11,12 +11,6 @@
 // детали infra.
 package data
 
-// FieldType — закрытый перечень типов значений, которые bundle умеет
-// отдавать. Численные значения фиксируются явно: тип используют файловый
-// кеш и transport-кодек при кодировании значений, и `iota` сделал бы
-// порядок строк load-bearing.
-type FieldType int
-
 const (
 	// FieldIDSeparator — разделитель между id провайдера и коротким
 	// именем поля в полном id (например, `moex::ticker`). Двойное
@@ -42,6 +36,12 @@ const (
 	// TypeReportFrequency — domain-enum частоты публикации отчётности.
 	TypeReportFrequency FieldType = 9
 )
+
+// FieldType — закрытый перечень типов значений, которые bundle умеет
+// отдавать. Численные значения фиксируются явно: тип используют файловый
+// кеш и transport-кодек при кодировании значений, и `iota` сделал бы
+// порядок строк load-bearing.
+type FieldType int
 
 // FieldDescriptor — описание одного каноничного поля в bundle.
 //

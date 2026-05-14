@@ -14,29 +14,35 @@ import (
 
 // Стабильные строковые коды доменных enum-ов. Менять значения нельзя —
 // это часть внешнего контракта (попадает в ответ клиента).
-// *Unspecified намеренно отсутствуют: «нет значения» = ключа нет в map.
+// *Unspecified трактуется как «нет значения» — пустая строка, поле
+// выпадает из map в encodeEnum.
 var (
 	securityTypeCode = map[company.SecurityType]string{
+		company.SecurityTypeUnspecified:       "",
 		company.SecurityTypeCommonShare:       "common_share",
 		company.SecurityTypePreferredShare:    "preferred_share",
 		company.SecurityTypeDepositaryReceipt: "depositary_receipt",
 	}
 	listingLevelCode = map[company.ListingLevel]string{
-		company.ListingLevelFirst:  "first",
-		company.ListingLevelSecond: "second",
-		company.ListingLevelThird:  "third",
+		company.ListingLevelUnspecified: "",
+		company.ListingLevelFirst:       "first",
+		company.ListingLevelSecond:      "second",
+		company.ListingLevelThird:       "third",
 	}
 	currencyCode = map[company.Currency]string{
-		company.CurrencyRUB: "RUB",
-		company.CurrencyUSD: "USD",
-		company.CurrencyEUR: "EUR",
+		company.CurrencyUnspecified: "",
+		company.CurrencyRUB:         "RUB",
+		company.CurrencyUSD:         "USD",
+		company.CurrencyEUR:         "EUR",
 	}
 	exchangeCode = map[company.Exchange]string{
-		company.ExchangeMOEX: "moex",
+		company.ExchangeUnspecified: "",
+		company.ExchangeMOEX:        "moex",
 	}
 	reportFrequencyCode = map[company.ReportFrequency]string{
-		company.ReportFrequencyYearly:    "yearly",
-		company.ReportFrequencyQuarterly: "quarterly",
+		company.ReportFrequencyUnspecified: "",
+		company.ReportFrequencyYearly:      "yearly",
+		company.ReportFrequencyQuarterly:   "quarterly",
 	}
 )
 
@@ -138,8 +144,8 @@ func encodeDate(raw any) (*companyv1.FieldValue, error) {
 }
 
 // encodeEnum переводит доменный enum в string_value по таблице стабильных
-// кодов. *Unspecified в таблице отсутствует — для него возвращается
-// (nil, nil) и поле выпадает из map.
+// кодов. Пустой код в таблице (стандартный маркер *Unspecified) или
+// отсутствие ключа — это «нет значения», поле выпадает из map.
 //
 //nolint:nilnil // (nil, nil) — каноничный «пропустить поле» для динамического контракта.
 func encodeEnum[T comparable](raw any, table map[T]string) (*companyv1.FieldValue, error) {
@@ -148,7 +154,7 @@ func encodeEnum[T comparable](raw any, table map[T]string) (*companyv1.FieldValu
 		return nil, fmt.Errorf("expected %T, got %T", *new(T), raw)
 	}
 	code, found := table[v]
-	if !found {
+	if !found || code == "" {
 		return nil, nil
 	}
 	return stringValue(code), nil

@@ -43,7 +43,7 @@ type Provider struct {
 }
 
 // ConfigProvider — параметры Provider. Включает параметры HTTP-клиента
-// и корень файлового кеша; сам Client инкапсулирован внутри пакета —
+// и корень файлового кеша; сам Client скрыт внутри пакета —
 // composition root о нём не знает.
 type ConfigProvider struct {
 	// BaseURL — корень FinanceMarker REST API без завершающего слэша.

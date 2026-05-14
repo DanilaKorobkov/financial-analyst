@@ -57,6 +57,6 @@ func (s *providerSuite) TestRegisterPropagatesError() {
 
 	err := reg.RegisterProvider(p)
 	s.Require().Error(err)
-	s.ErrorContains(err, financemarker.ProviderID)
-	s.ErrorContains(err, stockinfo.ID)
+	s.Require().ErrorContains(err, financemarker.ProviderID)
+	s.Require().ErrorContains(err, stockinfo.ID)
 }

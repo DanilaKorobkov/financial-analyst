@@ -25,7 +25,7 @@ type Provider struct {
 }
 
 // ConfigProvider — параметры Provider. Включает параметры HTTP-клиента;
-// сам Client инкапсулирован внутри пакета — composition root о нём не знает.
+// сам Client скрыт внутри пакета — composition root о нём не знает.
 type ConfigProvider struct {
 	// BaseURL — корень MOEX ISS без завершающего слэша.
 	BaseURL string

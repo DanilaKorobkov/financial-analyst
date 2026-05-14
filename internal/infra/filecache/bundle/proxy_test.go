@@ -65,13 +65,13 @@ func newFakeBundle(scripts ...fakeScript) *fakeBundle {
 	return &fakeBundle{
 		bundleID: "stock-info",
 		fields: []data.FieldDescriptor{
-			{ID: domaincompany.FieldIssuerName, Description: "Название эмитента."},
-			{ID: domaincompany.FieldIndustry, Description: "Отрасль."},
-			{ID: domaincompany.FieldSectorID, Description: "Код сектора."},
-			{ID: domaincompany.FieldExchange, Description: "Биржа."},
-			{ID: domaincompany.FieldCurrency, Description: "Валюта."},
-			{ID: domaincompany.FieldReportFrequency, Description: "Частота отчётности."},
-			{ID: domaincompany.FieldSPB, Description: "Листинг СПБ."},
+			{ID: domaincompany.FieldIssuerName, Type: data.TypeString, Description: "Название эмитента."},
+			{ID: domaincompany.FieldIndustry, Type: data.TypeString, Description: "Отрасль."},
+			{ID: domaincompany.FieldSectorID, Type: data.TypeInt64, Description: "Код сектора."},
+			{ID: domaincompany.FieldExchange, Type: data.TypeExchange, Description: "Биржа."},
+			{ID: domaincompany.FieldCurrency, Type: data.TypeCurrency, Description: "Валюта."},
+			{ID: domaincompany.FieldReportFrequency, Type: data.TypeReportFrequency, Description: "Частота отчётности."},
+			{ID: domaincompany.FieldSPB, Type: data.TypeBool, Description: "Листинг СПБ."},
 		},
 		scripts: scripts,
 	}
