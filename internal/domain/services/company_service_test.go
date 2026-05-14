@@ -12,16 +12,15 @@ import (
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 	company_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/company"
-	data_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/data"
+	services_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/services"
 )
 
 type companyServiceSuite struct {
 	suite.Suite
 
-	profiles            *company_mock.ProfileRepository
-	securityDescription *data_mock.Bundle
-	stockInfo           *data_mock.Bundle
-	service             *services.CompanyService
+	profiles *company_mock.ProfileRepository
+	fetcher  *services_mock.DataFetcher
+	service  *services.CompanyService
 }
 
 func TestCompanyServiceSuite(t *testing.T) {
@@ -31,37 +30,10 @@ func TestCompanyServiceSuite(t *testing.T) {
 
 func (s *companyServiceSuite) SetupTest() {
 	s.profiles = company_mock.NewProfileRepository(s.T())
-	s.securityDescription = data_mock.NewBundle(s.T())
-	s.stockInfo = data_mock.NewBundle(s.T())
-
-	s.securityDescription.EXPECT().BundleID().Return("security-description").Maybe()
-	s.securityDescription.EXPECT().
-		Fields().
-		Return([]data.FieldDescriptor{
-			{ID: company.FieldTicker},
-			{ID: company.FieldISIN},
-			{ID: company.FieldSecurityType},
-			{ID: company.FieldListingLevel},
-		}).
-		Maybe()
-
-	s.stockInfo.EXPECT().BundleID().Return("stock-info").Maybe()
-	s.stockInfo.EXPECT().
-		Fields().
-		Return([]data.FieldDescriptor{
-			{ID: company.FieldIssuerName},
-			{ID: company.FieldCountry},
-			{ID: company.FieldExchange},
-			{ID: company.FieldCurrency},
-		}).
-		Maybe()
-
-	registry := data.NewRegistry()
-	s.Require().NoError(registry.Register("moex", s.securityDescription))
-	s.Require().NoError(registry.Register("financemarker", s.stockInfo))
+	s.fetcher = services_mock.NewDataFetcher(s.T())
 	s.service = services.NewCompanyService(services.ConfigCompanyService{
 		Profiles: s.profiles,
-		Registry: registry,
+		Fetcher:  s.fetcher,
 	})
 }
 
@@ -73,8 +45,7 @@ func (s *companyServiceSuite) expectProfile(ticker string, fieldIDs ...data.Fiel
 }
 
 func (s *companyServiceSuite) TestGetCompanyHappyPath() {
-	s.expectProfile(
-		"SBER",
+	fields := []data.Field{
 		company.FieldTicker,
 		company.FieldISIN,
 		company.FieldSecurityType,
@@ -83,30 +54,8 @@ func (s *companyServiceSuite) TestGetCompanyHappyPath() {
 		company.FieldCountry,
 		company.FieldExchange,
 		company.FieldCurrency,
-	)
-	s.securityDescription.EXPECT().
-		Fetch(mock.Anything, "SBER").
-		Return(data.FieldValues{
-			company.FieldTicker:       "SBER",
-			company.FieldISIN:         "RU0009029540",
-			company.FieldSecurityType: company.SecurityTypeCommonShare,
-			company.FieldListingLevel: company.ListingLevelFirst,
-		}, nil).
-		Once()
-	s.stockInfo.EXPECT().
-		Fetch(mock.Anything, "SBER").
-		Return(data.FieldValues{
-			company.FieldIssuerName: "Сбербанк",
-			company.FieldCountry:    "Россия",
-			company.FieldExchange:   company.ExchangeMOEX,
-			company.FieldCurrency:   company.CurrencyRUB,
-		}, nil).
-		Once()
-
-	got, err := s.service.GetCompany(context.Background(), "SBER")
-
-	s.Require().NoError(err)
-	s.Equal(data.FieldValues{
+	}
+	want := data.FieldValues{
 		company.FieldTicker:       "SBER",
 		company.FieldISIN:         "RU0009029540",
 		company.FieldSecurityType: company.SecurityTypeCommonShare,
@@ -115,13 +64,23 @@ func (s *companyServiceSuite) TestGetCompanyHappyPath() {
 		company.FieldCountry:      "Россия",
 		company.FieldExchange:     company.ExchangeMOEX,
 		company.FieldCurrency:     company.CurrencyRUB,
-	}, got)
+	}
+	s.expectProfile("SBER", fields...)
+	s.fetcher.EXPECT().
+		Fetch(mock.Anything, "SBER", fields).
+		Return(want, nil).
+		Once()
+
+	got, err := s.service.GetCompany(context.Background(), "SBER")
+
+	s.Require().NoError(err)
+	s.Equal(want, got)
 }
 
 func (s *companyServiceSuite) TestGetCompanyPassesTickerAsIs() {
 	s.expectProfile("sBeR", company.FieldTicker)
-	s.securityDescription.EXPECT().
-		Fetch(mock.Anything, "sBeR").
+	s.fetcher.EXPECT().
+		Fetch(mock.Anything, "sBeR", []data.Field{company.FieldTicker}).
 		Return(data.FieldValues{company.FieldTicker: "sBeR"}, nil).
 		Once()
 
@@ -156,18 +115,22 @@ func (s *companyServiceSuite) TestGetCompanyProfileArbitraryError() {
 }
 
 func (s *companyServiceSuite) TestGetCompanyUnknownFieldPropagates() {
-	// Профиль ссылается на поле, которого нет в реестре — реестр сам
+	// Профиль ссылается на поле, которого нет у fetcher'а — он сам
 	// обнаружит и вернёт ErrFieldNotFound, сервис пробрасывает с пометкой.
 	s.expectProfile("SBER", "unknown")
+	s.fetcher.EXPECT().
+		Fetch(mock.Anything, "SBER", []data.Field{"unknown"}).
+		Return(nil, data.ErrFieldNotFound).
+		Once()
 
 	_, err := s.service.GetCompany(context.Background(), "SBER")
 	s.Require().ErrorIs(err, data.ErrFieldNotFound)
 }
 
-func (s *companyServiceSuite) TestGetCompanyBundleNotFoundPropagates() {
+func (s *companyServiceSuite) TestGetCompanyFetcherNotFoundPropagates() {
 	s.expectProfile("missing", company.FieldTicker)
-	s.securityDescription.EXPECT().
-		Fetch(mock.Anything, "missing").
+	s.fetcher.EXPECT().
+		Fetch(mock.Anything, "missing", []data.Field{company.FieldTicker}).
 		Return(nil, company.ErrNotFound).
 		Once()
 
@@ -175,11 +138,11 @@ func (s *companyServiceSuite) TestGetCompanyBundleNotFoundPropagates() {
 	s.Require().ErrorIs(err, company.ErrNotFound)
 }
 
-func (s *companyServiceSuite) TestGetCompanyArbitraryBundleErrorPropagates() {
+func (s *companyServiceSuite) TestGetCompanyArbitraryFetcherErrorPropagates() {
 	sentinel := errors.New("boom")
 	s.expectProfile("any", company.FieldTicker)
-	s.securityDescription.EXPECT().
-		Fetch(mock.Anything, "any").
+	s.fetcher.EXPECT().
+		Fetch(mock.Anything, "any", []data.Field{company.FieldTicker}).
 		Return(nil, sentinel).
 		Once()
 
@@ -187,8 +150,12 @@ func (s *companyServiceSuite) TestGetCompanyArbitraryBundleErrorPropagates() {
 	s.Require().ErrorIs(err, sentinel)
 }
 
-func (s *companyServiceSuite) TestGetCompanyEmptyProfileSkipsFetch() {
+func (s *companyServiceSuite) TestGetCompanyEmptyProfilePassesEmptyFields() {
 	s.expectProfile("SBER")
+	s.fetcher.EXPECT().
+		Fetch(mock.Anything, "SBER", []data.Field(nil)).
+		Return(data.FieldValues{}, nil).
+		Once()
 
 	got, err := s.service.GetCompany(context.Background(), "SBER")
 

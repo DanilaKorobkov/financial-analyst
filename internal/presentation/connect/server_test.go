@@ -104,7 +104,7 @@ func (s *serverSuite) SetupTest() {
 	srv := pconnect.NewServer(pconnect.ConfigServer{
 		Companies: services.NewCompanyService(services.ConfigCompanyService{
 			Profiles: s.profiles,
-			Registry: registry,
+			Fetcher:  registry,
 		}),
 		Registry: registry,
 	})
@@ -406,7 +406,7 @@ func (s *serverSuite) callWithSyntheticBundle(fieldID data.Field, ft data.FieldT
 	srv := pconnect.NewServer(pconnect.ConfigServer{
 		Companies: services.NewCompanyService(services.ConfigCompanyService{
 			Profiles: profiles,
-			Registry: registry,
+			Fetcher:  registry,
 		}),
 		Registry: registry,
 	})
@@ -475,7 +475,7 @@ func (s *serverSuite) replaceProfiles(profiles *company_mock.ProfileRepository) 
 	srv := pconnect.NewServer(pconnect.ConfigServer{
 		Companies: services.NewCompanyService(services.ConfigCompanyService{
 			Profiles: profiles,
-			Registry: registry,
+			Fetcher:  registry,
 		}),
 		Registry: registry,
 	})
