@@ -2,12 +2,13 @@ package companyprofile
 
 import (
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
 )
 
 // defaultFieldIDs — каноничные id полей карточки эмитента, которые
 // возвращает Static до появления per-ticker профилей. Список — слепок
 // прежнего spec/company.yaml; менять его — значит менять контракт карточки.
-var defaultFieldIDs = []string{
+var defaultFieldIDs = []data.Field{
 	company.FieldTicker,
 	company.FieldISIN,
 	company.FieldName,

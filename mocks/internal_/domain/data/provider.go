@@ -36,6 +36,52 @@ func (_m *Provider) EXPECT() *Provider_Expecter {
 	return &Provider_Expecter{mock: &_m.Mock}
 }
 
+// Bundles provides a mock function for the type Provider
+func (_mock *Provider) Bundles() []data.Bundle {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Bundles")
+	}
+
+	var r0 []data.Bundle
+	if returnFunc, ok := ret.Get(0).(func() []data.Bundle); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]data.Bundle)
+		}
+	}
+	return r0
+}
+
+// Provider_Bundles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Bundles'
+type Provider_Bundles_Call struct {
+	*mock.Call
+}
+
+// Bundles is a helper method to define mock.On call
+func (_e *Provider_Expecter) Bundles() *Provider_Bundles_Call {
+	return &Provider_Bundles_Call{Call: _e.mock.On("Bundles")}
+}
+
+func (_c *Provider_Bundles_Call) Run(run func()) *Provider_Bundles_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Provider_Bundles_Call) Return(bundles []data.Bundle) *Provider_Bundles_Call {
+	_c.Call.Return(bundles)
+	return _c
+}
+
+func (_c *Provider_Bundles_Call) RunAndReturn(run func() []data.Bundle) *Provider_Bundles_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ID provides a mock function for the type Provider
 func (_mock *Provider) ID() string {
 	ret := _mock.Called()
@@ -76,57 +122,6 @@ func (_c *Provider_ID_Call) Return(s string) *Provider_ID_Call {
 }
 
 func (_c *Provider_ID_Call) RunAndReturn(run func() string) *Provider_ID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// Register provides a mock function for the type Provider
-func (_mock *Provider) Register(registrar data.Registrar) error {
-	ret := _mock.Called(registrar)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Register")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(data.Registrar) error); ok {
-		r0 = returnFunc(registrar)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// Provider_Register_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Register'
-type Provider_Register_Call struct {
-	*mock.Call
-}
-
-// Register is a helper method to define mock.On call
-//   - registrar data.Registrar
-func (_e *Provider_Expecter) Register(registrar interface{}) *Provider_Register_Call {
-	return &Provider_Register_Call{Call: _e.mock.On("Register", registrar)}
-}
-
-func (_c *Provider_Register_Call) Run(run func(registrar data.Registrar)) *Provider_Register_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 data.Registrar
-		if args[0] != nil {
-			arg0 = args[0].(data.Registrar)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *Provider_Register_Call) Return(err error) *Provider_Register_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *Provider_Register_Call) RunAndReturn(run func(registrar data.Registrar) error) *Provider_Register_Call {
 	_c.Call.Return(run)
 	return _c
 }

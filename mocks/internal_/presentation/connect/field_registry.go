@@ -37,7 +37,7 @@ func (_m *fieldRegistry) EXPECT() *fieldRegistry_Expecter {
 }
 
 // FieldByID provides a mock function for the type fieldRegistry
-func (_mock *fieldRegistry) FieldByID(id string) (data.FieldDescriptor, bool) {
+func (_mock *fieldRegistry) FieldByID(id data.Field) (data.FieldDescriptor, bool) {
 	ret := _mock.Called(id)
 
 	if len(ret) == 0 {
@@ -46,15 +46,15 @@ func (_mock *fieldRegistry) FieldByID(id string) (data.FieldDescriptor, bool) {
 
 	var r0 data.FieldDescriptor
 	var r1 bool
-	if returnFunc, ok := ret.Get(0).(func(string) (data.FieldDescriptor, bool)); ok {
+	if returnFunc, ok := ret.Get(0).(func(data.Field) (data.FieldDescriptor, bool)); ok {
 		return returnFunc(id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) data.FieldDescriptor); ok {
+	if returnFunc, ok := ret.Get(0).(func(data.Field) data.FieldDescriptor); ok {
 		r0 = returnFunc(id)
 	} else {
 		r0 = ret.Get(0).(data.FieldDescriptor)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string) bool); ok {
+	if returnFunc, ok := ret.Get(1).(func(data.Field) bool); ok {
 		r1 = returnFunc(id)
 	} else {
 		r1 = ret.Get(1).(bool)
@@ -68,16 +68,16 @@ type fieldRegistry_FieldByID_Call struct {
 }
 
 // FieldByID is a helper method to define mock.On call
-//   - id string
+//   - id data.Field
 func (_e *fieldRegistry_Expecter) FieldByID(id interface{}) *fieldRegistry_FieldByID_Call {
 	return &fieldRegistry_FieldByID_Call{Call: _e.mock.On("FieldByID", id)}
 }
 
-func (_c *fieldRegistry_FieldByID_Call) Run(run func(id string)) *fieldRegistry_FieldByID_Call {
+func (_c *fieldRegistry_FieldByID_Call) Run(run func(id data.Field)) *fieldRegistry_FieldByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 data.Field
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(data.Field)
 		}
 		run(
 			arg0,
@@ -91,7 +91,7 @@ func (_c *fieldRegistry_FieldByID_Call) Return(fieldDescriptor data.FieldDescrip
 	return _c
 }
 
-func (_c *fieldRegistry_FieldByID_Call) RunAndReturn(run func(id string) (data.FieldDescriptor, bool)) *fieldRegistry_FieldByID_Call {
+func (_c *fieldRegistry_FieldByID_Call) RunAndReturn(run func(id data.Field) (data.FieldDescriptor, bool)) *fieldRegistry_FieldByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -12,24 +12,18 @@ import (
 // потокобезопасно при условии, что регистрация завершилась.
 //
 // Bundle сам знает только свой BundleID; привязка к провайдеру держится
-// здесь, в реестре, и задаётся либо через RegisterProvider (боевая сборка),
-// либо через Register (тесты — прямой вызов с явным providerID).
+// здесь, в реестре, и задаётся через RegisterProvider — реестр сам
+// итерирует Provider.Bundles() и записывает каждый. Сам Provider и его
+// bundles про реестр ничего не знают.
 type Registry struct {
 	bundles map[bundleKey]Registered
-	byField map[string]Registered
-	fields  map[string]FieldDescriptor
+	byField map[Field]Registered
+	fields  map[Field]FieldDescriptor
 }
 
 type bundleKey struct {
 	Provider string
 	Bundle   string
-}
-
-// scopedRegistrar — реализация Registrar, привязанная к ID провайдера.
-// Выдаётся реестром в RegisterProvider.
-type scopedRegistrar struct {
-	reg        *Registry
-	providerID string
 }
 
 // Registered — bundle вместе с ID провайдера, под которым он
@@ -44,59 +38,48 @@ type Registered struct {
 	ProviderID string
 }
 
-// Registrar — узкий контракт записи в реестр. Передаётся в Provider.Register
-// уже привязанным к ID конкретного провайдера, поэтому сам Provider не
-// передаёт свой ID в Register — это делает scoped-обёртка реестра.
-//
-// *Registry напрямую Registrar не реализует; экземпляр Registrar выдаёт
-// RegisterProvider под капотом.
-type Registrar interface {
-	// Register добавляет bundle в реестр под ID того провайдера, для
-	// которого этот Registrar был выдан. Возвращает ErrBundleAlreadyRegistered
-	// или ErrFieldAlreadyRegistered при коллизии.
-	Register(Bundle) error
-}
-
 // Provider — точка сборки адаптера внешнего источника (MOEX, FinanceMarker
-// и др.). Знает свой стабильный ID и какие bundles ему принадлежат с
-// какими обвязками (например, файловым кешем), и сам кладёт их в реестр.
+// и др.). Знает свой стабильный ID и какие bundles ему принадлежат —
+// уже со всеми внутренними обвязками (например, файловым кешем).
 // Конструктор конкретного Provider принимает всё, что ему нужно (клиент,
 // кеш и т. п.); composition root не знает деталей — только итерирует
-// список Provider и вызывает RegisterProvider у реестра.
+// список Provider и отдаёт его реестру.
 type Provider interface {
 	// ID — стабильный идентификатор провайдера в реестре.
 	ID() string
 
-	// Register регистрирует все собственные bundles в выданном Registrar.
-	// Registrar уже знает ID провайдера, поэтому сам ID здесь не передаётся.
-	Register(Registrar) error
+	// Bundles возвращает все bundles, которые провайдер хочет
+	// зарегистрировать. Реестр сам пробежит по ним и положит под ID
+	// провайдера; Provider и Bundle про реестр ничего не знают.
+	Bundles() []Bundle
 }
 
 // NewRegistry собирает пустой реестр.
 func NewRegistry() *Registry {
 	return &Registry{
 		bundles: make(map[bundleKey]Registered),
-		byField: make(map[string]Registered),
-		fields:  make(map[string]FieldDescriptor),
+		byField: make(map[Field]Registered),
+		fields:  make(map[Field]FieldDescriptor),
 	}
 }
 
-// RegisterProvider просит провайдера зарегистрировать свои bundles
-// в реестре под его ID. Под капотом выдаёт scoped Registrar, в котором
-// providerID уже зафиксирован — provider не дублирует свой ID на каждом
-// вызове Register.
+// RegisterProvider регистрирует все bundles провайдера в реестре под
+// ID этого провайдера. Двойная регистрация той же пары (provider, bundle)
+// или того же id поля — ошибка: реестр строится один раз и подмена
+// реализации в нём — почти всегда баг сборки.
 func (r *Registry) RegisterProvider(p Provider) error {
-	if err := p.Register(&scopedRegistrar{providerID: p.ID(), reg: r}); err != nil {
-		return fmt.Errorf("provider %s register: %w", p.ID(), err)
+	providerID := p.ID()
+	for _, b := range p.Bundles() {
+		if err := r.Register(providerID, b); err != nil {
+			return fmt.Errorf("provider %s register: %w", providerID, err)
+		}
 	}
 	return nil
 }
 
 // Register добавляет bundle в реестр под указанным providerID. Прямой
 // путь записи мимо Provider — удобен в тестах реестра, где поднимать
-// полноценный Provider избыточно. Двойная регистрация той же пары
-// (provider, bundle) или того же id поля — ошибка: реестр строится один
-// раз и подмена реализации в нём — почти всегда баг сборки.
+// полноценный Provider избыточно.
 func (r *Registry) Register(providerID string, b Bundle) error {
 	entry := Registered{ProviderID: providerID, Bundle: b}
 	if err := r.checkDuplicates(entry); err != nil {
@@ -132,9 +115,9 @@ func (r *Registry) add(e Registered) {
 	}
 }
 
-// FieldByID — O(1) lookup описания поля по полному id. Второй
+// FieldByID — O(1) lookup описания поля по идентификатору. Второй
 // возвращаемый — false, если такого поля в реестре нет.
-func (r *Registry) FieldByID(id string) (FieldDescriptor, bool) {
+func (r *Registry) FieldByID(id Field) (FieldDescriptor, bool) {
 	fd, ok := r.fields[id]
 	return fd, ok
 }
@@ -149,10 +132,9 @@ func (r *Registry) Bundle(provider, bundle string) (Bundle, error) {
 	return e.Bundle, nil
 }
 
-// BundleFor ищет bundle, который отдаёт указанное поле. Поле задаётся
-// полным id вида `<provider>::<name>`. Возвращает ErrFieldNotFound,
-// если такого поля в реестре нет.
-func (r *Registry) BundleFor(fieldID string) (Bundle, error) {
+// BundleFor ищет bundle, который отдаёт указанное поле. Возвращает
+// ErrFieldNotFound, если такого поля в реестре нет.
+func (r *Registry) BundleFor(fieldID Field) (Bundle, error) {
 	e, ok := r.byField[fieldID]
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrFieldNotFound, fieldID)
@@ -175,7 +157,7 @@ func (r *Registry) BundleFor(fieldID string) (Bundle, error) {
 //     хотя бы одно из запрошенных полей; до Fetch ни один bundle
 //     не вызывается;
 //   - ошибка из Bundle.Fetch — пробрасывается с пометкой источника.
-func (r *Registry) Fetch(ctx context.Context, ticker string, fieldIDs []string) (FieldValues, error) {
+func (r *Registry) Fetch(ctx context.Context, ticker string, fieldIDs []Field) (FieldValues, error) {
 	if len(fieldIDs) == 0 {
 		return FieldValues{}, nil
 	}
@@ -198,7 +180,7 @@ func (r *Registry) Fetch(ctx context.Context, ticker string, fieldIDs []string) 
 // ровно один раз, даже если из него запрошено несколько полей. Любое
 // неизвестное поле — ошибка до запуска горутин: дешевле упасть на
 // старте, чем поднимать пул и сетевые вызовы ради провального ответа.
-func (r *Registry) resolveBundles(fieldIDs []string) ([]Registered, error) {
+func (r *Registry) resolveBundles(fieldIDs []Field) ([]Registered, error) {
 	seen := make(map[bundleKey]bool, len(fieldIDs))
 	entries := make([]Registered, 0, len(fieldIDs))
 	for _, fieldID := range fieldIDs {
@@ -243,7 +225,7 @@ func (*Registry) fetchAll(ctx context.Context, ticker string, entries []Register
 // filterFieldValues сводит partial-результаты в итоговую карту только
 // по запрошенным fieldIDs. Bundles обязаны вернуть полный набор своих
 // полей, но в ответ должны попасть только те, что попросил клиент.
-func filterFieldValues(parts []FieldValues, fieldIDs []string) FieldValues {
+func filterFieldValues(parts []FieldValues, fieldIDs []Field) FieldValues {
 	merged := make(FieldValues, len(fieldIDs))
 	for _, fieldID := range fieldIDs {
 		for _, p := range parts {
@@ -258,17 +240,11 @@ func filterFieldValues(parts []FieldValues, fieldIDs []string) FieldValues {
 
 // Bundles — все зарегистрированные bundles вместе с ID их провайдера.
 // Порядок не определён. Используется в app/ для startup-сверки реестра
-// со спекой.
+// со спецификацией.
 func (r *Registry) Bundles() []Registered {
 	out := make([]Registered, 0, len(r.bundles))
 	for _, e := range r.bundles {
 		out = append(out, e)
 	}
 	return out
-}
-
-// Register — реализация Registrar для scopedRegistrar: подставляет
-// зафиксированный providerID и делегирует в Registry.Register.
-func (s *scopedRegistrar) Register(b Bundle) error {
-	return s.reg.Register(s.providerID, b)
 }

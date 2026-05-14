@@ -9,7 +9,6 @@
 package financemarker
 
 import (
-	"fmt"
 	"path/filepath"
 	"time"
 
@@ -75,16 +74,16 @@ func NewProvider(cfg ConfigProvider) *Provider {
 // ID — реализация data.Provider.
 func (*Provider) ID() string { return ProviderID }
 
-// Register регистрирует все bundles FinanceMarker в реестре, оборачивая
-// каждый в файловый кеш.
-func (p *Provider) Register(r data.Registrar) error {
-	cached := fcbundle.NewProxy(fcbundle.ConfigProxy{
-		Delegate: stockinfo.New(p.client),
-		Dir:      filepath.Join(p.cacheRoot, ProviderID, stockinfo.ID),
-		TTL:      stockInfoCacheTTL,
-	})
-	if err := r.Register(cached); err != nil {
-		return fmt.Errorf("register %s/%s: %w", ProviderID, stockinfo.ID, err)
+// Bundles — все bundles FinanceMarker-источника, уже завёрнутые в
+// файловый кеш. Кеш — внутренняя деталь провайдера: composition root
+// о нём не знает, реестр про него не знает, видит только финальный
+// data.Bundle.
+func (p *Provider) Bundles() []data.Bundle {
+	return []data.Bundle{
+		fcbundle.NewProxy(fcbundle.ConfigProxy{
+			Delegate: stockinfo.New(p.client),
+			Dir:      filepath.Join(p.cacheRoot, ProviderID, stockinfo.ID),
+			TTL:      stockInfoCacheTTL,
+		}),
 	}
-	return nil
 }

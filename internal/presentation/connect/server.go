@@ -16,7 +16,7 @@ import (
 // поля при упаковке ответа. Сужение до одного метода вместо *data.Registry
 // держит presentation слабо связанным с реестром и упрощает тесты.
 type fieldRegistry interface {
-	FieldByID(id string) (data.FieldDescriptor, bool)
+	FieldByID(id data.Field) (data.FieldDescriptor, bool)
 }
 
 // ConfigServer — параметры Connect-сервера.
@@ -48,7 +48,7 @@ func (s *Server) GetCompany(
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
-	fields, err := toProtoFields(values, func(id string) (data.FieldType, bool) {
+	fields, err := toProtoFields(values, func(id data.Field) (data.FieldType, bool) {
 		fd, ok := s.registry.FieldByID(id)
 		return fd.Type, ok
 	})

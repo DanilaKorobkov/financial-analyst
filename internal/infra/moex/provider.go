@@ -7,7 +7,6 @@
 package moex
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
@@ -47,10 +46,10 @@ func NewProvider(cfg ConfigProvider) *Provider {
 // ID — реализация data.Provider.
 func (*Provider) ID() string { return ProviderID }
 
-// Register регистрирует все bundles MOEX в реестре.
-func (p *Provider) Register(r data.Registrar) error {
-	if err := r.Register(securitydescription.New(p.client)); err != nil {
-		return fmt.Errorf("register %s/%s: %w", ProviderID, securitydescription.ID, err)
+// Bundles — все bundles MOEX-источника. Провайдер про реестр не знает —
+// просто отдаёт коллекцию.
+func (p *Provider) Bundles() []data.Bundle {
+	return []data.Bundle{
+		securitydescription.New(p.client),
 	}
-	return nil
 }

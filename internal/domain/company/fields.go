@@ -1,103 +1,102 @@
 package company
 
-// Идентификаторы каноничных полей компании в форме `<provider>::<name>`.
-// Используются:
-//   - infra-bundles — как ключи возвращаемого FieldValues и в декларации
-//     FieldDescriptor каждого bundle;
-//   - реализации company.ProfileRepository — как состав профиля карточки;
-//   - presentation — как ключи в ответе клиента.
-const (
-	// FieldTicker — биржевой код бумаги (MOEX).
-	FieldTicker = "moex::ticker"
-	// FieldISIN — международный идентификатор ценной бумаги (MOEX).
-	FieldISIN = "moex::isin"
-	// FieldName — полное наименование выпуска (MOEX).
-	FieldName = "moex::name"
-	// FieldShortName — краткое наименование выпуска (MOEX).
-	FieldShortName = "moex::short-name"
-	// FieldIssueName — наименование выпуска (MOEX).
-	FieldIssueName = "moex::issue-name"
-	// FieldLatName — латинское наименование выпуска (MOEX).
-	FieldLatName = "moex::lat-name"
-	// FieldRegNumber — номер государственной регистрации выпуска (MOEX).
-	FieldRegNumber = "moex::reg-number"
-	// FieldSecurityTypeName — человекочитаемый тип бумаги (MOEX).
-	FieldSecurityTypeName = "moex::type-name"
-	// FieldSecurityGroup — код группы инструмента (MOEX).
-	FieldSecurityGroup = "moex::group"
-	// FieldSecurityGroupName — человекочитаемое название группы (MOEX).
-	FieldSecurityGroupName = "moex::group-name"
-	// FieldSecurityType — тип бумаги (MOEX).
-	FieldSecurityType = "moex::security-type"
-	// FieldListingLevel — котировальный уровень бумаги (MOEX).
-	FieldListingLevel = "moex::listing-level"
-	// FieldFaceValue — номинальная стоимость бумаги (MOEX).
-	FieldFaceValue = "moex::face-value"
-	// FieldFaceUnit — валюта номинала бумаги (MOEX).
-	FieldFaceUnit = "moex::face-unit"
-	// FieldIssueSize — объём выпуска в штуках (MOEX).
-	FieldIssueSize = "moex::issue-size"
-	// FieldIssueDate — дата начала торгов бумагой (MOEX).
-	FieldIssueDate = "moex::issue-date"
-	// FieldRegistryDate — дата государственной регистрации выпуска (MOEX).
-	FieldRegistryDate = "moex::registry-date"
-	// FieldEmitterID — идентификатор эмитента в справочнике (MOEX).
-	FieldEmitterID = "moex::emitter-id"
-	// FieldHasProspectus — наличие проспекта эмиссии (MOEX).
-	FieldHasProspectus = "moex::has-prospectus"
-	// FieldHasDefault — наличие дефолта по выпуску (MOEX).
-	FieldHasDefault = "moex::has-default"
-	// FieldHasTechnicalDefault — наличие технического дефолта (MOEX).
-	FieldHasTechnicalDefault = "moex::has-technical-default"
-	// FieldEmitentMismatchCurrent — эмитент не соответствует требованию
-	// на текущий котировальный список (MOEX).
-	FieldEmitentMismatchCurrent = "moex::emitent-mismatch-current"
-	// FieldIsQualifiedInvestors — доступ только для квалифицированных
-	// инвесторов (MOEX).
-	FieldIsQualifiedInvestors = "moex::is-qualified-investors"
-	// FieldMorningSession — допуск к утренней доп. сессии (MOEX).
-	FieldMorningSession = "moex::morning-session"
-	// FieldEveningSession — допуск к вечерней доп. сессии (MOEX).
-	FieldEveningSession = "moex::evening-session"
-	// FieldWeekendSession — допуск к доп. сессии выходного дня (MOEX).
-	FieldWeekendSession = "moex::weekend-session"
+import "github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
 
-	// FieldIssuerName — название эмитента у справочника (FinanceMarker).
-	FieldIssuerName = "financemarker::issuer-name"
-	// FieldSector — название сектора эмитента (FinanceMarker).
-	FieldSector = "financemarker::sector"
-	// FieldSectorID — числовой код сектора GICS (FinanceMarker).
-	FieldSectorID = "financemarker::sector-id"
-	// FieldIndustryGroup — группа отраслей GICS (FinanceMarker).
-	FieldIndustryGroup = "financemarker::industry-group"
-	// FieldIndustryGroupID — числовой код группы отраслей (FinanceMarker).
-	FieldIndustryGroupID = "financemarker::industry-group-id"
-	// FieldIndustry — отрасль эмитента (FinanceMarker).
-	FieldIndustry = "financemarker::industry"
-	// FieldIndustryID — числовой код отрасли (FinanceMarker).
-	FieldIndustryID = "financemarker::industry-id"
-	// FieldSubIndustry — под-отрасль эмитента (FinanceMarker).
-	FieldSubIndustry = "financemarker::sub-industry"
-	// FieldSubIndustryID — числовой код под-отрасли (FinanceMarker).
-	FieldSubIndustryID = "financemarker::sub-industry-id"
-	// FieldCountry — страна регистрации эмитента (FinanceMarker).
-	FieldCountry = "financemarker::country"
-	// FieldDescription — текстовое описание эмитента (FinanceMarker).
-	FieldDescription = "financemarker::description"
-	// FieldSite — корпоративный сайт эмитента (FinanceMarker).
-	FieldSite = "financemarker::site"
-	// FieldDisclosureLink — ссылка на страницу раскрытия (FinanceMarker).
-	FieldDisclosureLink = "financemarker::disclosure-link"
-	// FieldPrimaryReportTicker — тикер основной бумаги эмитента (FinanceMarker).
-	FieldPrimaryReportTicker = "financemarker::primary-report-ticker"
-	// FieldPrimaryReportExchange — биржа основной отчётной бумаги (FinanceMarker).
-	FieldPrimaryReportExchange = "financemarker::primary-report-exchange"
-	// FieldExchange — биржа листинга бумаги (FinanceMarker).
-	FieldExchange = "financemarker::exchange"
-	// FieldCurrency — валюта торгов бумагой (FinanceMarker).
-	FieldCurrency = "financemarker::currency"
-	// FieldReportFrequency — частота публикации отчётности (FinanceMarker).
-	FieldReportFrequency = "financemarker::report-frequency"
-	// FieldSPB — листинг на СПБ-бирже (FinanceMarker).
-	FieldSPB = "financemarker::spb"
+// Идентификаторы каноничных полей компании. Имя поля отражает смысл,
+// а не источник: одно и то же поле может приходить из разных bundles,
+// привязка к конкретному провайдеру — деталь infra-слоя и держится
+// в реестре.
+const (
+	// FieldTicker — биржевой код бумаги.
+	FieldTicker data.Field = "ticker"
+	// FieldISIN — международный идентификатор ценной бумаги.
+	FieldISIN data.Field = "isin"
+	// FieldName — полное наименование выпуска.
+	FieldName data.Field = "name"
+	// FieldShortName — краткое наименование выпуска.
+	FieldShortName data.Field = "short-name"
+	// FieldIssueName — наименование выпуска.
+	FieldIssueName data.Field = "issue-name"
+	// FieldLatName — латинское наименование выпуска.
+	FieldLatName data.Field = "lat-name"
+	// FieldRegNumber — номер государственной регистрации выпуска.
+	FieldRegNumber data.Field = "reg-number"
+	// FieldSecurityTypeName — человекочитаемый тип бумаги.
+	FieldSecurityTypeName data.Field = "security-type-name"
+	// FieldSecurityGroup — код группы инструмента.
+	FieldSecurityGroup data.Field = "security-group"
+	// FieldSecurityGroupName — человекочитаемое название группы.
+	FieldSecurityGroupName data.Field = "security-group-name"
+	// FieldSecurityType — тип бумаги.
+	FieldSecurityType data.Field = "security-type"
+	// FieldListingLevel — котировальный уровень бумаги.
+	FieldListingLevel data.Field = "listing-level"
+	// FieldFaceValue — номинальная стоимость бумаги.
+	FieldFaceValue data.Field = "face-value"
+	// FieldFaceUnit — валюта номинала бумаги.
+	FieldFaceUnit data.Field = "face-unit"
+	// FieldIssueSize — объём выпуска в штуках.
+	FieldIssueSize data.Field = "issue-size"
+	// FieldIssueDate — дата начала торгов бумагой.
+	FieldIssueDate data.Field = "issue-date"
+	// FieldRegistryDate — дата государственной регистрации выпуска.
+	FieldRegistryDate data.Field = "registry-date"
+	// FieldEmitterID — идентификатор эмитента в справочнике.
+	FieldEmitterID data.Field = "emitter-id"
+	// FieldHasProspectus — наличие проспекта эмиссии.
+	FieldHasProspectus data.Field = "has-prospectus"
+	// FieldHasDefault — наличие дефолта по выпуску.
+	FieldHasDefault data.Field = "has-default"
+	// FieldHasTechnicalDefault — наличие технического дефолта.
+	FieldHasTechnicalDefault data.Field = "has-technical-default"
+	// FieldEmitentMismatchCurrent — эмитент не соответствует требованию
+	// на текущий котировальный список.
+	FieldEmitentMismatchCurrent data.Field = "emitent-mismatch-current"
+	// FieldIsQualifiedInvestors — доступ только для квалифицированных инвесторов.
+	FieldIsQualifiedInvestors data.Field = "is-qualified-investors"
+	// FieldMorningSession — допуск к утренней дополнительной сессии.
+	FieldMorningSession data.Field = "morning-session"
+	// FieldEveningSession — допуск к вечерней дополнительной сессии.
+	FieldEveningSession data.Field = "evening-session"
+	// FieldWeekendSession — допуск к дополнительной сессии выходного дня.
+	FieldWeekendSession data.Field = "weekend-session"
+
+	// FieldIssuerName — название эмитента у справочника.
+	FieldIssuerName data.Field = "issuer-name"
+	// FieldSector — название сектора эмитента.
+	FieldSector data.Field = "sector"
+	// FieldSectorID — числовой код сектора GICS.
+	FieldSectorID data.Field = "sector-id"
+	// FieldIndustryGroup — группа отраслей GICS.
+	FieldIndustryGroup data.Field = "industry-group"
+	// FieldIndustryGroupID — числовой код группы отраслей.
+	FieldIndustryGroupID data.Field = "industry-group-id"
+	// FieldIndustry — отрасль эмитента.
+	FieldIndustry data.Field = "industry"
+	// FieldIndustryID — числовой код отрасли.
+	FieldIndustryID data.Field = "industry-id"
+	// FieldSubIndustry — под-отрасль эмитента.
+	FieldSubIndustry data.Field = "sub-industry"
+	// FieldSubIndustryID — числовой код под-отрасли.
+	FieldSubIndustryID data.Field = "sub-industry-id"
+	// FieldCountry — страна регистрации эмитента.
+	FieldCountry data.Field = "country"
+	// FieldDescription — текстовое описание эмитента.
+	FieldDescription data.Field = "description"
+	// FieldSite — корпоративный сайт эмитента.
+	FieldSite data.Field = "site"
+	// FieldDisclosureLink — ссылка на страницу раскрытия.
+	FieldDisclosureLink data.Field = "disclosure-link"
+	// FieldPrimaryReportTicker — тикер основной бумаги эмитента.
+	FieldPrimaryReportTicker data.Field = "primary-report-ticker"
+	// FieldPrimaryReportExchange — биржа основной отчётной бумаги.
+	FieldPrimaryReportExchange data.Field = "primary-report-exchange"
+	// FieldExchange — биржа листинга бумаги.
+	FieldExchange data.Field = "exchange"
+	// FieldCurrency — валюта торгов бумагой.
+	FieldCurrency data.Field = "currency"
+	// FieldReportFrequency — частота публикации отчётности.
+	FieldReportFrequency data.Field = "report-frequency"
+	// FieldSPB — листинг на СПБ-бирже.
+	FieldSPB data.Field = "spb"
 )

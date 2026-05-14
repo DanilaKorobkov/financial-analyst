@@ -260,6 +260,7 @@ AKRN
 santhosh
 tekuri
 govaluate
+samber            # автор github.com/samber/lo (упоминание в правилах)
 wacc              # Weighted Average Cost of Capital
 financials        # финансовый раздел отчёта (английский)
 
@@ -267,14 +268,3 @@ financials        # финансовый раздел отчёта (англий
 moexbundles       # alias для internal/infra/moex/bundles
 fmbundles         # alias для internal/infra/financemarker/bundles
 fcbundle          # alias для internal/infra/filecache/bundle
-
-# --- Доменные термины проекта, активно используются автором ---
-спека             # колл. сокр. от «спецификация»
-спеке
-спекой
-скоуп             # колл. транслит «scope»
-скоупа
-скоупе
-валуация          # метод оценки fair value
-валуации
-валуаций

@@ -38,7 +38,7 @@ func (s *registrySuite) SetupTest() {
 }
 
 func (s *registrySuite) TestRegisterAndLookupBundle() {
-	b := newStubBundle("security-info", []string{"moex::isin", "moex::issuer-name"})
+	b := newStubBundle("security-info", []data.Field{"isin", "issuer-name"})
 
 	s.Require().NoError(s.registry.Register("moex", b))
 
@@ -48,18 +48,18 @@ func (s *registrySuite) TestRegisterAndLookupBundle() {
 }
 
 func (s *registrySuite) TestRegisterAndLookupByField() {
-	b := newStubBundle("security-info", []string{"moex::isin", "moex::issuer-name"})
+	b := newStubBundle("security-info", []data.Field{"isin", "issuer-name"})
 
 	s.Require().NoError(s.registry.Register("moex", b))
 
-	got, err := s.registry.BundleFor("moex::isin")
+	got, err := s.registry.BundleFor("isin")
 	s.Require().NoError(err)
 	s.Same(b, got)
 }
 
 func (s *registrySuite) TestRegisterRejectsDuplicateBundle() {
-	first := newStubBundle("security-info", []string{"moex::isin"})
-	second := newStubBundle("security-info", []string{"moex::name"})
+	first := newStubBundle("security-info", []data.Field{"isin"})
+	second := newStubBundle("security-info", []data.Field{"name"})
 
 	s.Require().NoError(s.registry.Register("moex", first))
 
@@ -68,8 +68,8 @@ func (s *registrySuite) TestRegisterRejectsDuplicateBundle() {
 }
 
 func (s *registrySuite) TestRegisterRejectsDuplicateField() {
-	first := newStubBundle("security-info", []string{"moex::isin"})
-	second := newStubBundle("dividends", []string{"moex::isin"})
+	first := newStubBundle("security-info", []data.Field{"isin"})
+	second := newStubBundle("dividends", []data.Field{"isin"})
 
 	s.Require().NoError(s.registry.Register("moex", first))
 
@@ -87,13 +87,13 @@ func (s *registrySuite) TestBundleNotFound() {
 }
 
 func (s *registrySuite) TestBundleForFieldNotFound() {
-	_, err := s.registry.BundleFor("moex::missing")
+	_, err := s.registry.BundleFor("missing")
 	s.Require().ErrorIs(err, data.ErrFieldNotFound)
 }
 
 func (s *registrySuite) TestBundles() {
-	first := newStubBundle("security-info", []string{"moex::isin"})
-	second := newStubBundle("company-card", []string{"financemarker::sector"})
+	first := newStubBundle("security-info", []data.Field{"isin"})
+	second := newStubBundle("company-card", []data.Field{"sector"})
 
 	s.Require().NoError(s.registry.Register("moex", first))
 	s.Require().NoError(s.registry.Register("financemarker", second))
@@ -120,15 +120,15 @@ func (s *registrySuite) TestFetchEmptyFieldsReturnsEmpty() {
 }
 
 func (s *registrySuite) TestFetchUnknownFieldFails() {
-	_, err := s.registry.Fetch(context.Background(), "SBER", []string{"moex::missing"})
+	_, err := s.registry.Fetch(context.Background(), "SBER", []data.Field{"missing"})
 	s.Require().ErrorIs(err, data.ErrFieldNotFound)
 }
 
 func (s *registrySuite) TestFetchDeduplicatesBundlesAndFiltersFields() {
 	b := &stubBundle{
 		bundle: "security-info",
-		fields: []data.FieldDescriptor{{ID: "moex::isin"}, {ID: "moex::name"}},
-		values: data.FieldValues{"moex::isin": "RU0009029540", "moex::name": "Сбербанк"},
+		fields: []data.FieldDescriptor{{ID: "isin"}, {ID: "name"}},
+		values: data.FieldValues{"isin": "RU0009029540", "name": "Сбербанк"},
 	}
 	s.Require().NoError(s.registry.Register("moex", b))
 
@@ -138,12 +138,12 @@ func (s *registrySuite) TestFetchDeduplicatesBundlesAndFiltersFields() {
 	got, err := s.registry.Fetch(
 		context.Background(),
 		"SBER",
-		[]string{"moex::isin", "moex::name", "moex::isin"},
+		[]data.Field{"isin", "name", "isin"},
 	)
 	s.Require().NoError(err)
 	s.Equal(data.FieldValues{
-		"moex::isin": "RU0009029540",
-		"moex::name": "Сбербанк",
+		"isin": "RU0009029540",
+		"name": "Сбербанк",
 	}, got)
 }
 
@@ -151,19 +151,19 @@ func (s *registrySuite) TestFetchPropagatesBundleError() {
 	boom := errors.New("boom")
 	b := &stubBundle{
 		bundle: "security-info",
-		fields: []data.FieldDescriptor{{ID: "moex::isin"}},
+		fields: []data.FieldDescriptor{{ID: "isin"}},
 		err:    boom,
 	}
 	s.Require().NoError(s.registry.Register("moex", b))
 
-	_, err := s.registry.Fetch(context.Background(), "SBER", []string{"moex::isin"})
+	_, err := s.registry.Fetch(context.Background(), "SBER", []data.Field{"isin"})
 	s.Require().ErrorIs(err, boom)
 }
 
-func newStubBundle(bundle string, fields []string) *stubBundle {
+func newStubBundle(bundle string, fields []data.Field) *stubBundle {
 	descriptors := make([]data.FieldDescriptor, 0, len(fields))
 	for _, id := range fields {
-		descriptors = append(descriptors, data.FieldDescriptor{ID: id, Description: id})
+		descriptors = append(descriptors, data.FieldDescriptor{ID: id, Description: string(id)})
 	}
 	return &stubBundle{bundle: bundle, fields: descriptors}
 }

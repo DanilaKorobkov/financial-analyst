@@ -8,10 +8,5 @@ package company
 
 import "errors"
 
-var (
-	// ErrNotFound — компании по такому тикеру нет.
-	ErrNotFound = errors.New("company not found")
-
-	// ErrProfileNotFound — для тикера не настроен профиль карточки.
-	ErrProfileNotFound = errors.New("company profile not found")
-)
+// ErrNotFound — компании по такому тикеру нет.
+var ErrNotFound = errors.New("company not found")

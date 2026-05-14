@@ -72,6 +72,9 @@ func newFakeBundle(scripts ...fakeScript) *fakeBundle {
 			{ID: domaincompany.FieldCurrency, Type: data.TypeCurrency, Description: "Валюта."},
 			{ID: domaincompany.FieldReportFrequency, Type: data.TypeReportFrequency, Description: "Частота отчётности."},
 			{ID: domaincompany.FieldSPB, Type: data.TypeBool, Description: "Листинг СПБ."},
+			{ID: domaincompany.FieldIssueDate, Type: data.TypeDate, Description: "Дата начала торгов."},
+			{ID: domaincompany.FieldSecurityType, Type: data.TypeSecurityType, Description: "Тип бумаги."},
+			{ID: domaincompany.FieldListingLevel, Type: data.TypeListingLevel, Description: "Котировальный уровень."},
 		},
 		scripts: scripts,
 	}
@@ -86,6 +89,9 @@ func sberValues() data.FieldValues {
 		domaincompany.FieldCurrency:        domaincompany.CurrencyRUB,
 		domaincompany.FieldReportFrequency: domaincompany.ReportFrequencyQuarterly,
 		domaincompany.FieldSPB:             false,
+		domaincompany.FieldIssueDate:       time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC),
+		domaincompany.FieldSecurityType:    domaincompany.SecurityTypeCommonShare,
+		domaincompany.FieldListingLevel:    domaincompany.ListingLevelFirst,
 	}
 }
 
@@ -209,7 +215,7 @@ func (s *proxySuite) TestFetchExpiredEntryRefreshed() {
 		got, err := proxy.Fetch(context.Background(), "SBER")
 		s.Require().NoError(err)
 		s.Equal(first, got)
-		s.Equal(writtenAt.Add(ttl), readEnvelope(s.T(), dir, "SBER.json").ExpiresAt)
+		s.Equal(writtenAt.Add(ttl), readEnvelope(s.T(), dir).ExpiresAt)
 
 		// Сдвигаемся за пределы TTL — следующий вызов должен идти в delegate.
 		time.Sleep(ttl + time.Second)
@@ -217,7 +223,7 @@ func (s *proxySuite) TestFetchExpiredEntryRefreshed() {
 		got, err = proxy.Fetch(context.Background(), "SBER")
 		s.Require().NoError(err)
 		s.Equal(second, got)
-		envelope := readEnvelope(s.T(), dir, "SBER.json")
+		envelope := readEnvelope(s.T(), dir)
 		s.Equal(refreshedAt.Add(ttl), envelope.ExpiresAt)
 	})
 }
@@ -258,13 +264,64 @@ func (s *proxySuite) TestFetchZeroTTLNeverExpires() {
 
 		_, err := proxy.Fetch(context.Background(), "SBER")
 		s.Require().NoError(err)
-		s.True(readEnvelope(s.T(), dir, "SBER.json").ExpiresAt.IsZero())
+		s.True(readEnvelope(s.T(), dir).ExpiresAt.IsZero())
 
 		time.Sleep(100 * 365 * 24 * time.Hour)
 		got, err := proxy.Fetch(context.Background(), "SBER")
 		s.Require().NoError(err)
 		s.Equal(sberValues(), got)
 	})
+}
+
+// TestFetchUnsupportedFieldTypeFallsBackToDelegate: bundle декларирует
+// FieldType вне известного набора — Encode пройдёт (jsoniter маршалит
+// любое значение), но Decode при cache hit упадёт на default-ветке
+// decodeByType. Proxy расценит это как «битый кеш» и снова сходит
+// в delegate. Покрытие defensive default-ветки decodeByType через
+// публичный API.
+func (s *proxySuite) TestFetchUnsupportedFieldTypeFallsBackToDelegate() {
+	const id = "synthetic::unknown-type"
+	dir := s.T().TempDir()
+	bundle := &fakeBundle{
+		bundleID: "synthetic",
+		fields:   []data.FieldDescriptor{{ID: id, Type: data.FieldType(9999)}},
+		scripts: []fakeScript{
+			{values: data.FieldValues{id: "value"}},
+			{values: data.FieldValues{id: "value"}},
+		},
+	}
+	proxy := fcbundle.NewProxy(fcbundle.ConfigProxy{Delegate: bundle, Dir: dir})
+
+	_, err := proxy.Fetch(context.Background(), "any")
+	s.Require().NoError(err)
+
+	_, err = proxy.Fetch(context.Background(), "any")
+	s.Require().NoError(err)
+	// Оба раза должны были сходить в delegate: cache hit упал на decode,
+	// proxy свалился на delegate.
+	s.Equal(2, bundle.called)
+}
+
+// TestFetchCacheValueWrongTypeFallsBackToDelegate: envelope валидный,
+// но конкретное поле в кеше имеет JSON неверного типа (строка вместо
+// int). decodeByType вернёт ошибку конкретного поля, и proxy свалится
+// на delegate.
+func (s *proxySuite) TestFetchCacheValueWrongTypeFallsBackToDelegate() {
+	s.buildProxy(fakeScript{values: sberValues()}, fakeScript{values: sberValues()})
+
+	_, err := s.proxy.Fetch(context.Background(), "SBER")
+	s.Require().NoError(err)
+
+	key := filepath.Join(s.dir, "SBER.json")
+	envelope := readEnvelope(s.T(), s.dir)
+	envelope.Values[string(domaincompany.FieldSectorID)] = json.RawMessage(`"not-a-number"`)
+	raw, mErr := json.Marshal(envelope)
+	s.Require().NoError(mErr)
+	s.Require().NoError(os.WriteFile(key, raw, 0o600))
+
+	_, err = s.proxy.Fetch(context.Background(), "SBER")
+	s.Require().NoError(err)
+	s.Equal(2, s.delegate.called)
 }
 
 // TestFetchDelegateGenericError проверяет, что не-ErrNotFound-ошибка
@@ -281,9 +338,9 @@ func (s *proxySuite) TestFetchDelegateGenericError() {
 	s.Empty(entries)
 }
 
-func readEnvelope(t *testing.T, dir, name string) envelopeFile {
+func readEnvelope(t *testing.T, dir string) envelopeFile {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(dir, name)) //nolint:gosec // dir = t.TempDir(), name — литерал теста
+	raw, err := os.ReadFile(filepath.Join(dir, "SBER.json")) //nolint:gosec // dir = t.TempDir()
 	if err != nil {
 		t.Fatalf("read envelope file: %v", err)
 	}

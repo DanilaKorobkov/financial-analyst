@@ -36,7 +36,7 @@ func (c *valueCodec) Encode(values data.FieldValues) (map[string]json.RawMessage
 		if err != nil {
 			return nil, fmt.Errorf("marshal %s: %w", fd.ID, err)
 		}
-		out[fd.ID] = raw
+		out[string(fd.ID)] = raw
 	}
 	return out, nil
 }
@@ -47,7 +47,7 @@ func (c *valueCodec) Encode(values data.FieldValues) (map[string]json.RawMessage
 func (c *valueCodec) Decode(raw map[string]json.RawMessage) (data.FieldValues, error) {
 	out := make(data.FieldValues, len(c.fields))
 	for _, fd := range c.fields {
-		rawBytes, ok := raw[fd.ID]
+		rawBytes, ok := raw[string(fd.ID)]
 		if !ok {
 			continue
 		}

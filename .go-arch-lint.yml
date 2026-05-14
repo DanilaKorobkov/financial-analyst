@@ -160,6 +160,7 @@ deps:
   infra-companyprofile:
     mayDependOn:
       - domain-company
+      - domain-data
       - infra-companyprofile
     anyVendorDeps: true
 

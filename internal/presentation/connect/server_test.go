@@ -30,7 +30,7 @@ type serverSuite struct {
 	stockInfo           *data_mock.Bundle
 	server              *httptest.Server
 	client              companyv1connect.CompanyServiceClient
-	fieldIDs            []string
+	fieldIDs            []data.Field
 }
 
 func TestServerSuite(t *testing.T) {
@@ -72,7 +72,7 @@ func (s *serverSuite) SetupTest() {
 		}).
 		Maybe()
 
-	s.fieldIDs = []string{
+	s.fieldIDs = []data.Field{
 		company.FieldTicker,
 		company.FieldISIN,
 		company.FieldName,
@@ -149,14 +149,14 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	s.Require().NoError(err)
 
 	fields := resp.Msg.GetFields()
-	s.Equal("SBER", fields[company.FieldTicker].GetStringValue())
-	s.Equal("RU0009029540", fields[company.FieldISIN].GetStringValue())
-	s.Equal("Сбербанк России ПАО ао", fields[company.FieldName].GetStringValue())
-	s.Equal("common_share", fields[company.FieldSecurityType].GetStringValue())
-	s.Equal("first", fields[company.FieldListingLevel].GetStringValue())
-	s.Equal("Сбербанк", fields[company.FieldIssuerName].GetStringValue())
-	s.Equal("moex", fields[company.FieldExchange].GetStringValue())
-	s.Equal("RUB", fields[company.FieldCurrency].GetStringValue())
+	s.Equal("SBER", fields[string(company.FieldTicker)].GetStringValue())
+	s.Equal("RU0009029540", fields[string(company.FieldISIN)].GetStringValue())
+	s.Equal("Сбербанк России ПАО ао", fields[string(company.FieldName)].GetStringValue())
+	s.Equal("common_share", fields[string(company.FieldSecurityType)].GetStringValue())
+	s.Equal("first", fields[string(company.FieldListingLevel)].GetStringValue())
+	s.Equal("Сбербанк", fields[string(company.FieldIssuerName)].GetStringValue())
+	s.Equal("moex", fields[string(company.FieldExchange)].GetStringValue())
+	s.Equal("RUB", fields[string(company.FieldCurrency)].GetStringValue())
 }
 
 func (s *serverSuite) TestGetCompanyEnumCodes() {
@@ -180,11 +180,11 @@ func (s *serverSuite) TestGetCompanyEnumCodes() {
 	s.Require().NoError(err)
 
 	fields := resp.Msg.GetFields()
-	s.Equal("preferred_share", fields[company.FieldSecurityType].GetStringValue())
-	s.Equal("second", fields[company.FieldListingLevel].GetStringValue())
-	s.Equal("moex", fields[company.FieldExchange].GetStringValue())
-	s.Equal("USD", fields[company.FieldCurrency].GetStringValue())
-	s.Equal("quarterly", fields[company.FieldReportFrequency].GetStringValue())
+	s.Equal("preferred_share", fields[string(company.FieldSecurityType)].GetStringValue())
+	s.Equal("second", fields[string(company.FieldListingLevel)].GetStringValue())
+	s.Equal("moex", fields[string(company.FieldExchange)].GetStringValue())
+	s.Equal("USD", fields[string(company.FieldCurrency)].GetStringValue())
+	s.Equal("quarterly", fields[string(company.FieldReportFrequency)].GetStringValue())
 }
 
 func (s *serverSuite) TestGetCompanyEnumUnspecifiedDroppedFromMap() {
@@ -202,7 +202,29 @@ func (s *serverSuite) TestGetCompanyEnumUnspecifiedDroppedFromMap() {
 	resp, err := s.call("any")
 	s.Require().NoError(err)
 
-	_, found := resp.Msg.GetFields()[company.FieldSecurityType]
+	_, found := resp.Msg.GetFields()[string(company.FieldSecurityType)]
+	s.False(found)
+}
+
+// TestGetCompanyZeroDateDroppedFromMap: нулевой time.Time у поля типа
+// Date трактуется как «значения нет» — mapper не кладёт ключ в map,
+// клиент видит отсутствие поля. Покрывает IsZero-ветку encodeDate.
+func (s *serverSuite) TestGetCompanyZeroDateDroppedFromMap() {
+	s.securityDescription.EXPECT().
+		Fetch(mock.Anything, "any").
+		Return(data.FieldValues{
+			company.FieldIssueDate: time.Time{},
+		}, nil).
+		Once()
+	s.stockInfo.EXPECT().
+		Fetch(mock.Anything, "any").
+		Return(data.FieldValues{}, nil).
+		Once()
+
+	resp, err := s.call("any")
+	s.Require().NoError(err)
+
+	_, found := resp.Msg.GetFields()[string(company.FieldIssueDate)]
 	s.False(found)
 }
 
@@ -223,9 +245,9 @@ func (s *serverSuite) TestGetCompanyDatesMappedToTimestamp() {
 	s.Require().NoError(err)
 
 	fields := resp.Msg.GetFields()
-	s.Require().NotNil(fields[company.FieldIssueDate].GetTimestampValue())
-	s.Equal(issueDate.Unix(), fields[company.FieldIssueDate].GetTimestampValue().GetSeconds())
-	_, found := fields[company.FieldRegistryDate]
+	s.Require().NotNil(fields[string(company.FieldIssueDate)].GetTimestampValue())
+	s.Equal(issueDate.Unix(), fields[string(company.FieldIssueDate)].GetTimestampValue().GetSeconds())
+	_, found := fields[string(company.FieldRegistryDate)]
 	s.False(found)
 }
 
@@ -246,8 +268,8 @@ func (s *serverSuite) TestGetCompanyIntAndBool() {
 	s.Require().NoError(err)
 
 	fields := resp.Msg.GetFields()
-	s.Equal(int64(21586948000), fields[company.FieldIssueSize].GetIntValue())
-	s.False(fields[company.FieldHasDefault].GetBoolValue())
+	s.Equal(int64(21586948000), fields[string(company.FieldIssueSize)].GetIntValue())
+	s.False(fields[string(company.FieldHasDefault)].GetBoolValue())
 }
 
 func (s *serverSuite) TestGetCompanyProfileNotFoundIsCodeNotFound() {
@@ -269,7 +291,7 @@ func (s *serverSuite) TestGetCompanyUnknownFieldIsFailedPrecondition() {
 	profiles := company_mock.NewProfileRepository(s.T())
 	profiles.EXPECT().
 		FindByTicker(mock.Anything, "SBER").
-		Return(company.Profile{FieldIDs: []string{"moex::unknown"}}, nil).
+		Return(company.Profile{FieldIDs: []data.Field{"unknown"}}, nil).
 		Once()
 	s.replaceProfiles(profiles)
 
@@ -317,6 +339,100 @@ func (s *serverSuite) TestGetCompanyEncodeErrorIsInternal() {
 
 	_, err := s.call("any")
 
+	var connectErr *connectrpc.Error
+	s.Require().ErrorAs(err, &connectErr)
+	s.Equal(connectrpc.CodeInternal, connectErr.Code())
+}
+
+// TestGetCompanyEncodeMismatchAllBranches гоняет каждую ветку encode*
+// в encodeFieldValue: bundle возвращает значение неверного Go-типа
+// для каждого FieldType — mapper отдаёт ошибку, server заворачивает
+// её в CodeInternal. Покрытие defensive type-cast'ов держится без
+// доступа к приватному API.
+func (s *serverSuite) TestGetCompanyEncodeMismatchAllBranches() {
+	cases := []struct {
+		raw       any
+		name      string
+		fieldID   data.Field
+		fieldType data.FieldType
+	}{
+		{name: "string", fieldID: "synthetic-string", fieldType: data.TypeString, raw: 1},
+		{name: "int64", fieldID: "synthetic-int64", fieldType: data.TypeInt64, raw: "not-int"},
+		{name: "bool", fieldID: "synthetic-bool", fieldType: data.TypeBool, raw: "not-bool"},
+		{name: "date", fieldID: "synthetic-date", fieldType: data.TypeDate, raw: "not-time"},
+		{name: "security_type", fieldID: "synthetic-security-type", fieldType: data.TypeSecurityType, raw: "not-enum"},
+		{name: "listing_level", fieldID: "synthetic-listing-level", fieldType: data.TypeListingLevel, raw: "not-enum"},
+		{name: "currency", fieldID: "synthetic-currency", fieldType: data.TypeCurrency, raw: "not-enum"},
+		{name: "exchange", fieldID: "synthetic-exchange", fieldType: data.TypeExchange, raw: "not-enum"},
+		{name: "report_frequency", fieldID: "synthetic-report-frequency", fieldType: data.TypeReportFrequency, raw: "not-enum"},
+	}
+	for _, c := range cases {
+		s.Run(c.name, func() {
+			err := s.callWithSyntheticBundle(c.fieldID, c.fieldType, c.raw)
+			var connectErr *connectrpc.Error
+			s.Require().ErrorAs(err, &connectErr)
+			s.Equal(connectrpc.CodeInternal, connectErr.Code())
+		})
+	}
+}
+
+// callWithSyntheticBundle строит изолированный server с единственным
+// bundle, у которого ровно одно поле заданного типа. Возвращает
+// ошибку вызова GetCompany — удобно для проверки defensive-веток
+// mapper'а без накопления mockery-ожиданий между подкейсами.
+func (s *serverSuite) callWithSyntheticBundle(fieldID data.Field, ft data.FieldType, raw any) error {
+	s.T().Helper()
+
+	profiles := company_mock.NewProfileRepository(s.T())
+	profiles.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(company.Profile{FieldIDs: []data.Field{fieldID}}, nil).
+		Once()
+
+	bundle := data_mock.NewBundle(s.T())
+	bundle.EXPECT().BundleID().Return("synthetic").Maybe()
+	bundle.EXPECT().
+		Fields().
+		Return([]data.FieldDescriptor{{ID: fieldID, Type: ft}}).
+		Maybe()
+	bundle.EXPECT().
+		Fetch(mock.Anything, "any").
+		Return(data.FieldValues{fieldID: raw}, nil).
+		Once()
+
+	registry := data.NewRegistry()
+	s.Require().NoError(registry.Register("synthetic", bundle))
+
+	srv := pconnect.NewServer(pconnect.ConfigServer{
+		Companies: services.NewCompanyService(services.ConfigCompanyService{
+			Profiles: profiles,
+			Registry: registry,
+		}),
+		Registry: registry,
+	})
+
+	mux := http.NewServeMux()
+	path, handler := companyv1connect.NewCompanyServiceHandler(srv)
+	mux.Handle(path, handler)
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := companyv1connect.NewCompanyServiceClient(server.Client(), server.URL)
+	_, err := client.GetCompany(
+		context.Background(),
+		connectrpc.NewRequest(&companyv1.GetCompanyRequest{Ticker: "any"}),
+	)
+	return err
+}
+
+// TestGetCompanyUnknownFieldTypeIsInternal: bundle декларирует поле
+// с FieldType вне известного набора (например, новая константа добавлена
+// в data, но забыта в mapper). encodeFieldValue падает на default-ветке,
+// server возвращает CodeInternal. Через публичный API закрывает defensive-
+// ветку без приватных вспомогательных функций.
+func (s *serverSuite) TestGetCompanyUnknownFieldTypeIsInternal() {
+	err := s.callWithSyntheticBundle("synthetic-unknown-type", data.FieldType(9999), "value")
 	var connectErr *connectrpc.Error
 	s.Require().ErrorAs(err, &connectErr)
 	s.Equal(connectrpc.CodeInternal, connectErr.Code())

@@ -65,7 +65,7 @@ func (s *companyServiceSuite) SetupTest() {
 	})
 }
 
-func (s *companyServiceSuite) expectProfile(ticker string, fieldIDs ...string) {
+func (s *companyServiceSuite) expectProfile(ticker string, fieldIDs ...data.Field) {
 	s.profiles.EXPECT().
 		FindByTicker(mock.Anything, ticker).
 		Return(company.Profile{FieldIDs: fieldIDs}, nil).
@@ -158,7 +158,7 @@ func (s *companyServiceSuite) TestGetCompanyProfileArbitraryError() {
 func (s *companyServiceSuite) TestGetCompanyUnknownFieldPropagates() {
 	// Профиль ссылается на поле, которого нет в реестре — реестр сам
 	// обнаружит и вернёт ErrFieldNotFound, сервис пробрасывает с пометкой.
-	s.expectProfile("SBER", "moex::unknown")
+	s.expectProfile("SBER", "unknown")
 
 	_, err := s.service.GetCompany(context.Background(), "SBER")
 	s.Require().ErrorIs(err, data.ErrFieldNotFound)

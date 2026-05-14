@@ -49,7 +49,7 @@ var (
 // fieldTypeResolver — поиск типа поля по id. Сервер строит его поверх
 // data.Registry; mapper остаётся независимым от того, откуда берётся
 // метаданные.
-type fieldTypeResolver func(id string) (data.FieldType, bool)
+type fieldTypeResolver func(id data.Field) (data.FieldType, bool)
 
 // toProtoFields упаковывает значения, собранные сервисом, в карту полей
 // proto-ответа. Тип каждой ветки oneof выбирается по типу поля,
@@ -70,7 +70,7 @@ func toProtoFields(values data.FieldValues, fieldType fieldTypeResolver) (map[st
 		if fv == nil {
 			continue
 		}
-		out[fieldID] = fv
+		out[string(fieldID)] = fv
 	}
 	return out, nil
 }

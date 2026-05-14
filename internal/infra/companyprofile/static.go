@@ -12,6 +12,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
 )
 
 // Static — статический ProfileRepository: один и тот же набор полей
@@ -22,7 +23,7 @@ type Static struct {
 
 // NewStatic собирает Static из произвольного набора каноничных id полей.
 // Список копируется, чтобы внешние изменения не протекли в репозиторий.
-func NewStatic(fieldIDs []string) *Static {
+func NewStatic(fieldIDs []data.Field) *Static {
 	return &Static{profile: company.Profile{FieldIDs: lo.Clone(fieldIDs)}}
 }
 

@@ -36,7 +36,7 @@ func New(cfg *Config) (http.Handler, error) {
 			BaseURL:   cfg.FinanceMarker.BaseURL,
 			Token:     cfg.FinanceMarker.Token,
 			Timeout:   cfg.FinanceMarker.Timeout,
-			CacheRoot: cfg.Cache.RootDir,
+			CacheRoot: cfg.FinanceMarker.CacheRootDir,
 		}),
 	}
 
