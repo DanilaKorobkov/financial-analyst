@@ -1,17 +1,18 @@
 // Схема Connect-сервиса CompanyService.
 //
 // Возвращает по тикеру типизированный агрегат Company. Агрегат состоит
-// из секций (SecurityDescription, StockInfo); отсутствие секции (поле
-// в Company равно proto-3 default = nil) означает, что соответствующий
-// источник не отдал данных. Доменные перечисления (тип бумаги,
-// котировальный уровень, валюта, биржа, частота отчётности) — отдельные
-// proto-enum-ы; *_UNSPECIFIED означает «значения нет».
+// из секций (SecurityDescription, StockInfo, StockSummary); отсутствие
+// секции (поле в Company равно proto-3 default = nil) означает, что
+// соответствующий источник не отдал данных. Доменные перечисления
+// и сами секции вынесены в отдельные .proto-файлы того же пакета.
 
 syntax = "proto3";
 
 package company.v1;
 
-import "google/protobuf/timestamp.proto";
+import "company/v1/security_description.proto";
+import "company/v1/stock_info.proto";
+import "company/v1/stock_summary.proto";
 
 option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
 
@@ -35,94 +36,5 @@ message GetCompanyResponse {
 message Company {
   SecurityDescription security_description = 1;
   StockInfo stock_info = 2;
-}
-
-// SecurityType — тип бумаги.
-enum SecurityType {
-  SECURITY_TYPE_UNSPECIFIED = 0;
-  COMMON_SHARE = 1;
-  PREFERRED_SHARE = 2;
-  DEPOSITARY_RECEIPT = 3;
-}
-
-// ListingLevel — котировальный уровень бумаги.
-enum ListingLevel {
-  LISTING_LEVEL_UNSPECIFIED = 0;
-  FIRST = 1;
-  SECOND = 2;
-  THIRD = 3;
-}
-
-// Exchange — биржа листинга бумаги.
-enum Exchange {
-  EXCHANGE_UNSPECIFIED = 0;
-  MOEX = 1;
-}
-
-// Currency — валюта.
-enum Currency {
-  CURRENCY_UNSPECIFIED = 0;
-  RUB = 1;
-  USD = 2;
-  EUR = 3;
-}
-
-// ReportFrequency — частота публикации финансовой отчётности эмитентом.
-enum ReportFrequency {
-  REPORT_FREQUENCY_UNSPECIFIED = 0;
-  YEARLY = 1;
-  QUARTERLY = 2;
-}
-
-// SecurityDescription — описание ценной бумаги.
-message SecurityDescription {
-  string ticker = 1;
-  string isin = 2;
-  string name = 3;
-  string short_name = 4;
-  string issue_name = 5;
-  string lat_name = 6;
-  string reg_number = 7;
-  string security_type_name = 8;
-  string security_group = 9;
-  string security_group_name = 10;
-  SecurityType security_type = 11;
-  ListingLevel listing_level = 12;
-  string face_value = 13;
-  Currency face_unit = 14;
-  int64 issue_size = 15;
-  google.protobuf.Timestamp issue_date = 16;
-  google.protobuf.Timestamp registry_date = 17;
-  string emitter_id = 18;
-  bool has_prospectus = 19;
-  bool has_default = 20;
-  bool has_technical_default = 21;
-  bool emitent_mismatch_current = 22;
-  bool is_qualified_investors = 23;
-  bool morning_session = 24;
-  bool evening_session = 25;
-  bool weekend_session = 26;
-}
-
-// StockInfo — карточка эмитента.
-message StockInfo {
-  string issuer_name = 1;
-  string sector = 2;
-  string industry_group = 3;
-  string industry = 4;
-  string sub_industry = 5;
-  int64 sector_id = 6;
-  int64 industry_group_id = 7;
-  int64 industry_id = 8;
-  int64 sub_industry_id = 9;
-  string country = 10;
-  string description = 11;
-  string site = 12;
-  string disclosure_link = 13;
-  string primary_report_ticker = 14;
-  Exchange primary_report_exchange = 15;
-  Exchange exchange = 16;
-  Currency currency = 17;
-  ReportFrequency report_frequency = 18;
-  bool spb = 19;
+  StockSummary stock_summary = 3;
 }

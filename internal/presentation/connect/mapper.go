@@ -43,6 +43,18 @@ var (
 		company.ReportFrequencyYearly:      companyv1.ReportFrequency_YEARLY,
 		company.ReportFrequencyQuarterly:   companyv1.ReportFrequency_QUARTERLY,
 	}
+	ideaConsensusProto = map[company.IdeaConsensus]companyv1.IdeaConsensus{
+		company.IdeaConsensusUnspecified: companyv1.IdeaConsensus_IDEA_CONSENSUS_UNSPECIFIED,
+		company.IdeaConsensusBuy:         companyv1.IdeaConsensus_BUY,
+		company.IdeaConsensusHold:        companyv1.IdeaConsensus_HOLD,
+		company.IdeaConsensusSell:        companyv1.IdeaConsensus_SELL,
+	}
+	insiderConsensusProto = map[company.InsiderConsensus]companyv1.InsiderConsensus{
+		company.InsiderConsensusUnspecified: companyv1.InsiderConsensus_INSIDER_CONSENSUS_UNSPECIFIED,
+		company.InsiderConsensusBuys:        companyv1.InsiderConsensus_BUYS,
+		company.InsiderConsensusSells:       companyv1.InsiderConsensus_SELLS,
+		company.InsiderConsensusMixed:       companyv1.InsiderConsensus_MIXED,
+	}
 )
 
 // toProtoCompany переводит domain-агрегат в proto-сообщение. Принимает
@@ -53,6 +65,7 @@ func toProtoCompany(c *company.Company) *companyv1.Company {
 	return &companyv1.Company{
 		SecurityDescription: toProtoSecurityDescription(&c.SecurityDescription),
 		StockInfo:           toProtoStockInfo(&c.StockInfo),
+		StockSummary:        toProtoStockSummary(&c.StockSummary),
 	}
 }
 
@@ -108,6 +121,49 @@ func toProtoStockInfo(i *company.StockInfo) *companyv1.StockInfo {
 		Currency:              currencyProto[i.Currency],
 		ReportFrequency:       reportFrequencyProto[i.ReportFrequency],
 		Spb:                   i.SPB,
+	}
+}
+
+func toProtoStockSummary(s *company.StockSummary) *companyv1.StockSummary {
+	return &companyv1.StockSummary{
+		Capital:            s.Capital,
+		Eps:                s.EPS,
+		Peg:                s.PEG,
+		PeterLynchTarget:   s.PeterLynchTarget,
+		GrahamTarget:       s.GrahamTarget,
+		DividendFrequency:  int64(s.DividendFrequency),
+		DividendStrike:     int64(s.DividendStrike),
+		DividendGrowth:     int64(s.DividendGrowth),
+		DividendIndex:      s.DividendIndex,
+		DividendYield_12M:  s.DividendYield12M,
+		DividendYield_3Y:   s.DividendYield3Y,
+		DividendYield_5Y:   s.DividendYield5Y,
+		DividendGapLast:    int64(s.DividendGapLast),
+		DividendGapAverage: int64(s.DividendGapAverage),
+		GrowthRevenue_3Y:   s.GrowthRevenue3Y,
+		GrowthRevenue_5Y:   s.GrowthRevenue5Y,
+		GrowthEarnings_3Y:  s.GrowthEarnings3Y,
+		GrowthEarnings_5Y:  s.GrowthEarnings5Y,
+		GrowthEbitda_3Y:    s.GrowthEBITDA3Y,
+		GrowthEbitda_5Y:    s.GrowthEBITDA5Y,
+		GrowthAssets_3Y:    s.GrowthAssets3Y,
+		GrowthAssets_5Y:    s.GrowthAssets5Y,
+		GrowthEquity_3Y:    s.GrowthEquity3Y,
+		GrowthEquity_5Y:    s.GrowthEquity5Y,
+		GrowthFcf_3Y:       s.GrowthFCF3Y,
+		GrowthFcf_5Y:       s.GrowthFCF5Y,
+		GrowthNetDebt_3Y:   s.GrowthNetDebt3Y,
+		GrowthNetDebt_5Y:   s.GrowthNetDebt5Y,
+		GrowthOperation_3Y: s.GrowthOperation3Y,
+		GrowthOperation_5Y: s.GrowthOperation5Y,
+		IdeaBuy:            int64(s.IdeaBuy),
+		IdeaHold:           int64(s.IdeaHold),
+		IdeaSell:           int64(s.IdeaSell),
+		IdeaTarget:         s.IdeaTarget,
+		IdeaPotential:      s.IdeaPotential,
+		IdeaConsensus:      ideaConsensusProto[s.IdeaConsensus],
+		InsiderConsensus:   insiderConsensusProto[s.InsiderConsensus],
+		ChangedAt:          encodeDate(s.ChangedAt),
 	}
 }
 

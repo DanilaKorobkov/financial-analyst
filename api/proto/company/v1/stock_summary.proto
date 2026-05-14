@@ -1,0 +1,98 @@
+// Сводные метрики эмитента — одна из секций агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockSummary — сводные метрики эмитента «одной строкой»: рыночная
+// капитализация, EPS, целевые цены моделей Грэма и Линча, дивидендная
+// статистика, среднегодовые темпы роста (CAGR) и агрегированные
+// консенсусы по идеям и сделкам инсайдеров.
+message StockSummary {
+  // Рыночная капитализация в валюте отчётности (обычно RUB), в миллионах.
+  double capital = 1;
+  // Прибыль на акцию (TTM) в валюте отчётности.
+  double eps = 2;
+  // Отношение P/E к ожидаемому темпу роста прибыли.
+  double peg = 3;
+  // Целевая цена по модели Питера Линча (PEG-based).
+  double peter_lynch_target = 4;
+  // Целевая цена по модели Бенджамина Грэма.
+  double graham_target = 5;
+
+  // Историческое число дивидендных выплат в год.
+  int64 dividend_frequency = 6;
+  // Сколько лет подряд эмитент не пропускал дивидендную выплату.
+  int64 dividend_strike = 7;
+  // Сколько лет подряд дивиденд рос.
+  int64 dividend_growth = 8;
+  // Композитный индекс дивидендной привлекательности (от 0 до ~1).
+  double dividend_index = 9;
+  // Дивидендная доходность за последние 12 месяцев (%).
+  double dividend_yield_12m = 10;
+  // Средняя дивидендная доходность за 3 года (%).
+  double dividend_yield_3y = 11;
+  // Средняя дивидендная доходность за 5 лет (%).
+  double dividend_yield_5y = 12;
+  // Размер последнего дивидендного гэпа в днях до закрытия.
+  int64 dividend_gap_last = 13;
+  // Средний размер дивидендного гэпа в днях до закрытия.
+  int64 dividend_gap_average = 14;
+
+  // CAGR выручки за 3 года (%).
+  double growth_revenue_3y = 15;
+  // CAGR выручки за 5 лет (%).
+  double growth_revenue_5y = 16;
+  // CAGR чистой прибыли за 3 года (%).
+  double growth_earnings_3y = 17;
+  // CAGR чистой прибыли за 5 лет (%).
+  double growth_earnings_5y = 18;
+  // CAGR EBITDA за 3 года (%).
+  double growth_ebitda_3y = 19;
+  // CAGR EBITDA за 5 лет (%).
+  double growth_ebitda_5y = 20;
+  // CAGR активов за 3 года (%).
+  double growth_assets_3y = 21;
+  // CAGR активов за 5 лет (%).
+  double growth_assets_5y = 22;
+  // CAGR собственного капитала за 3 года (%).
+  double growth_equity_3y = 23;
+  // CAGR собственного капитала за 5 лет (%).
+  double growth_equity_5y = 24;
+  // CAGR свободного денежного потока за 3 года (%).
+  double growth_fcf_3y = 25;
+  // CAGR свободного денежного потока за 5 лет (%).
+  double growth_fcf_5y = 26;
+  // CAGR чистого долга за 3 года (%).
+  double growth_net_debt_3y = 27;
+  // CAGR чистого долга за 5 лет (%).
+  double growth_net_debt_5y = 28;
+  // CAGR операционной прибыли за 3 года (%).
+  double growth_operation_3y = 29;
+  // CAGR операционной прибыли за 5 лет (%).
+  double growth_operation_5y = 30;
+
+  // Число активных идей с рекомендацией «покупать».
+  int64 idea_buy = 31;
+  // Число активных идей с рекомендацией «держать».
+  int64 idea_hold = 32;
+  // Число активных идей с рекомендацией «продавать».
+  int64 idea_sell = 33;
+  // Усреднённая целевая цена по активным идеям.
+  double idea_target = 34;
+  // Средний потенциал к целевой цене по активным идеям (%).
+  double idea_potential = 35;
+  // Агрегированный консенсус по активным идеям.
+  IdeaConsensus idea_consensus = 36;
+
+  // Агрегированное направление сделок инсайдеров.
+  InsiderConsensus insider_consensus = 37;
+
+  // Момент пересчёта сводных метрик.
+  google.protobuf.Timestamp changed_at = 38;
+}

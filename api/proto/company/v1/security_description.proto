@@ -1,0 +1,40 @@
+// Описание ценной бумаги — одна из секций агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// SecurityDescription — описание ценной бумаги.
+message SecurityDescription {
+  string ticker = 1;
+  string isin = 2;
+  string name = 3;
+  string short_name = 4;
+  string issue_name = 5;
+  string lat_name = 6;
+  string reg_number = 7;
+  string security_type_name = 8;
+  string security_group = 9;
+  string security_group_name = 10;
+  SecurityType security_type = 11;
+  ListingLevel listing_level = 12;
+  string face_value = 13;
+  Currency face_unit = 14;
+  int64 issue_size = 15;
+  google.protobuf.Timestamp issue_date = 16;
+  google.protobuf.Timestamp registry_date = 17;
+  string emitter_id = 18;
+  bool has_prospectus = 19;
+  bool has_default = 20;
+  bool has_technical_default = 21;
+  bool emitent_mismatch_current = 22;
+  bool is_qualified_investors = 23;
+  bool morning_session = 24;
+  bool evening_session = 25;
+  bool weekend_session = 26;
+}

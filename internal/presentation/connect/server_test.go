@@ -55,6 +55,7 @@ func (s *serverSuite) TearDownTest() {
 
 func (s *serverSuite) TestGetCompanyHappyPath() {
 	issueDate := time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC)
+	changedAt := time.Date(2026, 5, 11, 3, 32, 6, 0, time.UTC)
 	s.companies.EXPECT().
 		FindByTicker(mock.Anything, "SBER").
 		Return(company.Company{
@@ -75,6 +76,20 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 				PrimaryReportTicker: "SBER",
 				Exchange:            company.ExchangeMOEX,
 				Currency:            company.CurrencyRUB,
+			},
+			StockSummary: company.StockSummary{
+				Capital:           97627.3,
+				EPS:               78.8,
+				PEG:               0.56,
+				GrahamTarget:      160.46,
+				DividendFrequency: 1,
+				DividendYield12M:  10.65,
+				GrowthRevenue3Y:   10.59,
+				IdeaBuy:           9,
+				IdeaTarget:        387.392,
+				IdeaConsensus:     company.IdeaConsensusBuy,
+				InsiderConsensus:  company.InsiderConsensusBuys,
+				ChangedAt:         changedAt,
 			},
 		}, nil).
 		Once()
@@ -97,6 +112,21 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	s.Equal("Сбербанк", info.GetIssuerName())
 	s.Equal(companyv1.Exchange_MOEX, info.GetExchange())
 	s.Equal(companyv1.Currency_RUB, info.GetCurrency())
+
+	summary := resp.Msg.GetCompany().GetStockSummary()
+	s.Require().NotNil(summary)
+	s.InDelta(97627.3, summary.GetCapital(), 1e-6)
+	s.InDelta(78.8, summary.GetEps(), 1e-6)
+	s.InDelta(0.56, summary.GetPeg(), 1e-6)
+	s.InDelta(160.46, summary.GetGrahamTarget(), 1e-6)
+	s.Equal(int64(1), summary.GetDividendFrequency())
+	s.InDelta(10.65, summary.GetDividendYield_12M(), 1e-6)
+	s.InDelta(10.59, summary.GetGrowthRevenue_3Y(), 1e-6)
+	s.Equal(int64(9), summary.GetIdeaBuy())
+	s.InDelta(387.392, summary.GetIdeaTarget(), 1e-6)
+	s.Equal(companyv1.IdeaConsensus_BUY, summary.GetIdeaConsensus())
+	s.Equal(companyv1.InsiderConsensus_BUYS, summary.GetInsiderConsensus())
+	s.Equal(changedAt.Unix(), summary.GetChangedAt().GetSeconds())
 }
 
 func (s *serverSuite) TestGetCompanyEnumCodes() {

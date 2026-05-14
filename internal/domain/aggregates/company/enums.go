@@ -42,6 +42,24 @@ const (
 	ReportFrequencyYearly ReportFrequency = 1
 	// ReportFrequencyQuarterly — квартальная отчётность.
 	ReportFrequencyQuarterly ReportFrequency = 2
+
+	// IdeaConsensusUnspecified — консенсус по идеям не определён.
+	IdeaConsensusUnspecified IdeaConsensus = 0
+	// IdeaConsensusBuy — преобладают идеи на покупку.
+	IdeaConsensusBuy IdeaConsensus = 1
+	// IdeaConsensusHold — преобладают идеи держать.
+	IdeaConsensusHold IdeaConsensus = 2
+	// IdeaConsensusSell — преобладают идеи на продажу.
+	IdeaConsensusSell IdeaConsensus = 3
+
+	// InsiderConsensusUnspecified — направление сделок инсайдеров не определено.
+	InsiderConsensusUnspecified InsiderConsensus = 0
+	// InsiderConsensusBuys — у инсайдеров преобладают покупки.
+	InsiderConsensusBuys InsiderConsensus = 1
+	// InsiderConsensusSells — у инсайдеров преобладают продажи.
+	InsiderConsensusSells InsiderConsensus = 2
+	// InsiderConsensusMixed — направление сделок инсайдеров смешанное.
+	InsiderConsensusMixed InsiderConsensus = 3
 )
 
 // SecurityType — тип бумаги.
@@ -58,3 +76,9 @@ type Currency int
 
 // ReportFrequency — частота публикации финансовой отчётности эмитентом.
 type ReportFrequency int
+
+// IdeaConsensus — агрегированный консенсус инвест-идей по бумаге.
+type IdeaConsensus int
+
+// InsiderConsensus — агрегированное направление сделок инсайдеров по бумаге.
+type InsiderConsensus int

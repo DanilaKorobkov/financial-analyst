@@ -1,0 +1,32 @@
+// Карточка эмитента — одна из секций агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockInfo — карточка эмитента.
+message StockInfo {
+  string issuer_name = 1;
+  string sector = 2;
+  string industry_group = 3;
+  string industry = 4;
+  string sub_industry = 5;
+  int64 sector_id = 6;
+  int64 industry_group_id = 7;
+  int64 industry_id = 8;
+  int64 sub_industry_id = 9;
+  string country = 10;
+  string description = 11;
+  string site = 12;
+  string disclosure_link = 13;
+  string primary_report_ticker = 14;
+  Exchange primary_report_exchange = 15;
+  Exchange exchange = 16;
+  Currency currency = 17;
+  ReportFrequency report_frequency = 18;
+  bool spb = 19;
+}
