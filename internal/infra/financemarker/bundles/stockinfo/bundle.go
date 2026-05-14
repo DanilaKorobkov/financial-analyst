@@ -11,9 +11,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/cache/httpcache"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
 )
 
@@ -27,6 +29,13 @@ const (
 
 	// codeExchangeMOEX — строковый код Московской биржи в формате FinanceMarker.
 	codeExchangeMOEX = "MOEX"
+
+	// cacheTTL — срок жизни HTTP-ответа /stocks в кеше клиента. Блок info
+	// (классификация, описание эмитента, ссылки) меняется крайне редко,
+	// поэтому раз в месяц достаточно. Bundle декларирует свой TTL у
+	// каждого исходящего запроса через ctx — фактическое хранение
+	// принадлежит httpcache-уровню клиента (см. httpcache.WithTTL).
+	cacheTTL = 30 * 24 * time.Hour
 )
 
 // fields — полный набор полей, которые bundle раскладывает в
@@ -55,6 +64,8 @@ var fields = []data.FieldDescriptor{
 }
 
 // Bundle — реализация data.Bundle для блока info FinanceMarker.
+// Кеширование живёт уровнем ниже, на http-transport клиента; bundle
+// только декларирует TTL у своего запроса через ctx (httpcache.WithTTL).
 type Bundle struct {
 	client *client.Client
 }
@@ -72,9 +83,14 @@ func (*Bundle) Fields() []data.FieldDescriptor { return fields }
 
 // Fetch запрашивает карточку эмитента, переводит блок info в плоский
 // FieldValues. Сетевые и HTTP-ошибки приходят из общего клиента уже
-// классифицированными (см. client.New / classifyError),
-// 404 здесь переводится в domaincompany.ErrNotFound.
+// классифицированными (см. client.New / classifyError), 404 здесь
+// переводится в domaincompany.ErrNotFound.
+//
+// TTL для http-кеша выставляется на ctx через httpcache.WithTTL. Если
+// у клиента кеш не подключён (CacheDir пустой) — аннотация остаётся в
+// ctx без эффекта, и запрос идёт в сеть как есть.
 func (b *Bundle) Fetch(ctx context.Context, ticker string) (data.FieldValues, error) {
+	ctx = httpcache.WithTTL(ctx, cacheTTL)
 	symbol := codeExchangeMOEX + ":" + ticker
 
 	var dto stockDTO

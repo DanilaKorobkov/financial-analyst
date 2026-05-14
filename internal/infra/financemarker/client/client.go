@@ -11,6 +11,9 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	jsoniter "github.com/json-iterator/go"
+
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/cache/filecache"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/cache/httpcache"
 )
 
 // Infra-уровневые ошибки FinanceMarker. Bundles при необходимости
@@ -37,6 +40,12 @@ type Config struct {
 	// "api_token" во всех запросах.
 	Token string
 
+	// CacheDir — каталог файлового кеша HTTP-ответов. Пустая строка
+	// отключает кеширование: клиент идёт в сеть на каждый запрос. Bundle
+	// решает per-request, какой запрос кешируем (httpcache.WithTTL по ctx);
+	// клиент только держит хранилище.
+	CacheDir string
+
 	// Timeout — таймаут на один HTTP-запрос.
 	Timeout time.Duration
 }
@@ -56,7 +65,9 @@ type errorBody struct {
 	Code    int    `json:"code"`
 }
 
-// New собирает Client под FinanceMarker.
+// New собирает Client под FinanceMarker. Если cfg.CacheDir не пустой —
+// поверх transport ставится httpcache, который сам решает кешировать
+// запрос или нет на основе TTL из ctx (см. httpcache.WithTTL).
 func New(cfg Config) *Client {
 	jsonParser := jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -70,6 +81,16 @@ func New(cfg Config) *Client {
 		OnAfterResponse(func(_ *resty.Client, resp *resty.Response) error {
 			return classifyError(resp)
 		})
+
+	if cfg.CacheDir != "" {
+		store := filecache.New[httpcache.Entry](filecache.Config{Dir: cfg.CacheDir})
+		base := c.GetClient().Transport
+		if base == nil {
+			base = http.DefaultTransport
+		}
+		c.SetTransport(httpcache.NewTransport(base, store))
+	}
+
 	return &Client{Client: c}
 }
 

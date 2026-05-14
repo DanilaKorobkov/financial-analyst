@@ -63,15 +63,18 @@ func NewRegistry() *Registry {
 	}
 }
 
-// RegisterProvider регистрирует все bundles провайдера в реестре под
-// ID этого провайдера. Двойная регистрация той же пары (provider, bundle)
+// RegisterProvider регистрирует все bundles переданных провайдеров под
+// ID каждого провайдера. Двойная регистрация той же пары (provider, bundle)
 // или того же id поля — ошибка: реестр строится один раз и подмена
-// реализации в нём — почти всегда баг сборки.
-func (r *Registry) RegisterProvider(p Provider) error {
-	providerID := p.ID()
-	for _, b := range p.Bundles() {
-		if err := r.Register(providerID, b); err != nil {
-			return fmt.Errorf("provider %s register: %w", providerID, err)
+// реализации в нём — почти всегда баг сборки. Провайдеры обрабатываются
+// в порядке передачи; первая ошибка прерывает регистрацию.
+func (r *Registry) RegisterProvider(providers ...Provider) error {
+	for _, p := range providers {
+		providerID := p.ID()
+		for _, b := range p.Bundles() {
+			if err := r.Register(providerID, b); err != nil {
+				return fmt.Errorf("provider %s register: %w", providerID, err)
+			}
 		}
 	}
 	return nil

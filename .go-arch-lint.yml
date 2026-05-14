@@ -60,10 +60,17 @@ components:
   # подпакет внутри `bundles/<имя_бандла>/`.
   infra-financemarker-bundles:
     in: internal/infra/financemarker/bundles/**
-  # Файловый кеш-Proxy над data.Bundle. Generic поверх любого bundle:
-  # сериализует FieldValues с учётом типов из FieldDescriptor каждого поля.
-  infra-filecache-bundle:
-    in: internal/infra/filecache/bundle
+  # Generic файловый кеш над любым JSON-сериализуемым T. Низкоуровневый
+  # building block: предоставляет Get/Put/LoadOrFetch с per-call TTL.
+  # Используется как хранилище httpcache (Entry — байты HTTP-ответа).
+  infra-cache-filecache:
+    in: internal/infra/cache/filecache
+  # Кеширующий http.RoundTripper. Решает кешировать ли исходящий запрос
+  # по TTL из его context.Context (httpcache.WithTTL). Стоит в transport
+  # клиента провайдера: bundles ничего не знают про хранилище, только
+  # аннотируют свой ctx нужным TTL.
+  infra-cache-httpcache:
+    in: internal/infra/cache/httpcache
   # Реализации company.ProfileRepository — какие поля карточки нужны
   # для тикера. Сейчас единственный вариант — статический набор полей
   # на все тикеры.
@@ -133,28 +140,35 @@ deps:
   infra-financemarker:
     mayDependOn:
       - domain-data
-      - infra-filecache-bundle
       - infra-financemarker
       - infra-financemarker-bundles
       - infra-financemarker-client
     anyVendorDeps: true
 
   infra-financemarker-client:
+    mayDependOn:
+      - infra-cache-filecache
+      - infra-cache-httpcache
     anyVendorDeps: true
 
   infra-financemarker-bundles:
     mayDependOn:
       - domain-company
       - domain-data
+      - infra-cache-httpcache
       - infra-financemarker-bundles
       - infra-financemarker-client
     anyVendorDeps: true
 
-  infra-filecache-bundle:
+  infra-cache-filecache:
     mayDependOn:
-      - domain-company
-      - domain-data
-      - infra-filecache-bundle
+      - infra-cache-filecache
+    anyVendorDeps: true
+
+  infra-cache-httpcache:
+    mayDependOn:
+      - infra-cache-filecache
+      - infra-cache-httpcache
     anyVendorDeps: true
 
   infra-companyprofile:

@@ -3,9 +3,10 @@
 // данного источника в data.Registry.
 //
 // Bundles данного провайдера лежат в подпакете `bundles/` — по одному
-// файлу на endpoint FinanceMarker. Файловый кеш над каждым bundle —
-// внутренняя деталь провайдера: квота на API-токен жёсткая, поэтому
-// все bundles этого источника по умолчанию кешируются.
+// файлу на endpoint FinanceMarker. Файловый кеш живёт на http-transport
+// клиента: каждый bundle декларирует у своего запроса TTL через
+// httpcache.WithTTL, transport сам решает, отдать ответ из файла или
+// сходить в сеть. Bundle про хранилище и формат записи ничего не знает.
 package financemarker
 
 import (
@@ -13,32 +14,21 @@ import (
 	"time"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/data"
-	fcbundle "github.com/DanilaKorobkov/financial-analyst/internal/infra/filecache/bundle"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/bundles/stockinfo"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
 )
 
-const (
-	// ProviderID — стабильный идентификатор FinanceMarker-провайдера в реестре.
-	ProviderID = "financemarker"
-
-	// stockInfoCacheTTL — TTL файлового кеша stock-info. Хардкод вместо env:
-	// операционный параметр одного bundle, меняется крайне редко. Когда
-	// понадобится тонкая настройка под разные bundles — вынесем в
-	// ConfigProvider или в derived freshness (см. VISION).
-	stockInfoCacheTTL = 720 * time.Hour
-)
+// ProviderID — стабильный идентификатор FinanceMarker-провайдера в реестре.
+const ProviderID = "financemarker"
 
 // Provider собирает bundles FinanceMarker-источника и регистрирует их
 // в реестре. Реализует data.Provider.
 //
-// FinanceMarker — авторизованный источник с квотой на токен, поэтому
-// все bundles этого провайдера оборачиваются в файловый кеш. Кеш —
-// внутренняя деталь провайдера: composition root о ней не знает,
-// просто отдаёт корневой каталог под файлы.
+// FinanceMarker — авторизованный источник с квотой на токен; кеширование
+// HTTP-ответов выполняется единым transport-слоем клиента, а per-endpoint
+// TTL задают сами bundles в своём Fetch.
 type Provider struct {
-	client    *client.Client
-	cacheRoot string
+	client *client.Client
 }
 
 // ConfigProvider — параметры Provider. Включает параметры HTTP-клиента
@@ -51,8 +41,9 @@ type ConfigProvider struct {
 	// Token — API-токен из профиля FinanceMarker.
 	Token string
 
-	// CacheRoot — корневой каталог файлового кеша. Под каждый bundle
-	// провайдер создаёт собственный подкаталог `<CacheRoot>/<provider>/<bundle>`.
+	// CacheRoot — корневой каталог файлового кеша HTTP-ответов. Пустая
+	// строка отключает кеш: клиент идёт в сеть на каждый запрос. Под
+	// каталог провайдера используется поддиректория `<CacheRoot>/<provider>`.
 	CacheRoot string
 
 	// Timeout — таймаут на один HTTP-запрос.
@@ -61,29 +52,26 @@ type ConfigProvider struct {
 
 // NewProvider собирает Provider: внутри создаёт HTTP-клиент по конфигу.
 func NewProvider(cfg ConfigProvider) *Provider {
-	return &Provider{
-		client: client.New(client.Config{
-			BaseURL: cfg.BaseURL,
-			Token:   cfg.Token,
-			Timeout: cfg.Timeout,
-		}),
-		cacheRoot: cfg.CacheRoot,
+	clientCfg := client.Config{
+		BaseURL: cfg.BaseURL,
+		Token:   cfg.Token,
+		Timeout: cfg.Timeout,
 	}
+	if cfg.CacheRoot != "" {
+		clientCfg.CacheDir = filepath.Join(cfg.CacheRoot, ProviderID)
+	}
+	return &Provider{client: client.New(clientCfg)}
 }
 
 // ID — реализация data.Provider.
 func (*Provider) ID() string { return ProviderID }
 
-// Bundles — все bundles FinanceMarker-источника, уже завёрнутые в
-// файловый кеш. Кеш — внутренняя деталь провайдера: composition root
-// о нём не знает, реестр про него не знает, видит только финальный
-// data.Bundle.
+// Bundles — все bundles FinanceMarker-источника. Provider раздаёт
+// им общий HTTP-клиент; кеширование bundles друг с другом и с
+// composition root не координируют — оно происходит уровнем ниже,
+// внутри клиента.
 func (p *Provider) Bundles() []data.Bundle {
 	return []data.Bundle{
-		fcbundle.NewProxy(fcbundle.ConfigProxy{
-			Delegate: stockinfo.New(p.client),
-			Dir:      filepath.Join(p.cacheRoot, ProviderID, stockinfo.ID),
-			TTL:      stockInfoCacheTTL,
-		}),
+		stockinfo.New(p.client),
 	}
 }
