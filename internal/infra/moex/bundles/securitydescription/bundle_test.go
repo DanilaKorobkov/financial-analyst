@@ -137,8 +137,8 @@ func (s *bundleSuite) TestFetchContextCancelled() {
 	_, err := s.bundle.Fetch(ctx, "any")
 
 	s.Require().Error(err)
-	s.ErrorContains(err, "context canceled")
-	s.ErrorContains(err, "moex request")
+	s.Require().ErrorContains(err, "context canceled")
+	s.Require().ErrorContains(err, "moex request")
 }
 
 // TestFetchTypeAndLevelMatrix проходит по всем ожидаемым значениям полей

@@ -42,6 +42,14 @@ linters:
     - contextcheck    # функция должна пробрасывать ctx, а не делать context.Background()
     - durationcheck   # подозрительные операции с time.Duration (умножение Duration на Duration)
     - exhaustive      # switch по enum/типу должен покрывать все варианты
+    - recvcheck       # запрещает смешивание pointer/value receivers на одном типе
+    # ── Границы данных (JSON/proto) ──────────────────────────────────────────
+    # Закрывают класс «тихий zero-value на границе»: парсер MOEX/FM прочитал
+    # JSON, поле без тега не съело значение → отчёт детерминирован, но цифра
+    # неправильная. Аналогично для proto: прямой доступ к полю pointer-сообщения
+    # паникует на nil nested message, а getter возвращает zero-value.
+    - musttag         # экспортные поля структур, идущих в json.*/jsoniter.*, обязаны иметь json-тег
+    - protogetter     # доступ к полям proto-сообщений только через сгенерированные GetX()
 
     # ── Безопасность ─────────────────────────────────────────────────────────
     - gosec           # типовые security-проблемы (hardcoded secrets, weak crypto, ...)
@@ -77,6 +85,7 @@ linters:
     - thelper         # хелперы тестов должны звать t.Helper()
     - tparallel       # корректное использование t.Parallel в подтестах
     - paralleltest    # каждый тест должен явно решать про t.Parallel()
+    - testifylint     # типовые ошибки testify (порядок args, error-is, require и т.д.)
 
     # ── Анти-foot-gun ───────────────────────────────────────────────────────
     - forbidigo       # запрет вызовов вроде fmt.Print*/panic в проде (см. settings)
@@ -86,6 +95,61 @@ linters:
   # SETTINGS — тонкая настройка отдельных линтеров.
   # ────────────────────────────────────────────────────────────────────────────
   settings:
+
+    musttag:
+      # Дефолтный список musttag покрывает encoding/json и encoding/xml.
+      # Достраиваем jsoniter — в проекте это де-факто основной JSON-движок
+      # (jsoniter.ConfigCompatibleWithStandardLibrary). Без этих сигнатур
+      # musttag прозевал бы парсинг через инстанс конфига.
+      #
+      # ВНИМАНИЕ: ниже покрыты Marshal/Unmarshal-API и Encoder/Decoder.
+      # Низкоуровневый стриминговый API jsoniter — (*Stream).WriteVal и
+      # (*Iterator).ReadVal — НЕ покрыт: musttag не пробрасывает тип
+      # через generic'и итератора. Если такой код появится — добавить
+      # сигнатуры сюда и проверить эффект на тестовом вызове.
+      functions:
+        # Пакетные функции jsoniter (drop-in для encoding/json).
+        - name: github.com/json-iterator/go.Marshal
+          tag: json
+          arg-pos: 0
+        - name: github.com/json-iterator/go.MarshalIndent
+          tag: json
+          arg-pos: 0
+        - name: github.com/json-iterator/go.MarshalToString
+          tag: json
+          arg-pos: 0
+        - name: github.com/json-iterator/go.Unmarshal
+          tag: json
+          arg-pos: 1
+        - name: github.com/json-iterator/go.UnmarshalFromString
+          tag: json
+          arg-pos: 1
+        # Методы интерфейса API. ConfigCompatibleWithStandardLibrary,
+        # ConfigDefault, ConfigFastest имеют статический тип
+        # jsoniter.API (Config{}.Froze() возвращает API), поэтому
+        # callee у вызова — это метод интерфейса, а не *frozenConfig.
+        - name: (github.com/json-iterator/go.API).Marshal
+          tag: json
+          arg-pos: 0
+        - name: (github.com/json-iterator/go.API).MarshalIndent
+          tag: json
+          arg-pos: 0
+        - name: (github.com/json-iterator/go.API).MarshalToString
+          tag: json
+          arg-pos: 0
+        - name: (github.com/json-iterator/go.API).Unmarshal
+          tag: json
+          arg-pos: 1
+        - name: (github.com/json-iterator/go.API).UnmarshalFromString
+          tag: json
+          arg-pos: 1
+        # Streaming API jsoniter.
+        - name: (*github.com/json-iterator/go.Encoder).Encode
+          tag: json
+          arg-pos: 0
+        - name: (*github.com/json-iterator/go.Decoder).Decode
+          tag: json
+          arg-pos: 0
 
     grouper:
       # Несколько top-level const/var в пакете — одним блоком. Одиночное
@@ -139,6 +203,27 @@ linters:
         - name: confusing-naming       # имена, отличающиеся только регистром
         - name: confusing-results      # одинаковые типы возврата без имён
         - name: empty-block
+        # ── Immutability и foot-gun receiver'ов ─────────────────────────────
+        # Тихая мутация входов и value-receiver'ов — главный источник
+        # «потерянных» изменений: вызов отработал, но снаружи ничего не
+        # поменялось. Особенно опасно для value object'ов в domain-слое,
+        # где такие баги не ловятся unit-тестами (всё считается на одном
+        # объекте по ходу теста) и доезжают до прода как расхождение цифр.
+        - name: modifies-parameter        # мутация входного параметра — нарушение immutability
+        # value receiver мутирует поле → потерянное изменение (DDD foot-gun).
+        - name: modifies-value-receiver
+        # ── Foot-gun в потоке управления и сигнатурах ───────────────────────
+        - name: bare-return               # naked return — скрытое возвращаемое значение
+        - name: unused-parameter          # параметр не используется — мёртвая сигнатура
+        - name: unused-receiver           # receiver не используется — функция, а не метод
+        - name: unchecked-type-assertion  # x.(T) без ok — паника на проде вместо ошибки
+        # подозрительные defer (return, recover вне функции и т.п.).
+        - name: defer
+        # `if err != nil { return err }; return nil` → `return err`.
+        - name: if-return
+        - name: useless-break             # лишний break внутри switch/select
+        - name: bool-literal-in-expr      # `x == true` / `y == false` — упростить
+        - name: empty-lines               # двойные пустые строки внутри функции/блока
 
     gocyclo:
       # Цикломатическая сложность ≤ 12. Выше — рефакторить.
@@ -183,11 +268,40 @@ linters:
       disabled-checks:
         # ifElseChain противоречит revive.early-return — отключаем во избежание шума.
         - ifElseChain
+      settings:
+        hugeParam:
+          # Дефолт hugeParam = 80 байт. Это режет нормальные value-параметры
+          # (доменные value object'ы из 4-6 полей), заставляя без причины
+          # переходить на указатели и создавать ложный nullable-контракт.
+          # Поднимаем порог: ругаемся только на действительно громоздкие
+          # struct'ы (> ~16 полей), где копирование уже заметно.
+          sizeThreshold: 256
 
     exhaustive:
-      # default-clause считаем покрытием — иначе любой switch требует перечисления
-      # всех значений, что в DDD удобно не всегда.
-      default-signifies-exhaustive: true
+      # Жёсткий режим: каждый switch/map literal по enum-типу обязан перечислить
+      # все объявленные варианты. Цель — добавление нового варианта enum'а
+      # ломает линтер во всех местах, где о нём нужно подумать, а не уходит
+      # молча в default-ветку или в zero-value мапы.
+      #
+      # default-signifies-exhaustive: false — `default:` НЕ считается покрытием.
+      # Если хочется fallback-семантики «прочее → ошибка», пишем default явно,
+      # но все известные варианты всё равно перечисляем рядом cases.
+      default-signifies-exhaustive: false
+      # Проверяем и switch, и map literals: translator'ы MOEX→domain часто
+      # делают `map[string]ListingLevel{...}`, забытый ключ там — zero value bug.
+      check:
+        - switch
+        - map
+      # Не требуем обязательного default: — исчерпывающий switch самодостаточен,
+      # лишний default только провоцирует мёртвый код.
+      default-case-required: false
+      # Проверяем все switch'и по enum-типам, не только помеченные комментарием.
+      explicit-exhaustive-switch: false
+      explicit-exhaustive-map: false
+      # Включаем проверку enum'ов из внешних пакетов: presentation мапит
+      # proto-enums из gen/ в domain-enums — это типичное место пропуска
+      # нового варианта.
+      package-scope-only: false
 
     nolintlint:
       # //nolint должен указывать линтер и причину — никаких "//nolint" просто так.
@@ -252,6 +366,38 @@ linters:
       # приватных идентификаторов в blackbox-тесты. Сам файл компилируется
       # только в test-режиме и наружу пакета ничего не утекает.
       skip-regexp: export_test\.go
+
+    testifylint:
+      # Жёсткий режим, как и для revive: правила перечислены явно, чтобы
+      # апгрейд testifylint не менял поведение бесшумно. enable-all не
+      # используем — у testifylint есть пара правил со спорной семантикой
+      # (например, formatter), которые включать молча не хотим.
+      enable-all: false
+      enable:
+        - bool-compare              # s.Equal(true, x) → s.True(x)
+        - compares                  # s.True(a == b) → s.Equal(a, b)
+        - empty                     # s.Equal(0, len(x)) → s.Empty(x)
+        - error-is-as               # s.True(errors.Is(err, X)) → s.ErrorIs(err, X)
+        - error-nil                 # s.Nil(err) → s.NoError(err)
+        - expected-actual           # порядок аргументов в Equal: expected первым
+        - float-compare             # точные сравнения float — через InDelta
+        - go-require                # require из горутины — t.FailNow не сработает
+        - len                       # s.Equal(N, len(x)) → s.Len(x, N)
+        - negative-positive         # s.Less(0, x) → s.Positive(x)
+        - nil-compare               # s.Equal(nil, x) → s.Nil(x)
+        - require-error             # последняя проверка err — через require
+        - suite-dont-use-pkg        # assert.Equal(s.T(), ...) → s.Equal(...)
+        - suite-extra-assert-call   # стилистика вызовов в suite
+        - suite-thelper             # хелперы suite должны звать s.T().Helper()
+        - useless-assert            # s.Equal(x, x) — бессмысленное сравнение
+      # expected-actual: regexp имён "ожидаемых" переменных, чтобы линтер
+      # понимал, какой аргумент должен идти первым.
+      expected-actual:
+        pattern: ^(expected|want|wanted)
+      # require-error: список assert-функций, после которых require следом
+      # НЕ обязателен. Пусто = строгий режим.
+      require-error:
+        fn-pattern: ""
 
     depguard:
       # Запреты на импорты по слоям: defense-in-depth для DDD.
