@@ -11,9 +11,6 @@ type Company struct {
 	// SecurityDescription — описание ценной бумаги.
 	SecurityDescription SecurityDescription
 
-	// StockInfo — карточка эмитента.
-	StockInfo StockInfo
-
-	// StockSummary — сводные метрики эмитента.
-	StockSummary StockSummary
+	// Stock — секции карточки эмитента (Info, Summary).
+	Stock Stock
 }

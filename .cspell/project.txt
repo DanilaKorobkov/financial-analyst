@@ -271,3 +271,4 @@ financials        # финансовый раздел отчёта (англий
 # --- Go import-алиасы новых пакетов ---
 moexclient        # alias для internal/infra/moex/client (в app/)
 fmclient          # alias для internal/infra/financemarker/client (в app/)
+fmstock           # alias для internal/infra/financemarker/stock (в app/)

@@ -1,7 +1,5 @@
 package company
 
-import "context"
-
 // StockInfo — карточка эмитента: классификация GICS, страна, описание,
 // ссылки, основная отчётная бумага, биржа и частота отчётности.
 type StockInfo struct {
@@ -61,11 +59,4 @@ type StockInfo struct {
 
 	// SPB — дополнительный листинг на СПБ-бирже.
 	SPB bool
-}
-
-// StockInfoSource — порт источника секции StockInfo.
-type StockInfoSource interface {
-	// FindByTicker возвращает карточку эмитента по тикеру.
-	// Возвращает ErrNotFound, если источник не знает тикер.
-	FindByTicker(ctx context.Context, ticker string) (StockInfo, error)
 }

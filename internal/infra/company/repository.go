@@ -1,7 +1,8 @@
 // Package company — infra-реализация company.Repository: собирает
-// агрегат Company из источников секций (SecurityDescriptionSource,
-// StockInfoSource, StockSummarySource). Источники вызываются параллельно
-// через conc/pool с отменой контекста по первой ошибке.
+// агрегат Company из источников секций (SecurityDescriptionSource —
+// описание ценной бумаги, StockSource — карточка эмитента и сводные
+// метрики одним вызовом). Источники вызываются параллельно через
+// conc/pool с отменой контекста по первой ошибке.
 package company
 
 import (
@@ -13,11 +14,16 @@ import (
 	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 )
 
+// stockSections — секции карточки эмитента, которые входят в агрегат Company.
+var stockSections = []domaincompany.StockSection{
+	domaincompany.StockSectionInfo,
+	domaincompany.StockSectionSummary,
+}
+
 // Repository — infra-реализация domaincompany.Repository.
 type Repository struct {
 	securityDescription domaincompany.SecurityDescriptionSource
-	stockInfo           domaincompany.StockInfoSource
-	stockSummary        domaincompany.StockSummarySource
+	stock               domaincompany.StockSource
 }
 
 // ConfigRepository — параметры Repository.
@@ -25,19 +31,16 @@ type ConfigRepository struct {
 	// SecurityDescription — источник описания ценной бумаги.
 	SecurityDescription domaincompany.SecurityDescriptionSource
 
-	// StockInfo — источник карточки эмитента.
-	StockInfo domaincompany.StockInfoSource
-
-	// StockSummary — источник сводных метрик эмитента.
-	StockSummary domaincompany.StockSummarySource
+	// Stock — источник секций карточки эмитента (StockInfo + StockSummary)
+	// одним вызовом.
+	Stock domaincompany.StockSource
 }
 
 // NewRepository собирает Repository поверх источников секций.
 func NewRepository(cfg ConfigRepository) *Repository {
 	return &Repository{
 		securityDescription: cfg.SecurityDescription,
-		stockInfo:           cfg.StockInfo,
-		stockSummary:        cfg.StockSummary,
+		stock:               cfg.Stock,
 	}
 }
 
@@ -57,19 +60,11 @@ func (r *Repository) FindByTicker(ctx context.Context, ticker string) (domaincom
 		return nil
 	})
 	p.Go(func(ctx context.Context) error {
-		section, err := r.stockInfo.FindByTicker(ctx, ticker)
+		s, err := r.stock.FindByTicker(ctx, ticker, stockSections)
 		if err != nil {
-			return fmt.Errorf("stock info: %w", err)
+			return fmt.Errorf("stock: %w", err)
 		}
-		agg.StockInfo = section
-		return nil
-	})
-	p.Go(func(ctx context.Context) error {
-		section, err := r.stockSummary.FindByTicker(ctx, ticker)
-		if err != nil {
-			return fmt.Errorf("stock summary: %w", err)
-		}
-		agg.StockSummary = section
+		agg.Stock = s
 		return nil
 	})
 	if err := p.Wait(); err != nil {

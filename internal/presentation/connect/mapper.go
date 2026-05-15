@@ -64,8 +64,14 @@ var (
 func toProtoCompany(c *company.Company) *companyv1.Company {
 	return &companyv1.Company{
 		SecurityDescription: toProtoSecurityDescription(&c.SecurityDescription),
-		StockInfo:           toProtoStockInfo(&c.StockInfo),
-		StockSummary:        toProtoStockSummary(&c.StockSummary),
+		Stock:               toProtoStock(&c.Stock),
+	}
+}
+
+func toProtoStock(s *company.Stock) *companyv1.Stock {
+	return &companyv1.Stock{
+		Info:    toProtoStockInfo(&s.Info),
+		Summary: toProtoStockSummary(&s.Summary),
 	}
 }
 

@@ -54,11 +54,11 @@ components:
   # Общий HTTP-клиент FinanceMarker.
   infra-financemarker-client:
     in: internal/infra/financemarker/client
-  # Реализации StockInfoSource (и других порт-источников FinanceMarker).
+  # Реализация StockSource поверх FinanceMarker — единственный источник
+  # секций карточки эмитента (info, summary) одним запросом.
   infra-financemarker-sources:
     in:
-      - internal/infra/financemarker/stockinfo
-      - internal/infra/financemarker/stocksummary
+      - internal/infra/financemarker/stock
   # Generic файловый кеш над любым JSON-сериализуемым T.
   infra-cache-filecache:
     in: internal/infra/cache/filecache

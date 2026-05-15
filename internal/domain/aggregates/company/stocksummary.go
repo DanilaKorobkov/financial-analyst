@@ -1,9 +1,6 @@
 package company
 
-import (
-	"context"
-	"time"
-)
+import "time"
 
 // StockSummary — сводные метрики эмитента «одной строкой»: рыночная
 // капитализация, EPS, целевые цены моделей Грэма и Линча, дивидендная
@@ -133,11 +130,4 @@ type StockSummary struct {
 
 	// InsiderConsensus — агрегированное направление сделок инсайдеров.
 	InsiderConsensus InsiderConsensus
-}
-
-// StockSummarySource — порт источника секции StockSummary.
-type StockSummarySource interface {
-	// FindByTicker возвращает сводные метрики эмитента по тикеру.
-	// Возвращает ErrNotFound, если источник не знает тикер.
-	FindByTicker(ctx context.Context, ticker string) (StockSummary, error)
 }
