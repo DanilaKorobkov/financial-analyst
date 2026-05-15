@@ -1,6 +1,12 @@
 version: 3
 workdir: .
 
+# `.claude/worktrees/` — локальные git worktrees, которые Claude Code держит
+# поверх рабочей копии. У каждого свой Go-код в другой ветке, не относящийся
+# к текущему workdir; архитектурные правила там не применимы.
+excludeFiles:
+  - ^.*\.claude/worktrees/.*$
+
 # deepScan = false — отключаем дорогостоящий «advanced»-режим go-arch-lint,
 # который трекает аргументы вызовов и DI-инъекции через composition root и
 # репортит, что infra «зависит» от services только потому, что объект из infra
