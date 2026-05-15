@@ -17,22 +17,22 @@ jobs:
         # При добавлении нового cmd/<name> расширяем этот список и одноимённую
         # задачу в `Taskfile.yml`.
         target:
-          - lint-golangci-lint
-          - lint-structfielddocs
-          - lint-arch
+          - server:lint-golangci-lint
+          - server:lint-structfielddocs
+          - server:lint-arch
           - lint-yamllint
           - lint-markdownlint
           - lint-prettier
           - lint-lychee
           - lint-cspell
           - lint-actionlint
-          - lint-govulncheck
-          - lint-buf
-          - lint-generated-proto
-          - lint-generated-mocks
-          - lint-test-coverage
-          - compile-server
-          - test
+          - server:lint-govulncheck
+          - server:lint-buf
+          - server:lint-generated-proto
+          - server:lint-generated-mocks
+          - server:lint-test-coverage
+          - server:compile-server
+          - server:test
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:

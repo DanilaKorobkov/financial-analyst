@@ -1,0 +1,150 @@
+version: '3'
+
+# Go-задачи модуля server. Запускаются из директории server/ — все пути
+# и конфиги (.golangci.yml, .go-arch-lint.yml, .mockery.yaml,
+# .testcoverage.yml, buf.yaml, buf.gen.yaml) относительны этому каталогу.
+# Корневой Taskfile.yml подключает этот файл через `includes: server: ./server`,
+# поэтому из корня задачи зовутся `task server:<name>`.
+
+tasks:
+  checks:
+    desc: Read-only проверки модуля server (lint + compile + test).
+    deps:
+      - task: lint
+      - task: compile
+      - task: test
+
+  lint:
+    desc: Запустить все Go-линтеры модуля параллельно.
+    deps:
+      - task: lint-golangci-lint
+      - task: lint-structfielddocs
+      - task: lint-arch
+      - task: lint-govulncheck
+      - task: lint-buf
+      - task: lint-generated-proto
+      - task: lint-generated-mocks
+      - task: lint-test-coverage
+
+  lint-golangci-lint:
+    desc: golangci-lint по всему Go-коду.
+    cmds:
+      - golangci-lint run ./...
+
+  lint-structfielddocs:
+    desc: Проектный анализатор — doc-комментарии у экспортируемых полей структур.
+    # Исполняемый файл ставится через mise, версия зафиксирована в mise.toml.
+    # Источник — go:github.com/DanilaKorobkov/go-checkers/cmd/structfielddocs.
+    cmds:
+      - structfielddocs ./...
+
+  lint-arch:
+    desc: go-arch-lint — проверка слоёной архитектуры (.go-arch-lint.yml).
+    # Запрещает запрещённые стрелки между компонентами (domain → infra и т.п.).
+    # Конфиг — .go-arch-lint.yml рядом с этим Taskfile; описывает границы слоёв,
+    # исключения для composition root (app/, cmd/) и общие компоненты (gen/, mocks/).
+    cmds:
+      - go-arch-lint check
+
+  lint-govulncheck:
+    desc: govulncheck — проверка известных CVE в Go-зависимостях и stdlib.
+    # Официальный сканер уязвимостей от команды Go (golang.org/x/vuln).
+    # В отличие от audit-инструментов по списку модулей анализирует call graph
+    # и репортит только реально достижимые из проекта уязвимости — меньше
+    # шума. База — https://vuln.go.dev. Exit code != 0 при findings — CI падает.
+    cmds:
+      - govulncheck ./...
+
+  lint-buf:
+    desc: buf lint — стиль и обратная совместимость proto-схем.
+    cmds:
+      - buf lint
+
+  lint-generated-proto:
+    desc: Проверить, что gen/ в репозитории совпадает с buf generate.
+    # Генерируем во временный каталог и сравниваем с реальным gen/.
+    # Реальные артефакты не трогаем — проверка идемпотентна: пройдёт →
+    # «git add gen/» после неё ничего не изменит.
+    cmds:
+      - |
+          set -euo pipefail
+          tmp="$(mktemp -d -p . .lint-generated-proto.XXXXXX)"
+          trap 'rm -rf "$tmp"' EXIT
+          # buf.gen.yaml уже задаёт `out: gen`; --output становится корнем,
+          # поверх которого плагин дописывает свой `out`. Поэтому передаём $tmp,
+          # а не $tmp/gen — иначе получим $tmp/gen/gen.
+          buf generate --output "$tmp"
+          diff -r gen "$tmp/gen"
+
+  lint-generated-mocks:
+    desc: Проверить, что mocks/ в репозитории совпадают с mockery generate.
+    # Аналогично lint-generated-proto, но для mockery. У mockery нет CLI-флага
+    # output-dir — подкладываем временный .mockery.yaml с перезаписанным `dir:`.
+    cmds:
+      - |
+          set -euo pipefail
+          # mockery v3 требует, чтобы выходной каталог лежал внутри текущего
+          # Go-модуля (он определяет import path сгенерированного пакета через
+          # `go list`). Поэтому tmp создаём в корне модуля, а не в /tmp.
+          tmp="$(mktemp -d -p . .lint-generated-mocks.XXXXXX)"
+          trap 'rm -rf "$tmp"' EXIT
+          sed "s|^dir: mocks/|dir: $tmp/mocks/|" .mockery.yaml > "$tmp/.mockery.yaml"
+          mockery --config "$tmp/.mockery.yaml"
+          diff -r mocks "$tmp/mocks"
+
+  test:
+    desc: go test со сбором coverage profile (coverage.out).
+    # -covermode=atomic — единственный режим, корректный при `-race` и при
+    # параллельных пакетах; -coverpkg=./... учитывает покрытие в пакетах,
+    # которые тестируются опосредованно (например, domain покрывается тестами
+    # на presentation). Без него go test пишет в профиль только пакеты, у
+    # которых есть собственные _test.go-файлы — и слой с золотыми тестами
+    # наверху не засчитывается слою с логикой внизу.
+    #
+    # run: once — task запускается ровно один раз за весь `task <root>`-вызов.
+    # Без этого `task checks` (deps: lint, compile, test) и транзитивный путь
+    # `task checks` → lint → lint-test-coverage → test параллельно запускают
+    # go test, оба пишут в один coverage.out, и go-test-coverage иногда читает
+    # обрезанный профиль. С `once` обе ветки разделяют один и тот же запуск.
+    run: once
+    cmds:
+      - go test -race -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
+
+  lint-test-coverage:
+    desc: go-test-coverage — пороги покрытия по слоям (.testcoverage.yml).
+    # Зависимость от `test` гарантирует свежий coverage.out перед проверкой.
+    deps:
+      - task: test
+    cmds:
+      - go-test-coverage --config=./.testcoverage.yml
+
+  compile:
+    desc: Проверить, что все binaries cmd/* компилируются. Каждый — отдельная задача, в параллель.
+    deps:
+      - task: compile-server
+
+  compile-server:
+    desc: Скомпилировать cmd/server во временную директорию.
+    cmds:
+      - go build -o "$(mktemp -d)/" ./cmd/server
+
+  fmt:
+    desc: Автофиксы Go-кода через golangci-lint --fix (ошибки игнорируем — их покажет lint).
+    cmds:
+      - golangci-lint run --fix ./... || true
+
+  generate:
+    desc: Сгенерировать весь автоматически создаваемый код параллельно (proto + mocks).
+    deps:
+      - task: generate-proto
+      - task: generate-mocks
+
+  generate-proto:
+    desc: Сгенерировать Connect/gRPC-код из proto-схем (buf). Артефакты — в gen/.
+    cmds:
+      - buf generate
+
+  generate-mocks:
+    desc: Сгенерировать testify mocks по Go-интерфейсам (mockery). Артефакты — в mocks/.
+    cmds:
+      - mockery

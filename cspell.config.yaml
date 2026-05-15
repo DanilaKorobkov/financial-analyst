@@ -56,8 +56,8 @@ ignorePaths:
   - go.sum                  # Хеши модулей, не текст.
   - "**/*.lock"             # Lock-файлы — машинно-сгенерированы.
   - "**/testdata/**"        # Тестовые фикстуры: специально кривые данные.
-  - gen/**                  # Сгенерированный protobuf-код (base64-blobs дескрипторов).
-  - mocks/**                # Сгенерированные mockery mocks.
+  - "**/gen/**"             # Сгенерированный protobuf-код (base64-blobs дескрипторов).
+  - "**/mocks/**"           # Сгенерированные mockery mocks.
   - .lycheecache            # Кеш lychee.
   - .cspell/project.txt     # Сам словарь не проверяем (рекурсия).
   - mise.toml               # Список инструментов: имена пакетов, GitHub-логины,
