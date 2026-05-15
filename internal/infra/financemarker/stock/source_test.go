@@ -5,6 +5,8 @@ import (
 	"embed"
 	"net/http"
 	"net/http/httptest"
+	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,10 +22,11 @@ var testdataFS embed.FS
 
 type sourceSuite struct {
 	suite.Suite
-
-	handler func(http.ResponseWriter, *http.Request)
-	server  *httptest.Server
-	source  *stock.Source
+	handler  func(http.ResponseWriter, *http.Request)
+	server   *httptest.Server
+	source   *stock.Source
+	includes []string
+	mu       sync.Mutex
 }
 
 func TestSourceSuite(t *testing.T) {
@@ -32,6 +35,7 @@ func TestSourceSuite(t *testing.T) {
 }
 
 func (s *sourceSuite) SetupTest() {
+	s.includes = nil
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -113,19 +117,44 @@ func wantSberSummary() company.StockSummary {
 	}
 }
 
-func (s *sourceSuite) serveAllSections(wantInclude string) {
+// servePerSection поднимает обработчик, который проверяет, что каждый
+// запрос пришёл за ровно одной секцией из набора allowed, аккумулирует
+// фактические значения include в s.includes и отдаёт полное тело
+// фикстуры — translator каждой секции читает только своё поле stockDTO,
+// лишние поля игнорируются.
+func (s *sourceSuite) servePerSection(allowed ...string) {
 	body := s.readFixture("sber_all_sections.json")
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, code := range allowed {
+		allowedSet[code] = struct{}{}
+	}
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/api/fm/v2/stocks/MOEX:SBER", r.URL.Path)
 		s.Equal("test-token", r.URL.Query().Get("api_token"))
-		s.Equal(wantInclude, r.URL.Query().Get("include"))
+		got := r.URL.Query().Get("include")
+		_, ok := allowedSet[got]
+		s.True(ok, "unexpected include=", got, "allowed=", allowed)
+		s.mu.Lock()
+		s.includes = append(s.includes, got)
+		s.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(body)
 	}
 }
 
+// gotIncludes возвращает отсортированный набор кодов include, фактически
+// пришедших в тестовый сервер за время теста.
+func (s *sourceSuite) gotIncludes() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]string, len(s.includes))
+	copy(out, s.includes)
+	sort.Strings(out)
+	return out
+}
+
 func (s *sourceSuite) TestFindByTickerInfoOnly() {
-	s.serveAllSections("info")
+	s.servePerSection("info")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -140,7 +169,7 @@ func (s *sourceSuite) TestFindByTickerInfoOnly() {
 }
 
 func (s *sourceSuite) TestFindByTickerSummaryOnly() {
-	s.serveAllSections("summary")
+	s.servePerSection("summary")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -154,7 +183,7 @@ func (s *sourceSuite) TestFindByTickerSummaryOnly() {
 }
 
 func (s *sourceSuite) TestFindByTickerInfoAndSummary() {
-	s.serveAllSections("info,summary")
+	s.servePerSection("info", "summary")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -168,7 +197,7 @@ func (s *sourceSuite) TestFindByTickerInfoAndSummary() {
 }
 
 func (s *sourceSuite) TestFindByTickerRatios() {
-	s.serveAllSections("ratios")
+	s.servePerSection("ratios")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -193,7 +222,7 @@ func (s *sourceSuite) TestFindByTickerRatios() {
 }
 
 func (s *sourceSuite) TestFindByTickerReports() {
-	s.serveAllSections("reports")
+	s.servePerSection("reports")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -213,7 +242,7 @@ func (s *sourceSuite) TestFindByTickerReports() {
 }
 
 func (s *sourceSuite) TestFindByTickerDividends() {
-	s.serveAllSections("dividends")
+	s.servePerSection("dividends")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -235,7 +264,7 @@ func (s *sourceSuite) TestFindByTickerDividends() {
 }
 
 func (s *sourceSuite) TestFindByTickerIdeas() {
-	s.serveAllSections("ideas")
+	s.servePerSection("ideas")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -255,7 +284,7 @@ func (s *sourceSuite) TestFindByTickerIdeas() {
 }
 
 func (s *sourceSuite) TestFindByTickerInsiderTransactions() {
-	s.serveAllSections("insiderTransactions")
+	s.servePerSection("insiderTransactions")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -272,7 +301,7 @@ func (s *sourceSuite) TestFindByTickerInsiderTransactions() {
 }
 
 func (s *sourceSuite) TestFindByTickerOperations() {
-	s.serveAllSections("operations")
+	s.servePerSection("operations")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -293,7 +322,7 @@ func (s *sourceSuite) TestFindByTickerOperations() {
 }
 
 func (s *sourceSuite) TestFindByTickerOwners() {
-	s.serveAllSections("owners")
+	s.servePerSection("owners")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -311,7 +340,7 @@ func (s *sourceSuite) TestFindByTickerOwners() {
 }
 
 func (s *sourceSuite) TestFindByTickerShares() {
-	s.serveAllSections("shares")
+	s.servePerSection("shares")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -327,9 +356,12 @@ func (s *sourceSuite) TestFindByTickerShares() {
 	s.Equal(2011, first.Period.Year)
 }
 
-func (s *sourceSuite) TestFindByTickerAllSectionsCanonicalInclude() {
-	wantInclude := "info,summary,ratios,reports,dividends,ideas,insiderTransactions,operations,owners,shares"
-	s.serveAllSections(wantInclude)
+func (s *sourceSuite) TestFindByTickerAllSectionsRequestsPerSection() {
+	allSections := []string{
+		"info", "summary", "ratios", "reports", "dividends",
+		"ideas", "insiderTransactions", "operations", "owners", "shares",
+	}
+	s.servePerSection(allSections...)
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -359,6 +391,12 @@ func (s *sourceSuite) TestFindByTickerAllSectionsCanonicalInclude() {
 	s.Len(got.Operations, 267)
 	s.Len(got.Owners, 2)
 	s.Len(got.Shares, 116)
+
+	want := make([]string, len(allSections))
+	copy(want, allSections)
+	sort.Strings(want)
+	s.Equal(want, s.gotIncludes(),
+		"каждая секция должна прийти ровно одним отдельным HTTP-запросом")
 }
 
 func (s *sourceSuite) TestFindByTickerEmptyOptions() {

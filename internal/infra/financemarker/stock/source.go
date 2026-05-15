@@ -1,15 +1,16 @@
 // Package stock — единый источник секций карточки эмитента поверх
 // эндпоинта FinanceMarker /api/fm/v2/stocks/{exchange}:{code}.
 //
-// Источник принимает набор запрашиваемых блоков, собирает канонический
-// query-параметр include (фиксированный порядок секций, без дубликатов)
-// и делает один HTTP-вызов на все запрошенные секции. Это:
+// Источник принимает набор запрашиваемых секций и делает по одному
+// HTTP-запросу на каждую секцию параллельно. Каждый запрос несёт свой
+// include=<code> и свой TTL HTTP-кеша, поэтому:
 //
-//   - снижает HTTP overhead и шанс расхождения cache-ключа кеша
-//     FinanceMarker (один use case → одна строка include, см. справочник
-//     api-financemarker/references/stock.md);
-//   - оставляет тарификацию day_limit равной фактическому числу блоков
-//     (FM считает по блокам внутри запроса, см. references/billing.md).
+//   - длинные TTL (info=30d, shares=30d, reports/owners=7d) реально
+//     работают — их не сбрасывает протухание короткой секции (ideas=6h);
+//   - расход тарифа FinanceMarker не растёт: day_limit тарифицируется
+//     по числу блоков в запросе (см. references/billing.md), и 10 блоков
+//     в одном запросе и 10 запросов по блоку расходуют одинаково;
+//   - cache hit на длинной секции экономит и тариф, и RTT.
 //
 // Поддерживается только MOEX: единственная биржа, по которой проект
 // возвращает карточки.
@@ -20,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/sourcegraph/conc/pool"
 
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/cache/httpcache"
@@ -80,101 +83,69 @@ func New(c *client.Client) *Source {
 	return &Source{client: c}
 }
 
-// FindByTicker делает один запрос за указанными секциями и заполняет
-// только их в company.Stock. Порядок секций в include всегда канонический
-// (info, summary). 404 переводится в company.ErrNotFound; прочие
-// HTTP-ошибки приходят из общего клиента уже классифицированными.
+// FindByTicker делает по одному HTTP-запросу на каждую запрошенную секцию
+// параллельно и собирает результат в company.Stock. 404 переводится в
+// company.ErrNotFound; прочие HTTP-ошибки приходят из общего клиента уже
+// классифицированными. Первая ошибка любой параллельной горутины
+// отменяет остальные через ctx (fail-fast).
 func (s *Source) FindByTicker(ctx context.Context, ticker string, opts company.StockOptions) (company.Stock, error) {
-	include, err := buildInclude(opts)
-	if err != nil {
-		return company.Stock{}, fmt.Errorf("financemarker stock: %w", err)
+	sections := enabledSections(opts)
+	if len(sections) == 0 {
+		return company.Stock{}, fmt.Errorf("financemarker stock: %w", errEmptyOptions)
 	}
 
-	ctx = httpcache.WithTTL(ctx, pickTTL(opts))
 	symbol := codeExchangeMOEX + ":" + ticker
+	p := pool.NewWithResults[func(*company.Stock)]().
+		WithErrors().
+		WithContext(ctx)
+	for _, sec := range sections {
+		p.Go(func(ctx context.Context) (func(*company.Stock), error) {
+			return s.fetchSection(ctx, symbol, sec)
+		})
+	}
+
+	appliers, err := p.Wait()
+	if err != nil {
+		return company.Stock{}, err //nolint:wrapcheck // ошибки уже сформированы в fetchSection
+	}
+
+	var out company.Stock
+	for _, apply := range appliers {
+		apply(&out)
+	}
+	return out, nil
+}
+
+// fetchSection делает один HTTP-запрос за одной секцией, аннотирует ctx
+// её собственным TTL и возвращает аппликатор, который применяет результат
+// к итоговому company.Stock. Маппинг ошибок идентичен исходному
+// поведению объединённого запроса.
+func (s *Source) fetchSection(
+	ctx context.Context,
+	symbol string,
+	sec sectionFetch,
+) (func(*company.Stock), error) {
+	ctx = httpcache.WithTTL(ctx, sec.ttl)
 
 	var dto stockDTO
 	resp, err := s.client.R().
 		SetContext(ctx).
 		SetPathParam("symbol", symbol).
-		SetQueryParam("include", include).
+		SetQueryParam("include", sec.code).
 		SetResult(&dto).
 		Get("/stocks/{symbol}")
 	if err != nil {
 		switch {
 		case resp == nil || resp.StatusCode() == 0:
-			return company.Stock{}, fmt.Errorf("financemarker request: %w", err)
+			return nil, fmt.Errorf("financemarker request: %w", err)
 		case !resp.IsError():
-			return company.Stock{}, fmt.Errorf("decode financemarker payload: %w", err)
+			return nil, fmt.Errorf("decode financemarker payload: %w", err)
 		case errors.Is(err, client.ErrNotFound):
-			return company.Stock{}, company.ErrNotFound
+			return nil, company.ErrNotFound
 		default:
-			return company.Stock{}, err //nolint:wrapcheck // err уже сформирован classifyError общего клиента
+			return nil, err //nolint:wrapcheck // err уже сформирован classifyError общего клиента
 		}
 	}
 
-	return assemble(&dto, opts), nil
-}
-
-// pickTTL берёт минимальный TTL по запрошенным секциям. Гарантирует,
-// что комбинированный ответ не пере-кешируется дольше самой «свежей»
-// секции — одна строка include = один кеш-ключ = один TTL.
-func pickTTL(opts company.StockOptions) time.Duration {
-	var ttl time.Duration
-	consider := func(enabled bool, sectionTTL time.Duration) {
-		if !enabled {
-			return
-		}
-		if ttl == 0 || sectionTTL < ttl {
-			ttl = sectionTTL
-		}
-	}
-	consider(opts.WithInfo, ttlInfo)
-	consider(opts.WithSummary, ttlSummary)
-	consider(opts.WithRatios, ttlRatios)
-	consider(opts.WithReports, ttlReports)
-	consider(opts.WithDividends, ttlDividends)
-	consider(opts.WithIdeas, ttlIdeas)
-	consider(opts.WithInsiderTransactions, ttlInsiderTransactions)
-	consider(opts.WithOperations, ttlOperations)
-	consider(opts.WithOwners, ttlOwners)
-	consider(opts.WithShares, ttlShares)
-	return ttl
-}
-
-// assemble заполняет запрошенные секции в Stock — порядок сборки
-// совпадает с порядком полей company.Stock.
-func assemble(dto *stockDTO, opts company.StockOptions) company.Stock {
-	var out company.Stock
-	if opts.WithInfo {
-		out.Info = translateStockInfo(&dto.Info)
-	}
-	if opts.WithSummary {
-		out.Summary = translateStockSummary(&dto.Summary)
-	}
-	if opts.WithRatios {
-		out.Ratios = translateStockRatios(dto.Ratios)
-	}
-	if opts.WithReports {
-		out.Reports = translateStockReports(dto.Reports)
-	}
-	if opts.WithDividends {
-		out.Dividends = translateStockDividends(dto.Dividends)
-	}
-	if opts.WithIdeas {
-		out.Ideas = translateStockIdeas(dto.Ideas)
-	}
-	if opts.WithInsiderTransactions {
-		out.InsiderTransactions = translateStockInsiderTransactions(dto.InsiderTransactions)
-	}
-	if opts.WithOperations {
-		out.Operations = translateStockOperations(dto.Operations)
-	}
-	if opts.WithOwners {
-		out.Owners = translateStockOwners(dto.Owners)
-	}
-	if opts.WithShares {
-		out.Shares = translateStockShares(dto.Shares)
-	}
-	return out
+	return sec.apply(&dto), nil
 }
