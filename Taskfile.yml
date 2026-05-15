@@ -18,6 +18,11 @@ includes:
   server:
     taskfile: ./server
     dir: ./server
+  # web/ — Vite + React фронт. Команды зовутся как `task web:<name>` и
+  # выполняются с cwd=web/, чтобы npm видел package.json.
+  web:
+    taskfile: ./web
+    dir: ./web
 
 tasks:
   checks:
@@ -60,8 +65,13 @@ tasks:
 
   lint-lychee:
     desc: lychee — проверка ссылок в Markdown (внешние URL, локальные пути, якоря).
+    # Список файлов берём через `git ls-files --cached --others --exclude-standard`:
+    # это даёт tracked + untracked файлы, уважая .gitignore. Так автоматически
+    # исключается `web/node_modules/**/*.md` (сторонние README с битыми ссылками,
+    # которые не наш код). Передавать bash-glob `**/*.md` нельзя — он подбирает
+    # node_modules, а lychee `exclude_path` действует только при автообходе.
     cmds:
-      - lychee --no-progress "**/*.md" "**/.*/**/*.md"
+      - git ls-files --cached --others --exclude-standard "*.md" | xargs lychee --no-progress
 
   lint-cspell:
     desc: cspell — орфография ru/en во всём репозитории (Go, MD, YAML, TOML, ...).
@@ -108,8 +118,8 @@ tasks:
 
   run:
     desc: Запустить все модули проекта параллельно (server, web).
-    # deps в go-task запускаются параллельно — это нужное поведение:
-    # server и web должны подняться одновременно. Когда появится модуль web,
-    # сюда добавится `task: web:run`.
+    # deps в go-task запускаются параллельно — server и web поднимаются
+    # одновременно. web перенаправляет /company.v1.* на server :8080.
     deps:
       - task: server:run
+      - task: web:run

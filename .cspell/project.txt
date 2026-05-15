@@ -83,6 +83,7 @@ aprs              # operation_metric_id (ARPC)
 # --- Имена сервисов и брендов ---
 FinanceMarker
 amannn            # GitHub-аккаунт автора action-semantic-pull-request
+tabler            # @tabler/icons-react — иконпак, упомянут в правилах web/
 
 # --- Имена инструментов проекта (нет ни в одном bundle-словаре cspell) ---
 golangci        # golangci-lint
