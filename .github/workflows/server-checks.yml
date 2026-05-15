@@ -36,10 +36,10 @@ jobs:
           - server:lint-buf
           - server:lint-generated-proto
           - server:lint-generated-mocks
-          # `server:lint-test-coverage` транзитивно запускает `go test`
-          # через `deps: [test]` в server/Taskfile.yml — отдельная job
-          # `server:test` в матрице её дублировала.
-          - server:lint-test-coverage
+          # `server:test` запускает `go test` и сразу за ним
+          # go-test-coverage из server/Taskfile.yml — отдельная job для
+          # проверки порогов покрытия не нужна.
+          - server:test
           - server:compile-server
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest

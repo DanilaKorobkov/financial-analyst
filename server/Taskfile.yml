@@ -8,17 +8,11 @@ version: '3'
 
 tasks:
   checks:
-    desc: >-
-      Read-only проверки модуля server (lint + compile).
-      Тесты тянутся транзитивно через lint-test-coverage внутри lint.
-    # Отдельного `task: test` тут нет намеренно: lint-test-coverage уже
-    # запускает go test через `deps: [test]`, добавлять второй явный вызов
-    # — значит гонять тесты дважды (`run: once` спасает локально внутри
-    # одного процесса task, но не помогает в CI, где каждая ветка матрицы
-    # — отдельный runner).
+    desc: Read-only проверки модуля server (lint + compile + test).
     deps:
       - task: lint
       - task: compile
+      - task: test
 
   lint:
     desc: Запустить все Go-линтеры модуля параллельно.
@@ -30,7 +24,6 @@ tasks:
       - task: lint-buf
       - task: lint-generated-proto
       - task: lint-generated-mocks
-      - task: lint-test-coverage
 
   lint-golangci-lint:
     desc: golangci-lint по всему Go-коду.
@@ -99,7 +92,7 @@ tasks:
           diff -r mocks "$tmp/mocks"
 
   test:
-    desc: go test со сбором coverage profile (coverage.out).
+    desc: go test + go-test-coverage (пороги покрытия по слоям).
     # -covermode=atomic — единственный режим, корректный при `-race` и при
     # параллельных пакетах; -coverpkg=./... учитывает покрытие в пакетах,
     # которые тестируются опосредованно (например, domain покрывается тестами
@@ -107,21 +100,12 @@ tasks:
     # которых есть собственные _test.go-файлы — и слой с золотыми тестами
     # наверху не засчитывается слою с логикой внизу.
     #
-    # run: once — task запускается ровно один раз за весь `task <root>`-вызов.
-    # Без этого `task checks` (deps: lint, compile, test) и транзитивный путь
-    # `task checks` → lint → lint-test-coverage → test параллельно запускают
-    # go test, оба пишут в один coverage.out, и go-test-coverage иногда читает
-    # обрезанный профиль. С `once` обе ветки разделяют один и тот же запуск.
-    run: once
+    # Сразу за `go test` идёт go-test-coverage — порог покрытия из
+    # .testcoverage.yml. Один task = один пробег тестов; cmds выполняются
+    # последовательно, поэтому проверка порогов всегда читает свежий
+    # coverage.out, без отдельной зависимой задачи.
     cmds:
       - go test -race -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
-
-  lint-test-coverage:
-    desc: go-test-coverage — пороги покрытия по слоям (.testcoverage.yml).
-    # Зависимость от `test` гарантирует свежий coverage.out перед проверкой.
-    deps:
-      - task: test
-    cmds:
       - go-test-coverage --config=./.testcoverage.yml
 
   compile:
