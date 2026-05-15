@@ -388,6 +388,285 @@ func (InsiderConsensus) EnumDescriptor() ([]byte, []int) {
 	return file_company_v1_enums_proto_rawDescGZIP(), []int{6}
 }
 
+// StockPeriodFrequency — гранулярность отчётного периода у записи карточки эмитента.
+// Значения с префиксом во избежание коллизий с ReportFrequency (YEARLY/QUARTERLY).
+type StockPeriodFrequency int32
+
+const (
+	StockPeriodFrequency_STOCK_PERIOD_FREQUENCY_UNSPECIFIED   StockPeriodFrequency = 0
+	StockPeriodFrequency_STOCK_PERIOD_FREQUENCY_YEARLY        StockPeriodFrequency = 1
+	StockPeriodFrequency_STOCK_PERIOD_FREQUENCY_HALF_YEARLY   StockPeriodFrequency = 2
+	StockPeriodFrequency_STOCK_PERIOD_FREQUENCY_QUARTERLY     StockPeriodFrequency = 3
+	StockPeriodFrequency_STOCK_PERIOD_FREQUENCY_YEAR_TO_MONTH StockPeriodFrequency = 4
+)
+
+// Enum value maps for StockPeriodFrequency.
+var (
+	StockPeriodFrequency_name = map[int32]string{
+		0: "STOCK_PERIOD_FREQUENCY_UNSPECIFIED",
+		1: "STOCK_PERIOD_FREQUENCY_YEARLY",
+		2: "STOCK_PERIOD_FREQUENCY_HALF_YEARLY",
+		3: "STOCK_PERIOD_FREQUENCY_QUARTERLY",
+		4: "STOCK_PERIOD_FREQUENCY_YEAR_TO_MONTH",
+	}
+	StockPeriodFrequency_value = map[string]int32{
+		"STOCK_PERIOD_FREQUENCY_UNSPECIFIED":   0,
+		"STOCK_PERIOD_FREQUENCY_YEARLY":        1,
+		"STOCK_PERIOD_FREQUENCY_HALF_YEARLY":   2,
+		"STOCK_PERIOD_FREQUENCY_QUARTERLY":     3,
+		"STOCK_PERIOD_FREQUENCY_YEAR_TO_MONTH": 4,
+	}
+)
+
+func (x StockPeriodFrequency) Enum() *StockPeriodFrequency {
+	p := new(StockPeriodFrequency)
+	*p = x
+	return p
+}
+
+func (x StockPeriodFrequency) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (StockPeriodFrequency) Descriptor() protoreflect.EnumDescriptor {
+	return file_company_v1_enums_proto_enumTypes[7].Descriptor()
+}
+
+func (StockPeriodFrequency) Type() protoreflect.EnumType {
+	return &file_company_v1_enums_proto_enumTypes[7]
+}
+
+func (x StockPeriodFrequency) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use StockPeriodFrequency.Descriptor instead.
+func (StockPeriodFrequency) EnumDescriptor() ([]byte, []int) {
+	return file_company_v1_enums_proto_rawDescGZIP(), []int{7}
+}
+
+// ReportStandard — стандарт финансовой отчётности.
+type ReportStandard int32
+
+const (
+	ReportStandard_REPORT_STANDARD_UNSPECIFIED ReportStandard = 0
+	ReportStandard_IFRS                        ReportStandard = 1
+	ReportStandard_RAS                         ReportStandard = 2
+	ReportStandard_GAAP                        ReportStandard = 3
+)
+
+// Enum value maps for ReportStandard.
+var (
+	ReportStandard_name = map[int32]string{
+		0: "REPORT_STANDARD_UNSPECIFIED",
+		1: "IFRS",
+		2: "RAS",
+		3: "GAAP",
+	}
+	ReportStandard_value = map[string]int32{
+		"REPORT_STANDARD_UNSPECIFIED": 0,
+		"IFRS":                        1,
+		"RAS":                         2,
+		"GAAP":                        3,
+	}
+)
+
+func (x ReportStandard) Enum() *ReportStandard {
+	p := new(ReportStandard)
+	*p = x
+	return p
+}
+
+func (x ReportStandard) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ReportStandard) Descriptor() protoreflect.EnumDescriptor {
+	return file_company_v1_enums_proto_enumTypes[8].Descriptor()
+}
+
+func (ReportStandard) Type() protoreflect.EnumType {
+	return &file_company_v1_enums_proto_enumTypes[8]
+}
+
+func (x ReportStandard) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ReportStandard.Descriptor instead.
+func (ReportStandard) EnumDescriptor() ([]byte, []int) {
+	return file_company_v1_enums_proto_rawDescGZIP(), []int{8}
+}
+
+// DividendType — тип дивидендной выплаты эмитента.
+// Значения с префиксом во избежание коллизии YEARLY с ReportFrequency.
+type DividendType int32
+
+const (
+	DividendType_DIVIDEND_TYPE_UNSPECIFIED DividendType = 0
+	DividendType_DIVIDEND_TYPE_YEARLY      DividendType = 1
+	DividendType_DIVIDEND_TYPE_FIRST_HALF  DividendType = 2
+	DividendType_DIVIDEND_TYPE_SECOND_HALF DividendType = 3
+	DividendType_DIVIDEND_TYPE_Q1          DividendType = 4
+	DividendType_DIVIDEND_TYPE_Q2          DividendType = 5
+	DividendType_DIVIDEND_TYPE_Q3          DividendType = 6
+	DividendType_DIVIDEND_TYPE_Q4          DividendType = 7
+	DividendType_DIVIDEND_TYPE_SPECIAL     DividendType = 8
+)
+
+// Enum value maps for DividendType.
+var (
+	DividendType_name = map[int32]string{
+		0: "DIVIDEND_TYPE_UNSPECIFIED",
+		1: "DIVIDEND_TYPE_YEARLY",
+		2: "DIVIDEND_TYPE_FIRST_HALF",
+		3: "DIVIDEND_TYPE_SECOND_HALF",
+		4: "DIVIDEND_TYPE_Q1",
+		5: "DIVIDEND_TYPE_Q2",
+		6: "DIVIDEND_TYPE_Q3",
+		7: "DIVIDEND_TYPE_Q4",
+		8: "DIVIDEND_TYPE_SPECIAL",
+	}
+	DividendType_value = map[string]int32{
+		"DIVIDEND_TYPE_UNSPECIFIED": 0,
+		"DIVIDEND_TYPE_YEARLY":      1,
+		"DIVIDEND_TYPE_FIRST_HALF":  2,
+		"DIVIDEND_TYPE_SECOND_HALF": 3,
+		"DIVIDEND_TYPE_Q1":          4,
+		"DIVIDEND_TYPE_Q2":          5,
+		"DIVIDEND_TYPE_Q3":          6,
+		"DIVIDEND_TYPE_Q4":          7,
+		"DIVIDEND_TYPE_SPECIAL":     8,
+	}
+)
+
+func (x DividendType) Enum() *DividendType {
+	p := new(DividendType)
+	*p = x
+	return p
+}
+
+func (x DividendType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DividendType) Descriptor() protoreflect.EnumDescriptor {
+	return file_company_v1_enums_proto_enumTypes[9].Descriptor()
+}
+
+func (DividendType) Type() protoreflect.EnumType {
+	return &file_company_v1_enums_proto_enumTypes[9]
+}
+
+func (x DividendType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DividendType.Descriptor instead.
+func (DividendType) EnumDescriptor() ([]byte, []int) {
+	return file_company_v1_enums_proto_rawDescGZIP(), []int{9}
+}
+
+// IdeaStatus — статус инвест-идеи аналитика.
+type IdeaStatus int32
+
+const (
+	IdeaStatus_IDEA_STATUS_UNSPECIFIED IdeaStatus = 0
+	IdeaStatus_ACTIVE                  IdeaStatus = 1
+	IdeaStatus_CLOSED                  IdeaStatus = 2
+)
+
+// Enum value maps for IdeaStatus.
+var (
+	IdeaStatus_name = map[int32]string{
+		0: "IDEA_STATUS_UNSPECIFIED",
+		1: "ACTIVE",
+		2: "CLOSED",
+	}
+	IdeaStatus_value = map[string]int32{
+		"IDEA_STATUS_UNSPECIFIED": 0,
+		"ACTIVE":                  1,
+		"CLOSED":                  2,
+	}
+)
+
+func (x IdeaStatus) Enum() *IdeaStatus {
+	p := new(IdeaStatus)
+	*p = x
+	return p
+}
+
+func (x IdeaStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (IdeaStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_company_v1_enums_proto_enumTypes[10].Descriptor()
+}
+
+func (IdeaStatus) Type() protoreflect.EnumType {
+	return &file_company_v1_enums_proto_enumTypes[10]
+}
+
+func (x IdeaStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use IdeaStatus.Descriptor instead.
+func (IdeaStatus) EnumDescriptor() ([]byte, []int) {
+	return file_company_v1_enums_proto_rawDescGZIP(), []int{10}
+}
+
+// InsiderTransactionType — направление сделки инсайдера.
+type InsiderTransactionType int32
+
+const (
+	InsiderTransactionType_INSIDER_TRANSACTION_TYPE_UNSPECIFIED InsiderTransactionType = 0
+	InsiderTransactionType_PURCHASE                             InsiderTransactionType = 1
+	InsiderTransactionType_SALE                                 InsiderTransactionType = 2
+)
+
+// Enum value maps for InsiderTransactionType.
+var (
+	InsiderTransactionType_name = map[int32]string{
+		0: "INSIDER_TRANSACTION_TYPE_UNSPECIFIED",
+		1: "PURCHASE",
+		2: "SALE",
+	}
+	InsiderTransactionType_value = map[string]int32{
+		"INSIDER_TRANSACTION_TYPE_UNSPECIFIED": 0,
+		"PURCHASE":                             1,
+		"SALE":                                 2,
+	}
+)
+
+func (x InsiderTransactionType) Enum() *InsiderTransactionType {
+	p := new(InsiderTransactionType)
+	*p = x
+	return p
+}
+
+func (x InsiderTransactionType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (InsiderTransactionType) Descriptor() protoreflect.EnumDescriptor {
+	return file_company_v1_enums_proto_enumTypes[11].Descriptor()
+}
+
+func (InsiderTransactionType) Type() protoreflect.EnumType {
+	return &file_company_v1_enums_proto_enumTypes[11]
+}
+
+func (x InsiderTransactionType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use InsiderTransactionType.Descriptor instead.
+func (InsiderTransactionType) EnumDescriptor() ([]byte, []int) {
+	return file_company_v1_enums_proto_rawDescGZIP(), []int{11}
+}
+
 var File_company_v1_enums_proto protoreflect.FileDescriptor
 
 const file_company_v1_enums_proto_rawDesc = "" +
@@ -427,7 +706,39 @@ const file_company_v1_enums_proto_rawDesc = "" +
 	"\x1dINSIDER_CONSENSUS_UNSPECIFIED\x10\x00\x12\b\n" +
 	"\x04BUYS\x10\x01\x12\t\n" +
 	"\x05SELLS\x10\x02\x12\t\n" +
-	"\x05MIXED\x10\x03BFZDgithub.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1b\x06proto3"
+	"\x05MIXED\x10\x03*\xd9\x01\n" +
+	"\x14StockPeriodFrequency\x12&\n" +
+	"\"STOCK_PERIOD_FREQUENCY_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dSTOCK_PERIOD_FREQUENCY_YEARLY\x10\x01\x12&\n" +
+	"\"STOCK_PERIOD_FREQUENCY_HALF_YEARLY\x10\x02\x12$\n" +
+	" STOCK_PERIOD_FREQUENCY_QUARTERLY\x10\x03\x12(\n" +
+	"$STOCK_PERIOD_FREQUENCY_YEAR_TO_MONTH\x10\x04*N\n" +
+	"\x0eReportStandard\x12\x1f\n" +
+	"\x1bREPORT_STANDARD_UNSPECIFIED\x10\x00\x12\b\n" +
+	"\x04IFRS\x10\x01\x12\a\n" +
+	"\x03RAS\x10\x02\x12\b\n" +
+	"\x04GAAP\x10\x03*\xf7\x01\n" +
+	"\fDividendType\x12\x1d\n" +
+	"\x19DIVIDEND_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14DIVIDEND_TYPE_YEARLY\x10\x01\x12\x1c\n" +
+	"\x18DIVIDEND_TYPE_FIRST_HALF\x10\x02\x12\x1d\n" +
+	"\x19DIVIDEND_TYPE_SECOND_HALF\x10\x03\x12\x14\n" +
+	"\x10DIVIDEND_TYPE_Q1\x10\x04\x12\x14\n" +
+	"\x10DIVIDEND_TYPE_Q2\x10\x05\x12\x14\n" +
+	"\x10DIVIDEND_TYPE_Q3\x10\x06\x12\x14\n" +
+	"\x10DIVIDEND_TYPE_Q4\x10\a\x12\x19\n" +
+	"\x15DIVIDEND_TYPE_SPECIAL\x10\b*A\n" +
+	"\n" +
+	"IdeaStatus\x12\x1b\n" +
+	"\x17IDEA_STATUS_UNSPECIFIED\x10\x00\x12\n" +
+	"\n" +
+	"\x06ACTIVE\x10\x01\x12\n" +
+	"\n" +
+	"\x06CLOSED\x10\x02*Z\n" +
+	"\x16InsiderTransactionType\x12(\n" +
+	"$INSIDER_TRANSACTION_TYPE_UNSPECIFIED\x10\x00\x12\f\n" +
+	"\bPURCHASE\x10\x01\x12\b\n" +
+	"\x04SALE\x10\x02BFZDgithub.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1b\x06proto3"
 
 var (
 	file_company_v1_enums_proto_rawDescOnce sync.Once
@@ -441,15 +752,20 @@ func file_company_v1_enums_proto_rawDescGZIP() []byte {
 	return file_company_v1_enums_proto_rawDescData
 }
 
-var file_company_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_company_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
 var file_company_v1_enums_proto_goTypes = []any{
-	(SecurityType)(0),     // 0: company.v1.SecurityType
-	(ListingLevel)(0),     // 1: company.v1.ListingLevel
-	(Exchange)(0),         // 2: company.v1.Exchange
-	(Currency)(0),         // 3: company.v1.Currency
-	(ReportFrequency)(0),  // 4: company.v1.ReportFrequency
-	(IdeaConsensus)(0),    // 5: company.v1.IdeaConsensus
-	(InsiderConsensus)(0), // 6: company.v1.InsiderConsensus
+	(SecurityType)(0),           // 0: company.v1.SecurityType
+	(ListingLevel)(0),           // 1: company.v1.ListingLevel
+	(Exchange)(0),               // 2: company.v1.Exchange
+	(Currency)(0),               // 3: company.v1.Currency
+	(ReportFrequency)(0),        // 4: company.v1.ReportFrequency
+	(IdeaConsensus)(0),          // 5: company.v1.IdeaConsensus
+	(InsiderConsensus)(0),       // 6: company.v1.InsiderConsensus
+	(StockPeriodFrequency)(0),   // 7: company.v1.StockPeriodFrequency
+	(ReportStandard)(0),         // 8: company.v1.ReportStandard
+	(DividendType)(0),           // 9: company.v1.DividendType
+	(IdeaStatus)(0),             // 10: company.v1.IdeaStatus
+	(InsiderTransactionType)(0), // 11: company.v1.InsiderTransactionType
 }
 var file_company_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -469,7 +785,7 @@ func file_company_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_company_v1_enums_proto_rawDesc), len(file_company_v1_enums_proto_rawDesc)),
-			NumEnums:      7,
+			NumEnums:      12,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

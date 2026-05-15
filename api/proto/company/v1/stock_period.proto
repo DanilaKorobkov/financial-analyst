@@ -1,0 +1,27 @@
+// Отчётный период записи карточки эмитента — общий value-объект секций
+// карточки, представляющих временной ряд (мультипликаторы, отчёты,
+// операционные метрики, акционеры, выпуски акций).
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockPeriod — отчётный период записи карточки эмитента.
+message StockPeriod {
+  // Финансовый год записи. Пример: 2026.
+  int64 year = 1;
+
+  // Месяц окончания периода (12 для годового, 3 для I квартала). Пример: 3.
+  int64 month = 2;
+
+  // Гранулярность периода (год, квартал, полугодие, YTM).
+  // Пример: "STOCK_PERIOD_FREQUENCY_YEAR_TO_MONTH".
+  StockPeriodFrequency frequency = 3;
+
+  // Стандарт финансовой отчётности записи. Пример: "IFRS".
+  ReportStandard standard = 4;
+}

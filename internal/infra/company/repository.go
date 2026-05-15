@@ -15,9 +15,18 @@ import (
 )
 
 // stockOptions — секции карточки эмитента, которые входят в агрегат Company.
+// Запрашиваем все секции FM stock/: один HTTP-вызов на агрегат.
 var stockOptions = domaincompany.StockOptions{
-	WithInfo:    true,
-	WithSummary: true,
+	WithInfo:                true,
+	WithSummary:             true,
+	WithRatios:              true,
+	WithReports:             true,
+	WithDividends:           true,
+	WithIdeas:               true,
+	WithInsiderTransactions: true,
+	WithOperations:          true,
+	WithOwners:              true,
+	WithShares:              true,
 }
 
 // Repository — infra-реализация domaincompany.Repository.

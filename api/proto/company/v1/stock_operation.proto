@@ -1,0 +1,48 @@
+// Значение операционной метрики эмитента за один период — элемент ряда
+// секции operations агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/stock_period.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockOperation — значение одной операционной метрики эмитента за
+// один отчётный период.
+message StockOperation {
+  // Отчётный период записи.
+  StockPeriod period = 1;
+
+  // Идентификатор операционной метрики. Пример: "car_loans".
+  string metric_id = 2;
+
+  // Единица измерения итогового value. Пример: "₽".
+  string unit = 3;
+
+  // Единица, в которой метрика опубликована эмитентом. Пример: "₽".
+  string original_unit = 4;
+
+  // Ссылка на исходный отчёт эмитента.
+  // Пример: "https://financemarker.ru/cdn/?file_id=...sber_2014_12_y_msfo.pdf".
+  string link = 5;
+
+  // Ссылка на обновление отчёта. Пример: "".
+  string link_update = 6;
+
+  // Множитель итогового value. Пример: "1000000000".
+  int64 amount = 7;
+
+  // Множитель исходного значения у эмитента. Пример: "1000000000".
+  int64 original_amount = 8;
+
+  // Значение метрики в единицах unit с учётом amount. Пример: 170.4.
+  double value = 9;
+
+  // Значение метрики «как опубликовал эмитент». Пример: 170.4.
+  double original_value = 10;
+
+  // Курс пересчёта, если метрика в валюте отличной от рубля. Пример: 1.
+  double curs = 11;
+}

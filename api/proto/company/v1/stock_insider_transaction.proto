@@ -1,0 +1,30 @@
+// Сделка инсайдера эмитента в узком формате — элемент ряда секции
+// insiderTransactions агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockInsiderTransaction — сделка инсайдера эмитента в узком формате,
+// возвращаемом блоком insiderTransactions. Полный формат с ценой и
+// объёмом публикуется отдельной лентой инсайдерских сделок.
+message StockInsiderTransaction {
+  // Дата фактической сделки. Пример: "2025-12-11T00:00:00Z".
+  google.protobuf.Timestamp transaction_date = 1;
+
+  // Имя/название инсайдера. Может содержать "Информация не раскрывается",
+  // если данные скрыты по требованию ЦБ.
+  // Пример: "Информация не раскрывается".
+  string insider = 2;
+
+  // Должность инсайдера (для физлиц-менеджеров). Пример: "".
+  string insider_title = 3;
+
+  // Направление сделки (покупка/продажа). Пример: "PURCHASE".
+  InsiderTransactionType type = 4;
+}

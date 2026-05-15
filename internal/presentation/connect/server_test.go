@@ -234,6 +234,188 @@ func (s *serverSuite) TestGetCompanyInternal() {
 	s.Equal(connectrpc.CodeInternal, connectErr.Code())
 }
 
+// TestGetCompanyAllStockSections — happy-path по всем секциям карточки
+// эмитента (Ratios/Reports/Dividends/Ideas/InsiderTransactions/Operations/
+// Owners/Shares). Проверяет, что каждая секция доходит до proto-ответа
+// и что enum-ы и timestamp-поля переведены корректно.
+func (s *serverSuite) TestGetCompanyAllStockSections() {
+	changedAt := time.Date(2026, 5, 15, 3, 32, 22, 0, time.UTC)
+	lastBuyDate := time.Date(2026, 7, 17, 0, 0, 0, 0, time.UTC)
+	reestrCloseDate := time.Date(2026, 7, 20, 0, 0, 0, 0, time.UTC)
+	dateIn := time.Date(2026, 4, 30, 0, 0, 0, 0, time.UTC)
+	transactionDate := time.Date(2025, 12, 11, 0, 0, 0, 0, time.UTC)
+
+	period := company.StockPeriod{
+		Year:      2026,
+		Month:     3,
+		Frequency: company.StockPeriodFrequencyYearToMonth,
+		Standard:  company.ReportStandardIFRS,
+	}
+	s.companies.EXPECT().
+		FindByTicker(mock.Anything, "SBER").
+		Return(company.Company{
+			Stock: company.Stock{
+				Ratios: []company.StockRatio{
+					{
+						ChangedAt: changedAt,
+						Period:    period,
+						Capital:   99974.2,
+						PE:        4.11,
+						PBV:       0.83,
+						Active:    true,
+					},
+				},
+				Reports: []company.StockReport{
+					{
+						ChangedAt: changedAt,
+						Period:    period,
+						Currency:  company.CurrencyRUB,
+						Amount:    1_000_000,
+						Revenue:   4988300,
+						Earnings:  1777700,
+					},
+				},
+				Dividends: []company.StockDividend{
+					{
+						LastBuyDate:     lastBuyDate,
+						ReestrCloseDate: reestrCloseDate,
+						ChangedAt:       changedAt,
+						DivAmount:       37.64,
+						DivPercent:      11.6101,
+						Year:            2025,
+						Currency:        company.CurrencyRUB,
+						Type:            company.DividendTypeYearly,
+					},
+				},
+				Ideas: []company.StockIdea{
+					{
+						DateIn:    dateIn,
+						ChangedAt: changedAt,
+						Community: "РСХБ Инвестиции",
+						ID:        6237,
+						PriceIn:   319.0,
+						PriceOut:  360.0,
+						Status:    company.IdeaStatusActive,
+					},
+				},
+				InsiderTransactions: []company.StockInsiderTransaction{
+					{
+						TransactionDate: transactionDate,
+						Insider:         "Информация не раскрывается",
+						Type:            company.InsiderTransactionTypePurchase,
+					},
+				},
+				Operations: []company.StockOperation{
+					{
+						MetricID: "car_loans",
+						Unit:     "₽",
+						Period:   period,
+						Amount:   1_000_000_000,
+						Value:    170.4,
+						Curs:     1.0,
+					},
+				},
+				Owners: []company.StockOwner{
+					{
+						ChangedAt: changedAt,
+						Owner:     "Прочие",
+						Period:    period,
+						Own:       50.0,
+					},
+				},
+				Shares: []company.StockShare{
+					{
+						Ticker: "SBERP",
+						Period: period,
+						Num:    1_000_000_000,
+					},
+				},
+			},
+		}, nil).
+		Once()
+
+	resp, err := s.call("SBER")
+	s.Require().NoError(err)
+
+	stock := resp.Msg.GetCompany().GetStock()
+	s.Require().NotNil(stock)
+
+	s.Require().Len(stock.GetRatios(), 1)
+	ratio := stock.GetRatios()[0]
+	s.InDelta(99974.2, ratio.GetCapital(), 1e-6)
+	s.True(ratio.GetActive())
+	s.Equal(companyv1.StockPeriodFrequency_STOCK_PERIOD_FREQUENCY_YEAR_TO_MONTH, ratio.GetPeriod().GetFrequency())
+	s.Equal(companyv1.ReportStandard_IFRS, ratio.GetPeriod().GetStandard())
+
+	s.Require().Len(stock.GetReports(), 1)
+	report := stock.GetReports()[0]
+	s.InDelta(4988300, report.GetRevenue(), 1e-6)
+	s.InDelta(1777700, report.GetEarnings(), 1e-6)
+	s.Equal(int64(1_000_000), report.GetAmount())
+	s.Equal(companyv1.Currency_RUB, report.GetCurrency())
+
+	s.Require().Len(stock.GetDividends(), 1)
+	div := stock.GetDividends()[0]
+	s.InDelta(37.64, div.GetDivAmount(), 1e-6)
+	s.InDelta(11.6101, div.GetDivPercent(), 1e-6)
+	s.Equal(int64(2025), div.GetYear())
+	s.Equal(companyv1.DividendType_DIVIDEND_TYPE_YEARLY, div.GetType())
+	s.Equal(lastBuyDate.Unix(), div.GetLastBuyDate().GetSeconds())
+
+	s.Require().Len(stock.GetIdeas(), 1)
+	idea := stock.GetIdeas()[0]
+	s.Equal(int64(6237), idea.GetId())
+	s.Equal("РСХБ Инвестиции", idea.GetCommunity())
+	s.Equal(companyv1.IdeaStatus_ACTIVE, idea.GetStatus())
+	s.Equal(dateIn.Unix(), idea.GetDateIn().GetSeconds())
+
+	s.Require().Len(stock.GetInsiderTransactions(), 1)
+	tx := stock.GetInsiderTransactions()[0]
+	s.Equal("Информация не раскрывается", tx.GetInsider())
+	s.Equal(companyv1.InsiderTransactionType_PURCHASE, tx.GetType())
+	s.Equal(transactionDate.Unix(), tx.GetTransactionDate().GetSeconds())
+
+	s.Require().Len(stock.GetOperations(), 1)
+	op := stock.GetOperations()[0]
+	s.Equal("car_loans", op.GetMetricId())
+	s.Equal("₽", op.GetUnit())
+	s.InDelta(170.4, op.GetValue(), 1e-6)
+	s.Equal(int64(1_000_000_000), op.GetAmount())
+
+	s.Require().Len(stock.GetOwners(), 1)
+	owner := stock.GetOwners()[0]
+	s.Equal("Прочие", owner.GetOwner())
+	s.InDelta(50.0, owner.GetOwn(), 1e-6)
+
+	s.Require().Len(stock.GetShares(), 1)
+	share := stock.GetShares()[0]
+	s.Equal("SBERP", share.GetTicker())
+	s.Equal(int64(1_000_000_000), share.GetNum())
+}
+
+// TestGetCompanyEmptySectionsAreNil — секции, не отданные источником,
+// доезжают до proto-ответа как пустые/nil срезы.
+func (s *serverSuite) TestGetCompanyEmptySectionsAreNil() {
+	s.companies.EXPECT().
+		FindByTicker(mock.Anything, "any").
+		Return(company.Company{}, nil).
+		Once()
+
+	resp, err := s.call("any")
+	s.Require().NoError(err)
+
+	stock := resp.Msg.GetCompany().GetStock()
+	s.Require().NotNil(stock)
+	s.Empty(stock.GetRatios())
+	s.Empty(stock.GetReports())
+	s.Empty(stock.GetDividends())
+	s.Empty(stock.GetIdeas())
+	s.Empty(stock.GetInsiderTransactions())
+	s.Empty(stock.GetOperations())
+	s.Empty(stock.GetOwners())
+	s.Empty(stock.GetShares())
+}
+
 func (s *serverSuite) call(ticker string) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
 	return s.client.GetCompany(
 		context.Background(),

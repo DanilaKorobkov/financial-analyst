@@ -1,0 +1,24 @@
+// Количество выпущенных акций эмитента на дату среза — элемент ряда
+// секции shares агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/stock_period.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockShare — количество выпущенных акций эмитента на дату среза.
+// Запись привязана к конкретному тикеру: обыкновенные ("SBER") и
+// привилегированные ("SBERP") акции выпускаются отдельными записями.
+message StockShare {
+  // Тикер выпуска, к которому относится запись. Пример: "SBERP".
+  string ticker = 1;
+
+  // Дата среза.
+  StockPeriod period = 2;
+
+  // Количество акций (в штуках). Пример: "21586948000".
+  int64 num = 3;
+}

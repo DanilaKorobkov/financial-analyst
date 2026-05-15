@@ -1,0 +1,31 @@
+// Доля одного акционера на дату среза — элемент ряда секции owners
+// агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/stock_period.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockOwner — доля одного акционера на дату среза. Owner может быть
+// как конкретным владельцем, так и категорией ("Прочие", "Free float").
+message StockOwner {
+  // Момент обновления записи в FM. Пример: "2024-11-14T03:31:31Z".
+  google.protobuf.Timestamp changed_at = 1;
+
+  // Имя/название акционера или категории. Пример: "Прочие".
+  string owner = 2;
+
+  // Ссылка на источник раскрытия структуры владения.
+  // Пример: "https://www.sberbank.com/ru/investor-relations/share-profile".
+  string link = 3;
+
+  // Дата среза владения.
+  StockPeriod period = 4;
+
+  // Доля владения в процентах от уставного капитала. Пример: 50.
+  double own = 5;
+}

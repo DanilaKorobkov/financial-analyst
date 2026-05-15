@@ -20,6 +20,17 @@
 # --- Стандарты бухгалтерской отчётности (RU аббревиатуры) ---
 МСФО              # IFRS, International Financial Reporting Standards
 РСБУ              # Российские стандарты бухгалтерского учёта
+IFRS              # International Financial Reporting Standards
+GAAP              # Generally Accepted Accounting Principles
+
+# --- Доменные термины-сокращения (EN) ---
+EBITDAPS          # EBITDA per share — отдельное поле в отчётности эмитента
+FCFPS             # Free Cash Flow per share — отдельное поле в отчётности эмитента
+
+# --- Доменные русские термины ---
+гранулярность     # гранулярность отчётного периода (Y/Q/H/YTM)
+гранулярности
+нераспределённая  # нераспределённая прибыль — устоявшийся термин баланса
 
 # --- Финансовые сокращения (EN) ---
 EBITDA
