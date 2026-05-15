@@ -1,0 +1,80 @@
+name: server-checks
+
+# Go-проверки модуля server (lint, compile, test, generated-drift, coverage).
+# Запускаются на каждом PR и push в main без path-фильтра: это нужно, чтобы
+# обязательный required-check `server-checks-passed` всегда появлялся в PR
+# (иначе при правках только в .claude/ или web/ check не запускается, и
+# branch protection вечно ждёт его как pending).
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+# Гасим устаревшие прогоны при быстрой череде коммитов в один и тот же PR
+# или ветку: новый коммит отменяет текущий in-flight run, экономит CI-минуты.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    # Каждый target — отдельный параллельный job на своём runner.
+    # В UI PR появляются как отдельные статусы
+    # (`server-checks / check (server:test)` и т.п.), видно, какой именно упал,
+    # без чтения общего лога.
+    strategy:
+      fail-fast: false
+      matrix:
+        # Каждый binary компилируется явно отдельным target `server:compile-<name>`.
+        # При добавлении нового cmd/<name> расширяем этот список и одноимённую
+        # задачу в server/Taskfile.yml.
+        target:
+          - server:lint-golangci-lint
+          - server:lint-structfielddocs
+          - server:lint-arch
+          - server:lint-govulncheck
+          - server:lint-buf
+          - server:lint-generated-proto
+          - server:lint-generated-mocks
+          # `server:test` запускает `go test` и сразу за ним
+          # go-test-coverage из server/Taskfile.yml — отдельная job для
+          # проверки порогов покрытия не нужна.
+          - server:test
+          - server:compile-server
+    name: check (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # mise ставит инструменты из mise.toml.
+      # Версии — единая точка правды с локальной машиной разработчика.
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      # Те же targets, что разработчик запускает локально через `task <target>`.
+      - run: task ${{ matrix.target }}
+
+  # Aggregate-«страж»: одна job со стабильным именем, зависящая от всей
+  # матрицы. Именно её добавляем в required status checks ruleset для main.
+  # Расширение матрицы не требует править ruleset — passed автоматически
+  # ждёт всех новых children через `needs: [check]`.
+  #
+  # `if: always()` обязателен: без него job скипается при падении матрицы и
+  # required check остаётся pending, блокируя merge.
+  passed:
+    name: server-checks-passed
+    needs: [check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # failure — хоть один target упал; cancelled — workflow отменён
+      # (например, новым commit через concurrency); skipped — job не
+      # запустился (например, выключен через `if:` в самой матрице). Любой из
+      # трёх = «не всё зелёное» → стражу нужно упасть.
+      - if: >-
+          ${{ contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped') }}
+        run: exit 1
