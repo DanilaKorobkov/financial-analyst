@@ -1,0 +1,30 @@
+# Кодген TypeScript-клиента из proto-схем сервера.
+#
+# Запуск — через `task web:generate-proto` из корня репо (cwd=web/).
+# Входной модуль — buf.yaml в ../server. Артефакты пишутся в src/gen/ и
+# хранятся в репозитории: дрейф между .proto и сгенерированным TS-клиентом
+# ловится в CI задачей `web:lint-generated-proto` (она генерит во временный
+# каталог и делает `diff -r src/gen <tmp>`).
+#
+# Плагин protoc-gen-es ставится как dev-зависимость web/package.json (а не
+# через mise), потому что это node-плагин и web/ — npm-проект. buf находит
+# его по PATH: задача `web:generate-proto` подкладывает node_modules/.bin
+# в PATH перед запуском.
+version: v2
+plugins:
+  # @bufbuild/protoc-gen-es — официальный TS-генератор от Buf. С v2 он же
+  # генерит сервисные дескрипторы Connect (отдельный protoc-gen-connect-es
+  # больше не нужен): клиент собирается через `createClient(Service, transport)`
+  # из @connectrpc/connect.
+  - local: protoc-gen-es
+    out: src/gen
+    opt:
+      # target=ts — генерим .ts (не .js + .d.ts), чтобы tsc/Vite обрабатывали
+      # код единообразно с остальной кодовой базой и можно было дойти до
+      # определения через «go to definition».
+      - target=ts
+      # import_extension=none — в импортах между сгенерированными модулями
+      # не подставлять расширение. Vite и TypeScript (moduleResolution=bundler)
+      # разрешают `./foo` без расширения; добавление `.js` ломает «go to
+      # definition» в редакторе.
+      - import_extension=none

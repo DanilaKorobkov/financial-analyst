@@ -3,7 +3,21 @@ version: '3'
 # Taskfile модуля web/. Команды зовутся из корня как `task web:<name>`
 # через includes в корневом Taskfile.yml.
 
+includes:
+  # Общерепные переиспользуемые таски (см. taskfile-snippets.yml в корне).
+  # `dir: .` означает: snippet-таски запускаются с cwd модуля web/,
+  # а не из директории, где лежит сам snippets-файл.
+  snippets:
+    taskfile: ../taskfile-snippets.yml
+    dir: .
+    internal: true
+
 tasks:
+  checks:
+    desc: Read-only проверки модуля web (контракт ↔ сгенерированный TS-клиент).
+    deps:
+      - task: lint-generated-proto
+
   install:
     desc: Поставить npm-зависимости фронта.
     cmds:
@@ -20,3 +34,21 @@ tasks:
     desc: Production-сборка фронта в web/dist.
     cmds:
       - npm run build
+
+  generate-proto:
+    desc: Сгенерировать TS-клиент Connect из proto-схем сервера. Артефакты — в src/gen/.
+    # Плагин protoc-gen-es ставится через mise (см. mise.toml,
+    # `npm:@bufbuild/protoc-gen-es`); buf находит его в PATH автоматически.
+    # buf-конфиг — web/buf.gen.yaml, входной модуль .proto — ../server.
+    cmds:
+      - buf generate ../server --template buf.gen.yaml
+
+  lint-generated-proto:
+    desc: Проверить, что src/gen/ совпадает с buf generate (защита от дрейфа .proto ↔ TS).
+    cmds:
+      - task: snippets:diff-generated
+        vars:
+          # buf.gen.yaml уже задаёт `out: src/gen`; переопределяем корень
+          # через --output, поверх которого плагин дописывает свой `out`.
+          GEN_CMD: buf generate ../server --template buf.gen.yaml --output "$OUTPUT_DIR"
+          REAL_DIR: src/gen
