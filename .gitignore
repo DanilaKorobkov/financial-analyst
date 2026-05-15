@@ -47,3 +47,8 @@ go.work.sum
 # Файловый кеш карточек эмитентов (internal/infra/filecache/companycard
 # поверх diskv). Локальный артефакт рантайма, в репозиторий не уезжает.
 .cache/
+
+# npm-зависимости фронта (web/node_modules) и его dev-артефакты.
+node_modules/
+web/dist/
+web/.vite/

@@ -1,0 +1,22 @@
+version: '3'
+
+# Taskfile модуля web/. Команды зовутся из корня как `task web:<name>`
+# через includes в корневом Taskfile.yml.
+
+tasks:
+  install:
+    desc: Поставить npm-зависимости фронта.
+    cmds:
+      - npm install
+
+  run:
+    desc: >-
+      Поднять Vite dev-сервер (http://localhost:5173).
+      Перенаправляет /company.v1.* → server :8080.
+    cmds:
+      - npm run dev
+
+  build:
+    desc: Production-сборка фронта в web/dist.
+    cmds:
+      - npm run build
