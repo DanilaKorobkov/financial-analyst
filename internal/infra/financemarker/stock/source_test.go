@@ -50,8 +50,7 @@ func (s *sourceSuite) TearDownTest() {
 	s.server.Close()
 }
 
-// wantSberInfo — ожидаемая Info-секция для SBER. Используется в тестах
-// info-only и в комбинированном — данные 1:1.
+// wantSberInfo — ожидаемая Info-секция для SBER из фикстуры sber_all_sections.json.
 func wantSberInfo() company.StockInfo {
 	return company.StockInfo{
 		IssuerName:            "Сбербанк",
@@ -60,9 +59,9 @@ func wantSberInfo() company.StockInfo {
 		Industry:              "Банковская деятельность",
 		SubIndustry:           "Диверсифицированные банки",
 		Country:               "Россия",
-		Description:           "ПАО «Сбербанк» — крупнейший универсальный банк России.",
-		Site:                  "https://www.sberbank.com",
-		DisclosureLink:        "https://www.sberbank.com/ru/investor-relations",
+		Description:           "ПАО «Сбербанк» — российский финансовый конгломерат,  крупнейший банк в России, Центральной и Восточной Европе, один из ведущих международных финансовых институтов.\n\n\nПредоставляет широкий спектр банковских услуг. В рамках стратегии трансформации «Сбербанка» в технологическую компанию начинает расти доля небанковских услуг, таких как онлайн-магазины электронной торговли, телекомы, страхование, медицина и прочее. \n\n\n",
+		Site:                  "https://www.sberbank.com/ru",
+		DisclosureLink:        "https://www.sberbank.com/ru/investor-relations/groupresults",
 		PrimaryReportTicker:   "SBER",
 		SectorID:              40,
 		IndustryGroupID:       4010,
@@ -76,16 +75,16 @@ func wantSberInfo() company.StockInfo {
 	}
 }
 
-// wantSberSummary — ожидаемая Summary-секция для SBER. Используется в
-// тестах summary-only и в комбинированном — данные 1:1.
+// wantSberSummary — ожидаемая Summary-секция для SBER из фикстуры
+// sber_all_sections.json.
 func wantSberSummary() company.StockSummary {
 	return company.StockSummary{
-		ChangedAt:          time.Date(2026, 5, 11, 3, 32, 6, 0, time.UTC),
-		Capital:            97627.3,
+		ChangedAt:          time.Date(2026, 5, 15, 3, 32, 22, 0, time.UTC),
+		Capital:            99974.2,
 		EPS:                78.8,
 		PEG:                0.56,
-		PeterLynchTarget:   96.77,
-		GrahamTarget:       160.46,
+		PeterLynchTarget:   94.45,
+		GrahamTarget:       157.4,
 		DividendFrequency:  1,
 		DividendStrike:     4,
 		DividendGrowth:     3,
@@ -108,42 +107,25 @@ func wantSberSummary() company.StockSummary {
 		IdeaHold:           3,
 		IdeaSell:           0,
 		IdeaTarget:         387.392,
-		IdeaPotential:      20.9125,
+		IdeaPotential:      19.4916,
 		IdeaConsensus:      company.IdeaConsensusBuy,
 		InsiderConsensus:   company.InsiderConsensusBuys,
 	}
 }
 
-func (s *sourceSuite) TestFindByTickerInfoAndSummary() {
+func (s *sourceSuite) serveAllSections(wantInclude string) {
 	body := s.readFixture("sber_all_sections.json")
 	s.handler = func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("/api/fm/v2/stocks/MOEX:SBER", r.URL.Path)
 		s.Equal("test-token", r.URL.Query().Get("api_token"))
-		s.Equal("info,summary", r.URL.Query().Get("include"))
+		s.Equal(wantInclude, r.URL.Query().Get("include"))
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(body)
 	}
-
-	got, err := s.source.FindByTicker(
-		context.Background(),
-		"SBER",
-		company.StockOptions{WithInfo: true, WithSummary: true},
-	)
-
-	s.Require().NoError(err)
-	// Комбинированный ответ должен 1:1 сложиться из тех же кусочков,
-	// что приходят в info-only и summary-only ответах.
-	s.Equal(wantSberInfo(), got.Info)
-	s.Equal(wantSberSummary(), got.Summary)
 }
 
 func (s *sourceSuite) TestFindByTickerInfoOnly() {
-	body := s.readFixture("sber_info.json")
-	s.handler = func(w http.ResponseWriter, r *http.Request) {
-		s.Equal("info", r.URL.Query().Get("include"))
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(body)
-	}
+	s.serveAllSections("info")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -154,15 +136,11 @@ func (s *sourceSuite) TestFindByTickerInfoOnly() {
 	s.Require().NoError(err)
 	s.Equal(wantSberInfo(), got.Info)
 	s.Zero(got.Summary)
+	s.Nil(got.Ratios)
 }
 
 func (s *sourceSuite) TestFindByTickerSummaryOnly() {
-	body := s.readFixture("sber_summary.json")
-	s.handler = func(w http.ResponseWriter, r *http.Request) {
-		s.Equal("summary", r.URL.Query().Get("include"))
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(body)
-	}
+	s.serveAllSections("summary")
 
 	got, err := s.source.FindByTicker(
 		context.Background(),
@@ -173,6 +151,214 @@ func (s *sourceSuite) TestFindByTickerSummaryOnly() {
 	s.Require().NoError(err)
 	s.Zero(got.Info)
 	s.Equal(wantSberSummary(), got.Summary)
+}
+
+func (s *sourceSuite) TestFindByTickerInfoAndSummary() {
+	s.serveAllSections("info,summary")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithInfo: true, WithSummary: true},
+	)
+
+	s.Require().NoError(err)
+	s.Equal(wantSberInfo(), got.Info)
+	s.Equal(wantSberSummary(), got.Summary)
+}
+
+func (s *sourceSuite) TestFindByTickerRatios() {
+	s.serveAllSections("ratios")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithRatios: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.Ratios, 21)
+	first := got.Ratios[0]
+	s.Equal(2011, first.Period.Year)
+	s.Equal(12, first.Period.Month)
+	s.Equal(company.StockPeriodFrequencyYearly, first.Period.Frequency)
+	s.Equal(company.ReportStandardIFRS, first.Period.Standard)
+	s.InDelta(54822.8, first.Capital, 1e-6)
+	s.InDelta(5.58, first.PE, 1e-6)
+	s.False(first.Active)
+
+	last := got.Ratios[20]
+	s.True(last.Active)
+	s.Equal(company.StockPeriodFrequencyYearToMonth, last.Period.Frequency)
+}
+
+func (s *sourceSuite) TestFindByTickerReports() {
+	s.serveAllSections("reports")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithReports: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.Reports, 92)
+	first := got.Reports[0]
+	s.Equal(2011, first.Period.Year)
+	s.Equal(company.ReportStandardIFRS, first.Period.Standard)
+	s.Equal(company.CurrencyRUB, first.Currency)
+	s.Equal(int64(1000000), first.Amount)
+	s.InDelta(741947, first.Revenue, 1e-6)
+	s.InDelta(315900, first.Earnings, 1e-6)
+}
+
+func (s *sourceSuite) TestFindByTickerDividends() {
+	s.serveAllSections("dividends")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithDividends: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.Dividends, 18)
+	first := got.Dividends[0]
+	s.Equal(time.Date(2026, 7, 17, 0, 0, 0, 0, time.UTC), first.LastBuyDate)
+	s.Equal(time.Date(2026, 7, 20, 0, 0, 0, 0, time.UTC), first.ReestrCloseDate)
+	s.InDelta(37.64, first.DivAmount, 1e-6)
+	s.InDelta(11.6101, first.DivPercent, 1e-6)
+	s.Equal(int64(2025), first.Year)
+	s.Equal(company.CurrencyRUB, first.Currency)
+	s.Equal(company.DividendTypeYearly, first.Type)
+	s.Zero(first.LastBuyPrice) // будущая выплата — цена ещё не зафиксирована
+}
+
+func (s *sourceSuite) TestFindByTickerIdeas() {
+	s.serveAllSections("ideas")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithIdeas: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.Ideas, 12)
+	first := got.Ideas[0]
+	s.Equal(int64(6237), first.ID)
+	s.Equal("РСХБ Инвестиции", first.Community)
+	s.Equal("Сбер открыл сезон охоты на прибыль", first.Idea)
+	s.InDelta(319.0, first.PriceIn, 1e-6)
+	s.InDelta(360.0, first.PriceOut, 1e-6)
+	s.InDelta(13.0, first.ProfitPotential, 1e-6)
+}
+
+func (s *sourceSuite) TestFindByTickerInsiderTransactions() {
+	s.serveAllSections("insiderTransactions")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithInsiderTransactions: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.InsiderTransactions, 10)
+	first := got.InsiderTransactions[0]
+	s.Equal(time.Date(2025, 12, 11, 0, 0, 0, 0, time.UTC), first.TransactionDate)
+	s.Equal("Информация не раскрывается", first.Insider)
+	s.Equal(company.InsiderTransactionTypePurchase, first.Type)
+}
+
+func (s *sourceSuite) TestFindByTickerOperations() {
+	s.serveAllSections("operations")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithOperations: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.Operations, 267)
+	first := got.Operations[0]
+	s.Equal("car_loans", first.MetricID)
+	s.InDelta(170.4, first.Value, 1e-6)
+	s.Equal("₽", first.Unit)
+	s.Equal(int64(1000000000), first.Amount)
+	s.Equal(2014, first.Period.Year)
+	s.Equal(company.StockPeriodFrequencyYearly, first.Period.Frequency)
+	s.InDelta(1.0, first.Curs, 1e-6)
+}
+
+func (s *sourceSuite) TestFindByTickerOwners() {
+	s.serveAllSections("owners")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithOwners: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.Owners, 2)
+	first := got.Owners[0]
+	s.Equal("Прочие", first.Owner)
+	s.InDelta(50.0, first.Own, 1e-6)
+	s.Equal(2022, first.Period.Year)
+	s.Equal(6, first.Period.Month)
+}
+
+func (s *sourceSuite) TestFindByTickerShares() {
+	s.serveAllSections("shares")
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{WithShares: true},
+	)
+
+	s.Require().NoError(err)
+	s.Len(got.Shares, 116)
+	first := got.Shares[0]
+	s.Equal("SBERP", first.Ticker)
+	s.Equal(int64(1000000000), first.Num)
+	s.Equal(2011, first.Period.Year)
+}
+
+func (s *sourceSuite) TestFindByTickerAllSectionsCanonicalInclude() {
+	wantInclude := "info,summary,ratios,reports,dividends,ideas,insiderTransactions,operations,owners,shares"
+	s.serveAllSections(wantInclude)
+
+	got, err := s.source.FindByTicker(
+		context.Background(),
+		"SBER",
+		company.StockOptions{
+			WithInfo:                true,
+			WithSummary:             true,
+			WithRatios:              true,
+			WithReports:             true,
+			WithDividends:           true,
+			WithIdeas:               true,
+			WithInsiderTransactions: true,
+			WithOperations:          true,
+			WithOwners:              true,
+			WithShares:              true,
+		},
+	)
+
+	s.Require().NoError(err)
+	s.Equal(wantSberInfo(), got.Info)
+	s.Equal(wantSberSummary(), got.Summary)
+	s.Len(got.Ratios, 21)
+	s.Len(got.Reports, 92)
+	s.Len(got.Dividends, 18)
+	s.Len(got.Ideas, 12)
+	s.Len(got.InsiderTransactions, 10)
+	s.Len(got.Operations, 267)
+	s.Len(got.Owners, 2)
+	s.Len(got.Shares, 116)
 }
 
 func (s *sourceSuite) TestFindByTickerEmptyOptions() {

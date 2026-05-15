@@ -1,0 +1,78 @@
+// Инвест-идея аналитика по бумаге — элемент ряда секции ideas агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockIdea — инвест-идея аналитика по бумаге.
+message StockIdea {
+  // Дата публикации идеи (вход). Пример: "2026-04-30T00:00:00Z".
+  google.protobuf.Timestamp date_in = 1;
+
+  // Плановая дата выхода. Пример: "2027-04-30T00:00:00Z".
+  google.protobuf.Timestamp date_out = 2;
+
+  // Дата фактического закрытия идеи или последнего снимка цены.
+  // Пример: "2026-05-14T00:00:00Z".
+  google.protobuf.Timestamp close_date = 3;
+
+  // Дата последнего обновления (изменение target/stop). Пример: 0 (нет обновлений).
+  google.protobuf.Timestamp update_date = 4;
+
+  // Момент последнего изменения записи в FM. Пример: "2026-05-15T01:40:03Z".
+  google.protobuf.Timestamp changed_at = 5;
+
+  // Имя автора-аналитика или брокера. Пример: "РСХБ Инвестиции".
+  string community = 6;
+
+  // Краткий заголовок идеи. Пример: "Сбер открыл сезон охоты на прибыль".
+  string idea = 7;
+
+  // Комментарий автора при закрытии идеи. Пример: "".
+  string close_comment = 8;
+
+  // Ссылка на пост о закрытии идеи. Пример: "".
+  string close_link = 9;
+
+  // Идентификатор идеи в FM. Пример: "6237".
+  int64 id = 10;
+
+  // Числовой ID автора-аналитика. Пример: "22888".
+  int64 community_id = 11;
+
+  // Срок идеи в полных месяцах (date_out − date_in). Пример: "12".
+  int64 duration_in_month = 12;
+
+  // Цена входа, заявленная автором. Пример: 319.
+  double price_in = 13;
+
+  // Целевая цена. Пример: 360.
+  double price_out = 14;
+
+  // Текущая цена бумаги на момент снимка ленты. Пример: 324.2.
+  double price_day = 15;
+
+  // Потенциал к target от price_in (%). Пример: 13.
+  double profit_potential = 16;
+
+  // Фактическая доходность от price_in к price_day (%).
+  // Пример: 0 (не отдано источником в текущем ответе).
+  double profit_actual = 17;
+
+  // Уровень stop-loss, если задан автором. Пример: 0 (не задан).
+  double stop_loss = 18;
+
+  // Цена закрытия / последнего снимка идеи. Пример: 324.2.
+  double close_price = 19;
+
+  // Цена бумаги в момент обновления идеи. Пример: 0 (нет обновлений).
+  double update_price = 20;
+
+  // Статус идеи. Пример: "IDEA_STATUS_UNSPECIFIED" (источник не отдал status в текущем ответе).
+  IdeaStatus status = 21;
+}

@@ -1,20 +1,55 @@
 // Карточка эмитента — секция агрегата Company, объединяющая
-// классификацию и описание (info) и сводные метрики (summary).
+// классификацию и описание (info), сводные метрики (summary) и
+// временные ряды (ratios, reports, dividends, ideas,
+// insiderTransactions, operations, owners, shares).
 
 syntax = "proto3";
 
 package company.v1;
 
+import "company/v1/stock_dividend.proto";
+import "company/v1/stock_idea.proto";
 import "company/v1/stock_info.proto";
+import "company/v1/stock_insider_transaction.proto";
+import "company/v1/stock_operation.proto";
+import "company/v1/stock_owner.proto";
+import "company/v1/stock_ratio.proto";
+import "company/v1/stock_report.proto";
+import "company/v1/stock_share.proto";
 import "company/v1/stock_summary.proto";
 
 option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
 
-// Stock — карточка эмитента.
+// Stock — карточка эмитента. Поля-массивы, не запрошенные у источника,
+// приходят пустыми.
 message Stock {
   // Классификация и описание эмитента.
   StockInfo info = 1;
 
   // Сводные метрики эмитента.
   StockSummary summary = 2;
+
+  // Временной ряд мультипликаторов по отчётным периодам.
+  repeated StockRatio ratios = 3;
+
+  // Публикации финансовой отчётности.
+  repeated StockReport reports = 4;
+
+  // История и прогноз дивидендных выплат.
+  repeated StockDividend dividends = 5;
+
+  // Инвест-идеи аналитиков по бумаге.
+  repeated StockIdea ideas = 6;
+
+  // Сделки инсайдеров в узком формате.
+  repeated StockInsiderTransaction insider_transactions = 7;
+
+  // Значения операционных метрик по периодам.
+  repeated StockOperation operations = 8;
+
+  // Структура акционеров по датам среза.
+  repeated StockOwner owners = 9;
+
+  // Количество выпущенных акций по датам среза.
+  repeated StockShare shares = 10;
 }

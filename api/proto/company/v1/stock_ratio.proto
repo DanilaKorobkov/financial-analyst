@@ -1,0 +1,112 @@
+// Мультипликаторы эмитента за один отчётный период — элемент ряда секции
+// ratios агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/stock_period.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockRatio — мультипликаторы и финансовые коэффициенты эмитента за
+// один отчётный период.
+message StockRatio {
+  // Отчётный период записи.
+  StockPeriod period = 1;
+
+  // Момент пересчёта строки. Пример: "2026-05-15T03:32:22Z".
+  google.protobuf.Timestamp changed_at = 2;
+
+  // Рыночная капитализация на конец периода (в млн валюты отчётности).
+  // Пример: 99974.2.
+  double capital = 3;
+
+  // Price / Earnings (P/E, TTM). Пример: 4.11.
+  double pe = 4;
+
+  // Price / Book Value (P/B). Пример: 0.83.
+  double pbv = 5;
+
+  // Price / Sales (P/S). Пример: 1.47.
+  double ps = 6;
+
+  // Price / Operating Cash Flow (P/CF). Пример: 5.56.
+  double pcf = 7;
+
+  // Price / Free Cash Flow (P/FCF). Пример: 10.21.
+  double pfcf = 8;
+
+  // Price / FFO (для REIT/недвижимости). Пример: 0 (нет данных).
+  double pffo = 9;
+
+  // EV / Sales. Пример: 0 (нет данных для финкомпаний).
+  double evs = 10;
+
+  // EV / EBITDA. Пример: 0 (нет данных для финкомпаний).
+  double ev_ebitda = 11;
+
+  // EV / EBIT. Пример: 0 (нет данных для финкомпаний).
+  double ev_ebit = 12;
+
+  // Debt / EBITDA. Пример: 0 (нет данных для финкомпаний).
+  double debt_ebitda = 13;
+
+  // NetDebt / EBITDA. Пример: 0 (нет данных для финкомпаний).
+  double net_debt_ebitda = 14;
+
+  // Debt / Equity (D/E). Пример: 6.79.
+  double debt_equity = 15;
+
+  // Total Debt / Total Assets (доля долга в активах, 0..1). Пример: 0.87.
+  double debt_ratio = 16;
+
+  // Current ratio (current assets / current liabilities).
+  // Пример: 0 (для банков не публикуется).
+  double current_ratio = 17;
+
+  // EBIT / Interest Expense. Пример: 0 (для банков не публикуется).
+  double interest_coverage = 18;
+
+  // Валовая маржа (%). Пример: 0 (для банков не публикуется).
+  double gross_margin = 19;
+
+  // Операционная маржа (%). Пример: 0 (для банков не публикуется).
+  double operation_margin = 20;
+
+  // EBITDA-маржа (%). Пример: 0 (для банков не публикуется).
+  double ebitda_margin = 21;
+
+  // Чистая маржа (%). Пример: 35.64.
+  double net_margin = 22;
+
+  // Return on Sales (%). Пример: 0 (для банков не публикуется).
+  double ros = 23;
+
+  // Return on Equity (%). Пример: 20.05.
+  double roe = 24;
+
+  // Return on Assets (%). Пример: 2.58.
+  double roa = 25;
+
+  // Return on Invested Capital (%). Пример: 0 (для банков не публикуется).
+  double roic = 26;
+
+  // Return on Capital Employed (%). Пример: 0 (для банков не публикуется).
+  double roce = 27;
+
+  // Dividend Payout Ratio (Dividends / Earnings).
+  // Пример: 0 (на YTM-периоде не публикуется).
+  double dpr = 28;
+
+  // CAPEX / Revenue (%). Пример: 12.02.
+  double capex_revenue = 29;
+
+  // Чистый оборотный капитал (в валюте отчётности).
+  // Пример: 0 (для банков не публикуется).
+  double net_working_capital = 30;
+
+  // true для последней (актуальной) строки ряда. Пример: true.
+  bool active = 31;
+}

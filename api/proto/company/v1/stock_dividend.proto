@@ -1,0 +1,48 @@
+// Дивидендная выплата эмитента — элемент ряда секции dividends агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockDividend — одна дивидендная выплата эмитента (историческая или будущая).
+message StockDividend {
+  // Последний день покупки бумаги с правом на дивиденд.
+  // Пример: "2026-07-17T00:00:00Z".
+  google.protobuf.Timestamp last_buy_date = 1;
+
+  // Дата закрытия реестра акционеров (отсечка).
+  // Пример: "2026-07-20T00:00:00Z".
+  google.protobuf.Timestamp reestr_close_date = 2;
+
+  // Момент последнего обновления записи. Пример: "2026-05-15T03:10:41Z".
+  google.protobuf.Timestamp changed_at = 3;
+
+  // Цена закрытия бумаги на last_buy_date. Нулевое значение — будущая
+  // выплата без зафиксированной цены. Пример: 0.
+  double last_buy_price = 4;
+
+  // Размер дивиденда на одну акцию в currency. Пример: 37.64.
+  double div_amount = 5;
+
+  // Дивидендная доходность к цене на дату фиксации (%). Пример: 11.6101.
+  double div_percent = 6;
+
+  // Финансовый год, по которому платится дивиденд. Пример: "2025".
+  int64 year = 7;
+
+  // Ссылка на первоисточник раскрытия.
+  // Пример: "https://www.e-disclosure.ru/portal/event.aspx?EventId=...".
+  string link = 8;
+
+  // Валюта выплаты. Пример: "RUB".
+  Currency currency = 9;
+
+  // Тип выплаты (годовая, полугодовая, квартальная, особая).
+  // Пример: "DIVIDEND_TYPE_YEARLY".
+  DividendType type = 10;
+}

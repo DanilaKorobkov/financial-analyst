@@ -61,3 +61,49 @@ enum InsiderConsensus {
   SELLS = 2;
   MIXED = 3;
 }
+
+// StockPeriodFrequency — гранулярность отчётного периода у записи карточки эмитента.
+// Значения с префиксом во избежание коллизий с ReportFrequency (YEARLY/QUARTERLY).
+enum StockPeriodFrequency {
+  STOCK_PERIOD_FREQUENCY_UNSPECIFIED = 0;
+  STOCK_PERIOD_FREQUENCY_YEARLY = 1;
+  STOCK_PERIOD_FREQUENCY_HALF_YEARLY = 2;
+  STOCK_PERIOD_FREQUENCY_QUARTERLY = 3;
+  STOCK_PERIOD_FREQUENCY_YEAR_TO_MONTH = 4;
+}
+
+// ReportStandard — стандарт финансовой отчётности.
+enum ReportStandard {
+  REPORT_STANDARD_UNSPECIFIED = 0;
+  IFRS = 1;
+  RAS = 2;
+  GAAP = 3;
+}
+
+// DividendType — тип дивидендной выплаты эмитента.
+// Значения с префиксом во избежание коллизии YEARLY с ReportFrequency.
+enum DividendType {
+  DIVIDEND_TYPE_UNSPECIFIED = 0;
+  DIVIDEND_TYPE_YEARLY = 1;
+  DIVIDEND_TYPE_FIRST_HALF = 2;
+  DIVIDEND_TYPE_SECOND_HALF = 3;
+  DIVIDEND_TYPE_Q1 = 4;
+  DIVIDEND_TYPE_Q2 = 5;
+  DIVIDEND_TYPE_Q3 = 6;
+  DIVIDEND_TYPE_Q4 = 7;
+  DIVIDEND_TYPE_SPECIAL = 8;
+}
+
+// IdeaStatus — статус инвест-идеи аналитика.
+enum IdeaStatus {
+  IDEA_STATUS_UNSPECIFIED = 0;
+  ACTIVE = 1;
+  CLOSED = 2;
+}
+
+// InsiderTransactionType — направление сделки инсайдера.
+enum InsiderTransactionType {
+  INSIDER_TRANSACTION_TYPE_UNSPECIFIED = 0;
+  PURCHASE = 1;
+  SALE = 2;
+}

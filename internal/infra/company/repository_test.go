@@ -16,8 +16,16 @@ import (
 // wantOptions — набор секций, который Repository запрашивает у StockSource.
 // Должен совпадать с stockOptions в реализации.
 var wantOptions = domaincompany.StockOptions{
-	WithInfo:    true,
-	WithSummary: true,
+	WithInfo:                true,
+	WithSummary:             true,
+	WithRatios:              true,
+	WithReports:             true,
+	WithDividends:           true,
+	WithIdeas:               true,
+	WithInsiderTransactions: true,
+	WithOperations:          true,
+	WithOwners:              true,
+	WithShares:              true,
 }
 
 type repositorySuite struct {

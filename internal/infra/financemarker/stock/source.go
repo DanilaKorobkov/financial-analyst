@@ -37,6 +37,37 @@ const (
 	// ttlSummary — TTL HTTP-кеша блока summary: пересчитывается при выходе
 	// свежих отчётов и изменении цены.
 	ttlSummary = 24 * time.Hour
+
+	// ttlRatios — TTL HTTP-кеша блока ratios: пересчёт привязан к новой
+	// отчётности (как summary).
+	ttlRatios = 24 * time.Hour
+
+	// ttlReports — TTL HTTP-кеша блока reports: отчёты публикуются раз
+	// в квартал; за неделю гарантированно подхватим новый.
+	ttlReports = 7 * 24 * time.Hour
+
+	// ttlDividends — TTL HTTP-кеша блока dividends: раскрытие новой
+	// рекомендации может появиться в любой день.
+	ttlDividends = 24 * time.Hour
+
+	// ttlIdeas — TTL HTTP-кеша блока ideas: лента инвест-идей живая,
+	// статусы и цены меняются в течение дня.
+	ttlIdeas = 6 * time.Hour
+
+	// ttlInsiderTransactions — TTL HTTP-кеша блока insiderTransactions.
+	ttlInsiderTransactions = 24 * time.Hour
+
+	// ttlOperations — TTL HTTP-кеша блока operations: операционные метрики
+	// обновляются вместе с отчётами эмитента.
+	ttlOperations = 24 * time.Hour
+
+	// ttlOwners — TTL HTTP-кеша блока owners: структура акционеров
+	// меняется редко.
+	ttlOwners = 7 * 24 * time.Hour
+
+	// ttlShares — TTL HTTP-кеша блока shares: количество акций — почти
+	// статичный ряд, пересчёт ежемесячно с большим запасом.
+	ttlShares = 30 * 24 * time.Hour
 )
 
 // Source — реализация company.StockSource поверх FinanceMarker.
@@ -90,12 +121,24 @@ func (s *Source) FindByTicker(ctx context.Context, ticker string, opts company.S
 // секции — одна строка include = один кеш-ключ = один TTL.
 func pickTTL(opts company.StockOptions) time.Duration {
 	var ttl time.Duration
-	if opts.WithInfo {
-		ttl = ttlInfo
+	consider := func(enabled bool, sectionTTL time.Duration) {
+		if !enabled {
+			return
+		}
+		if ttl == 0 || sectionTTL < ttl {
+			ttl = sectionTTL
+		}
 	}
-	if opts.WithSummary && (ttl == 0 || ttlSummary < ttl) {
-		ttl = ttlSummary
-	}
+	consider(opts.WithInfo, ttlInfo)
+	consider(opts.WithSummary, ttlSummary)
+	consider(opts.WithRatios, ttlRatios)
+	consider(opts.WithReports, ttlReports)
+	consider(opts.WithDividends, ttlDividends)
+	consider(opts.WithIdeas, ttlIdeas)
+	consider(opts.WithInsiderTransactions, ttlInsiderTransactions)
+	consider(opts.WithOperations, ttlOperations)
+	consider(opts.WithOwners, ttlOwners)
+	consider(opts.WithShares, ttlShares)
 	return ttl
 }
 
@@ -108,6 +151,30 @@ func assemble(dto *stockDTO, opts company.StockOptions) company.Stock {
 	}
 	if opts.WithSummary {
 		out.Summary = translateStockSummary(&dto.Summary)
+	}
+	if opts.WithRatios {
+		out.Ratios = translateStockRatios(dto.Ratios)
+	}
+	if opts.WithReports {
+		out.Reports = translateStockReports(dto.Reports)
+	}
+	if opts.WithDividends {
+		out.Dividends = translateStockDividends(dto.Dividends)
+	}
+	if opts.WithIdeas {
+		out.Ideas = translateStockIdeas(dto.Ideas)
+	}
+	if opts.WithInsiderTransactions {
+		out.InsiderTransactions = translateStockInsiderTransactions(dto.InsiderTransactions)
+	}
+	if opts.WithOperations {
+		out.Operations = translateStockOperations(dto.Operations)
+	}
+	if opts.WithOwners {
+		out.Owners = translateStockOwners(dto.Owners)
+	}
+	if opts.WithShares {
+		out.Shares = translateStockShares(dto.Shares)
 	}
 	return out
 }
