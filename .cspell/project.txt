@@ -47,6 +47,7 @@ GAZP
 SIBN
 AQUA
 DOMRF
+HYDR
 
 # --- Имена полей FinanceMarker API (snake_case фрагменты) ---
 pfcf              # P/FCF
