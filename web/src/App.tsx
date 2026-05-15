@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { AlertCircleIcon, InfoIcon, Loader2Icon } from 'lucide-react';
-import { getCompany, type GetCompanyResponse, type Stock } from './api';
+import { companyClient } from './api';
+import type { GetCompanyResponse } from './gen/company/v1/company_pb';
+import type { Stock } from './gen/company/v1/stock_pb';
 import { formatValue, humanizeKey } from './format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,7 +42,7 @@ export function App() {
     if (!t) return;
     setState({ kind: 'loading', ticker: t });
     try {
-      const data = await getCompany(t);
+      const data = await companyClient.getCompany({ ticker: t });
       setState({ kind: 'ok', ticker: t, data });
     } catch (err) {
       setState({

@@ -1,57 +1,13 @@
-// Минимальный клиент Connect-RPC поверх fetch.
-//
-// Connect поддерживает JSON-кодирование поверх POST: достаточно отправить
-// тело как обычный JSON и принять JSON в ответ. Генерация TS-клиента не
-// нужна — типизация описана локально и совпадает с .proto.
+// Connect-RPC клиент поверх типов, сгенерированных из proto-схем
+// (артефакты `task web:generate-proto`, лежат в src/gen/). Ручного описания
+// контракта здесь нет — расхождение схемы и клиента ловится в CI задачей
+// `web:lint-generated-proto`.
+import { createClient } from '@connectrpc/connect';
+import { createConnectTransport } from '@connectrpc/connect-web';
+import { CompanyService } from './gen/company/v1/company_pb';
 
-export type GetCompanyResponse = {
-  company?: Company;
-};
+// baseUrl относительный: в dev Vite перенаправляет /company.v1.* на backend
+// (см. vite.config.ts), в production фронт и backend живут под одним origin.
+const transport = createConnectTransport({ baseUrl: '/' });
 
-export type Company = {
-  securityDescription?: Record<string, unknown>;
-  stock?: Stock;
-};
-
-export type Stock = {
-  info?: Record<string, unknown>;
-  summary?: Record<string, unknown>;
-  ratios?: Record<string, unknown>[];
-  reports?: Record<string, unknown>[];
-  dividends?: Record<string, unknown>[];
-  ideas?: Record<string, unknown>[];
-  insiderTransactions?: Record<string, unknown>[];
-  operations?: Record<string, unknown>[];
-  owners?: Record<string, unknown>[];
-  shares?: Record<string, unknown>[];
-};
-
-export type ConnectError = {
-  code: string;
-  message: string;
-};
-
-export async function getCompany(ticker: string): Promise<GetCompanyResponse> {
-  const resp = await fetch('/company.v1.CompanyService/GetCompany', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({ ticker }),
-  });
-
-  if (!resp.ok) {
-    let payload: ConnectError | null = null;
-    try {
-      payload = (await resp.json()) as ConnectError;
-    } catch {
-      // ignore
-    }
-    const code = payload?.code ?? `http_${resp.status}`;
-    const message = payload?.message ?? resp.statusText;
-    throw new Error(`${code}: ${message}`);
-  }
-
-  return (await resp.json()) as GetCompanyResponse;
-}
+export const companyClient = createClient(CompanyService, transport);

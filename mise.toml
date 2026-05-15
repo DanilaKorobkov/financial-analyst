@@ -101,6 +101,13 @@ node = "22.11.0"
 "go:google.golang.org/protobuf/cmd/protoc-gen-go" = "1.36.6"
 "go:connectrpc.com/connect/cmd/protoc-gen-connect-go" = "1.18.1"
 
+# protoc-gen-es — TS-генератор для buf (используется web/buf.gen.yaml).
+# По смыслу — такой же CLI-плагин buf, как protoc-gen-go выше; держать его
+# в web/package.json как devDependency противоречит tooling.md
+# («CLI-утилиты ставятся только через mise»). Тип npm-backend mise — тот же
+# механизм, через который уже ставятся cspell/markdownlint-cli2/prettier.
+"npm:@bufbuild/protoc-gen-es" = "2.12.0"
+
 # mockery — генератор mock-объектов по Go-интерфейсам (заменяет hand-rolled fakes).
 "aqua:vektra/mockery" = "3.7.0"
 

@@ -4,6 +4,11 @@ version: '3'
 # через includes в корневом Taskfile.yml.
 
 tasks:
+  checks:
+    desc: Read-only проверки модуля web (контракт ↔ сгенерированный TS-клиент).
+    deps:
+      - task: lint-generated-proto
+
   install:
     desc: Поставить npm-зависимости фронта.
     cmds:
@@ -20,3 +25,27 @@ tasks:
     desc: Production-сборка фронта в web/dist.
     cmds:
       - npm run build
+
+  generate-proto:
+    desc: Сгенерировать TS-клиент Connect из proto-схем сервера. Артефакты — в src/gen/.
+    # Плагин protoc-gen-es ставится через mise (см. mise.toml,
+    # `npm:@bufbuild/protoc-gen-es`); buf находит его в PATH автоматически.
+    # buf-конфиг — web/buf.gen.yaml, входной модуль .proto — ../server.
+    cmds:
+      - buf generate ../server --template buf.gen.yaml
+
+  lint-generated-proto:
+    desc: Проверить, что src/gen/ совпадает с buf generate (защита от дрейфа .proto ↔ TS).
+    # Генерируем во временный каталог и сравниваем с реальным src/gen.
+    # Реальные артефакты не трогаем — проверка идемпотентна. Падает, если
+    # .proto обновили без `task web:generate-proto`, или если кто-то правил
+    # src/gen/ руками — оба сценария значат, что контракт разъехался.
+    cmds:
+      - |
+          set -euo pipefail
+          tmp="$(mktemp -d -p . .lint-generated-proto.XXXXXX)"
+          trap 'rm -rf "$tmp"' EXIT
+          # buf.gen.yaml уже задаёт `out: src/gen`; переопределяем корень
+          # через --output, поверх которого плагин дописывает свой `out`.
+          buf generate ../server --template buf.gen.yaml --output "$tmp"
+          diff -r src/gen "$tmp/src/gen"
