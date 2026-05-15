@@ -8,11 +8,17 @@ version: '3'
 
 tasks:
   checks:
-    desc: Read-only проверки модуля server (lint + compile + test).
+    desc: >-
+      Read-only проверки модуля server (lint + compile).
+      Тесты тянутся транзитивно через lint-test-coverage внутри lint.
+    # Отдельного `task: test` тут нет намеренно: lint-test-coverage уже
+    # запускает go test через `deps: [test]`, добавлять второй явный вызов
+    # — значит гонять тесты дважды (`run: once` спасает локально внутри
+    # одного процесса task, но не помогает в CI, где каждая ветка матрицы
+    # — отдельный runner).
     deps:
       - task: lint
       - task: compile
-      - task: test
 
   lint:
     desc: Запустить все Go-линтеры модуля параллельно.
