@@ -127,7 +127,7 @@ func (s *sourceSuite) TestFindByTickerInfoAndSummary() {
 	got, err := s.source.FindByTicker(
 		context.Background(),
 		"SBER",
-		[]company.StockSection{company.StockSectionInfo, company.StockSectionSummary},
+		company.StockOptions{WithInfo: true, WithSummary: true},
 	)
 
 	s.Require().NoError(err)
@@ -135,30 +135,6 @@ func (s *sourceSuite) TestFindByTickerInfoAndSummary() {
 	// что приходят в info-only и summary-only ответах.
 	s.Equal(wantSberInfo(), got.Info)
 	s.Equal(wantSberSummary(), got.Summary)
-}
-
-// TestFindByTickerCanonicalIncludeOrder: даже если вызывающий передаст
-// секции в произвольном порядке с дубликатами, include всегда собирается
-// в каноническом порядке (info,summary) — это требование справочника для
-// устойчивости кеш-ключа.
-func (s *sourceSuite) TestFindByTickerCanonicalIncludeOrder() {
-	body := s.readFixture("sber_all_sections.json")
-	s.handler = func(w http.ResponseWriter, r *http.Request) {
-		s.Equal("info,summary", r.URL.Query().Get("include"))
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(body)
-	}
-
-	_, err := s.source.FindByTicker(
-		context.Background(),
-		"SBER",
-		[]company.StockSection{
-			company.StockSectionSummary,
-			company.StockSectionInfo,
-			company.StockSectionInfo,
-		},
-	)
-	s.Require().NoError(err)
 }
 
 func (s *sourceSuite) TestFindByTickerInfoOnly() {
@@ -172,7 +148,7 @@ func (s *sourceSuite) TestFindByTickerInfoOnly() {
 	got, err := s.source.FindByTicker(
 		context.Background(),
 		"SBER",
-		[]company.StockSection{company.StockSectionInfo},
+		company.StockOptions{WithInfo: true},
 	)
 
 	s.Require().NoError(err)
@@ -191,7 +167,7 @@ func (s *sourceSuite) TestFindByTickerSummaryOnly() {
 	got, err := s.source.FindByTicker(
 		context.Background(),
 		"SBER",
-		[]company.StockSection{company.StockSectionSummary},
+		company.StockOptions{WithSummary: true},
 	)
 
 	s.Require().NoError(err)
@@ -199,36 +175,18 @@ func (s *sourceSuite) TestFindByTickerSummaryOnly() {
 	s.Equal(wantSberSummary(), got.Summary)
 }
 
-func (s *sourceSuite) TestFindByTickerEmptySections() {
+func (s *sourceSuite) TestFindByTickerEmptyOptions() {
 	called := false
 	s.handler = func(w http.ResponseWriter, _ *http.Request) {
 		called = true
 		w.WriteHeader(http.StatusOK)
 	}
 
-	_, err := s.source.FindByTicker(context.Background(), "SBER", nil)
+	_, err := s.source.FindByTicker(context.Background(), "SBER", company.StockOptions{})
 
 	s.Require().Error(err)
 	s.Require().ErrorContains(err, "no sections requested")
 	s.False(called, "HTTP не должен вызываться при пустом наборе секций")
-}
-
-func (s *sourceSuite) TestFindByTickerUnspecifiedOnly() {
-	called := false
-	s.handler = func(w http.ResponseWriter, _ *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}
-
-	_, err := s.source.FindByTicker(
-		context.Background(),
-		"SBER",
-		[]company.StockSection{company.StockSectionUnspecified},
-	)
-
-	s.Require().Error(err)
-	s.Require().ErrorContains(err, "no sections requested")
-	s.False(called)
 }
 
 func (s *sourceSuite) TestFindByTickerErrorMapping() {
@@ -290,7 +248,7 @@ func (s *sourceSuite) TestFindByTickerErrorMapping() {
 			_, err := s.source.FindByTicker(
 				context.Background(),
 				"any",
-				[]company.StockSection{company.StockSectionInfo, company.StockSectionSummary},
+				company.StockOptions{WithInfo: true, WithSummary: true},
 			)
 
 			s.Require().Error(err)
@@ -310,7 +268,7 @@ func (s *sourceSuite) TestFindByTickerContextCancelled() {
 	_, err := s.source.FindByTicker(
 		ctx,
 		"SBER",
-		[]company.StockSection{company.StockSectionInfo, company.StockSectionSummary},
+		company.StockOptions{WithInfo: true, WithSummary: true},
 	)
 
 	s.Require().Error(err)
@@ -327,7 +285,7 @@ func (s *sourceSuite) TestFindByTickerInvalidChangedAt() {
 	got, err := s.source.FindByTicker(
 		context.Background(),
 		"any",
-		[]company.StockSection{company.StockSectionSummary},
+		company.StockOptions{WithSummary: true},
 	)
 
 	s.Require().NoError(err)

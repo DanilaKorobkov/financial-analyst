@@ -13,11 +13,11 @@ import (
 	company_mock "github.com/DanilaKorobkov/financial-analyst/mocks/internal_/domain/aggregates/company"
 )
 
-// wantSections — набор секций, который Repository запрашивает у StockSource.
-// Должен совпадать с stockSections в реализации.
-var wantSections = []domaincompany.StockSection{
-	domaincompany.StockSectionInfo,
-	domaincompany.StockSectionSummary,
+// wantOptions — набор секций, который Repository запрашивает у StockSource.
+// Должен совпадать с stockOptions в реализации.
+var wantOptions = domaincompany.StockOptions{
+	WithInfo:    true,
+	WithSummary: true,
 }
 
 type repositorySuite struct {
@@ -53,7 +53,7 @@ func (s *repositorySuite) TestFindByTickerHappyPath() {
 		Return(wantDesc, nil).
 		Once()
 	s.stock.EXPECT().
-		FindByTicker(mock.Anything, "SBER", wantSections).
+		FindByTicker(mock.Anything, "SBER", wantOptions).
 		Return(wantStock, nil).
 		Once()
 
@@ -70,7 +70,7 @@ func (s *repositorySuite) TestFindByTickerSecurityDescriptionMissing() {
 		Return(domaincompany.SecurityDescription{}, domaincompany.ErrNotFound).
 		Once()
 	s.stock.EXPECT().
-		FindByTicker(mock.Anything, "missing", wantSections).
+		FindByTicker(mock.Anything, "missing", wantOptions).
 		Return(domaincompany.Stock{}, nil).
 		Maybe()
 
@@ -84,7 +84,7 @@ func (s *repositorySuite) TestFindByTickerStockMissing() {
 		Return(domaincompany.SecurityDescription{}, nil).
 		Maybe()
 	s.stock.EXPECT().
-		FindByTicker(mock.Anything, "missing", wantSections).
+		FindByTicker(mock.Anything, "missing", wantOptions).
 		Return(domaincompany.Stock{}, domaincompany.ErrNotFound).
 		Once()
 
@@ -99,7 +99,7 @@ func (s *repositorySuite) TestFindByTickerSecurityDescriptionError() {
 		Return(domaincompany.SecurityDescription{}, boom).
 		Once()
 	s.stock.EXPECT().
-		FindByTicker(mock.Anything, "any", wantSections).
+		FindByTicker(mock.Anything, "any", wantOptions).
 		Return(domaincompany.Stock{}, nil).
 		Maybe()
 
@@ -114,7 +114,7 @@ func (s *repositorySuite) TestFindByTickerStockError() {
 		Return(domaincompany.SecurityDescription{}, nil).
 		Maybe()
 	s.stock.EXPECT().
-		FindByTicker(mock.Anything, "any", wantSections).
+		FindByTicker(mock.Anything, "any", wantOptions).
 		Return(domaincompany.Stock{}, boom).
 		Once()
 

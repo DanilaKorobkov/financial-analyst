@@ -2,21 +2,15 @@ package company
 
 import "context"
 
-const (
-	// StockSectionUnspecified — нулевое значение (не используется как запрос).
-	StockSectionUnspecified StockSection = iota
+// StockOptions — набор секций, которые нужно вернуть в Stock. Каждый
+// флаг отвечает за свою секцию: запрошены только те, что включены.
+type StockOptions struct {
+	// WithInfo — запросить карточку эмитента (Info).
+	WithInfo bool
 
-	// StockSectionInfo — карточка эмитента (классификация, описание, ссылки).
-	StockSectionInfo
-
-	// StockSectionSummary — сводные метрики эмитента «одной строкой».
-	StockSectionSummary
-)
-
-// StockSection — блок данных карточки эмитента, который источник может
-// заполнить в одном вызове. Перечисление определяет, какие именно секции
-// возвращает StockSource.
-type StockSection int
+	// WithSummary — запросить сводные метрики эмитента (Summary).
+	WithSummary bool
+}
 
 // Stock — секции карточки эмитента, возвращаемые StockSource в одном
 // вызове. Поля, не запрошенные у источника, остаются zero-value.
@@ -36,5 +30,5 @@ type Stock struct {
 type StockSource interface {
 	// FindByTicker возвращает запрошенные секции карточки эмитента.
 	// Возвращает ErrNotFound, если источник не знает тикер.
-	FindByTicker(ctx context.Context, ticker string, sections []StockSection) (Stock, error)
+	FindByTicker(ctx context.Context, ticker string, opts StockOptions) (Stock, error)
 }

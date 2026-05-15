@@ -2,8 +2,8 @@
 // эндпоинта FinanceMarker /api/fm/v2/stocks/{exchange}:{code}.
 //
 // Источник принимает набор запрашиваемых блоков, собирает канонический
-// query-параметр include (фиксированный порядок секций, без дубликатов) и делает
-// один HTTP-вызов на все запрошенные секции. Это:
+// query-параметр include (фиксированный порядок секций, без дубликатов)
+// и делает один HTTP-вызов на все запрошенные секции. Это:
 //
 //   - снижает HTTP overhead и шанс расхождения cache-ключа кеша
 //     FinanceMarker (один use case → одна строка include, см. справочник
@@ -39,17 +39,6 @@ const (
 	ttlSummary = 24 * time.Hour
 )
 
-// ttlBySection — срок жизни HTTP-ответа в кеше клиента по секциям.
-// При комбинированном запросе берётся минимум по запрошенным секциям —
-// одна строка include соответствует одному кеш-ключу и одному TTL.
-// StockSectionUnspecified присутствует с нулевым TTL и отсеивается в
-// pickTTL.
-var ttlBySection = map[company.StockSection]time.Duration{
-	company.StockSectionUnspecified: 0,
-	company.StockSectionInfo:        ttlInfo,
-	company.StockSectionSummary:     ttlSummary,
-}
-
 // Source — реализация company.StockSource поверх FinanceMarker.
 type Source struct {
 	client *client.Client
@@ -62,15 +51,15 @@ func New(c *client.Client) *Source {
 
 // FindByTicker делает один запрос за указанными секциями и заполняет
 // только их в company.Stock. Порядок секций в include всегда канонический
-// (см. canonicalIncludeOrder). 404 переводится в company.ErrNotFound;
-// прочие HTTP-ошибки приходят из общего клиента уже классифицированными.
-func (s *Source) FindByTicker(ctx context.Context, ticker string, sections []company.StockSection) (company.Stock, error) {
-	include, err := buildInclude(sections)
+// (info, summary). 404 переводится в company.ErrNotFound; прочие
+// HTTP-ошибки приходят из общего клиента уже классифицированными.
+func (s *Source) FindByTicker(ctx context.Context, ticker string, opts company.StockOptions) (company.Stock, error) {
+	include, err := buildInclude(opts)
 	if err != nil {
 		return company.Stock{}, fmt.Errorf("financemarker stock: %w", err)
 	}
 
-	ctx = httpcache.WithTTL(ctx, pickTTL(sections))
+	ctx = httpcache.WithTTL(ctx, pickTTL(opts))
 	symbol := codeExchangeMOEX + ":" + ticker
 
 	var dto stockDTO
@@ -93,49 +82,32 @@ func (s *Source) FindByTicker(ctx context.Context, ticker string, sections []com
 		}
 	}
 
-	return assemble(&dto, sections), nil
+	return assemble(&dto, opts), nil
 }
 
 // pickTTL берёт минимальный TTL по запрошенным секциям. Гарантирует,
 // что комбинированный ответ не пере-кешируется дольше самой «свежей»
-// секции. Для пустого/неизвестного набора TTL получится нулевым — это
-// безопасно, потому что в этом случае запрос отклоняется ещё в buildInclude.
-func pickTTL(sections []company.StockSection) time.Duration {
+// секции — одна строка include = один кеш-ключ = один TTL.
+func pickTTL(opts company.StockOptions) time.Duration {
 	var ttl time.Duration
-	for _, s := range sections {
-		v, ok := ttlBySection[s]
-		if !ok || v == 0 {
-			continue
-		}
-		if ttl == 0 || v < ttl {
-			ttl = v
-		}
+	if opts.WithInfo {
+		ttl = ttlInfo
+	}
+	if opts.WithSummary && (ttl == 0 || ttlSummary < ttl) {
+		ttl = ttlSummary
 	}
 	return ttl
 }
 
-// assemble обходит canonicalIncludeOrder и заполняет запрошенные секции
-// в Stock — порядок сборки совпадает с порядком в include и с порядком
-// полей company.Stock.
-func assemble(dto *stockDTO, sections []company.StockSection) company.Stock {
-	requested := make(map[company.StockSection]struct{}, len(sections))
-	for _, s := range sections {
-		requested[s] = struct{}{}
-	}
-
+// assemble заполняет запрошенные секции в Stock — порядок сборки
+// совпадает с порядком полей company.Stock.
+func assemble(dto *stockDTO, opts company.StockOptions) company.Stock {
 	var out company.Stock
-	for _, s := range canonicalIncludeOrder {
-		if _, ok := requested[s]; !ok {
-			continue
-		}
-		switch s {
-		case company.StockSectionInfo:
-			out.Info = translateStockInfo(&dto.Info)
-		case company.StockSectionSummary:
-			out.Summary = translateStockSummary(&dto.Summary)
-		case company.StockSectionUnspecified:
-			// не используется как запрос — отсеяно в buildInclude.
-		}
+	if opts.WithInfo {
+		out.Info = translateStockInfo(&dto.Info)
+	}
+	if opts.WithSummary {
+		out.Summary = translateStockSummary(&dto.Summary)
 	}
 	return out
 }

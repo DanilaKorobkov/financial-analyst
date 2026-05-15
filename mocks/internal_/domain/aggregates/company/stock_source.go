@@ -39,8 +39,8 @@ func (_m *StockSource) EXPECT() *StockSource_Expecter {
 }
 
 // FindByTicker provides a mock function for the type StockSource
-func (_mock *StockSource) FindByTicker(ctx context.Context, ticker string, sections []company.StockSection) (company.Stock, error) {
-	ret := _mock.Called(ctx, ticker, sections)
+func (_mock *StockSource) FindByTicker(ctx context.Context, ticker string, opts company.StockOptions) (company.Stock, error) {
+	ret := _mock.Called(ctx, ticker, opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByTicker")
@@ -48,16 +48,16 @@ func (_mock *StockSource) FindByTicker(ctx context.Context, ticker string, secti
 
 	var r0 company.Stock
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []company.StockSection) (company.Stock, error)); ok {
-		return returnFunc(ctx, ticker, sections)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, company.StockOptions) (company.Stock, error)); ok {
+		return returnFunc(ctx, ticker, opts)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []company.StockSection) company.Stock); ok {
-		r0 = returnFunc(ctx, ticker, sections)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, company.StockOptions) company.Stock); ok {
+		r0 = returnFunc(ctx, ticker, opts)
 	} else {
 		r0 = ret.Get(0).(company.Stock)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, []company.StockSection) error); ok {
-		r1 = returnFunc(ctx, ticker, sections)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, company.StockOptions) error); ok {
+		r1 = returnFunc(ctx, ticker, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -72,12 +72,12 @@ type StockSource_FindByTicker_Call struct {
 // FindByTicker is a helper method to define mock.On call
 //   - ctx context.Context
 //   - ticker string
-//   - sections []company.StockSection
-func (_e *StockSource_Expecter) FindByTicker(ctx interface{}, ticker interface{}, sections interface{}) *StockSource_FindByTicker_Call {
-	return &StockSource_FindByTicker_Call{Call: _e.mock.On("FindByTicker", ctx, ticker, sections)}
+//   - opts company.StockOptions
+func (_e *StockSource_Expecter) FindByTicker(ctx interface{}, ticker interface{}, opts interface{}) *StockSource_FindByTicker_Call {
+	return &StockSource_FindByTicker_Call{Call: _e.mock.On("FindByTicker", ctx, ticker, opts)}
 }
 
-func (_c *StockSource_FindByTicker_Call) Run(run func(ctx context.Context, ticker string, sections []company.StockSection)) *StockSource_FindByTicker_Call {
+func (_c *StockSource_FindByTicker_Call) Run(run func(ctx context.Context, ticker string, opts company.StockOptions)) *StockSource_FindByTicker_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -87,9 +87,9 @@ func (_c *StockSource_FindByTicker_Call) Run(run func(ctx context.Context, ticke
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 []company.StockSection
+		var arg2 company.StockOptions
 		if args[2] != nil {
-			arg2 = args[2].([]company.StockSection)
+			arg2 = args[2].(company.StockOptions)
 		}
 		run(
 			arg0,
@@ -105,7 +105,7 @@ func (_c *StockSource_FindByTicker_Call) Return(stock company.Stock, err error) 
 	return _c
 }
 
-func (_c *StockSource_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string, sections []company.StockSection) (company.Stock, error)) *StockSource_FindByTicker_Call {
+func (_c *StockSource_FindByTicker_Call) RunAndReturn(run func(ctx context.Context, ticker string, opts company.StockOptions) (company.Stock, error)) *StockSource_FindByTicker_Call {
 	_c.Call.Return(run)
 	return _c
 }

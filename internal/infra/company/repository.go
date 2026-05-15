@@ -14,10 +14,10 @@ import (
 	domaincompany "github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 )
 
-// stockSections — секции карточки эмитента, которые входят в агрегат Company.
-var stockSections = []domaincompany.StockSection{
-	domaincompany.StockSectionInfo,
-	domaincompany.StockSectionSummary,
+// stockOptions — секции карточки эмитента, которые входят в агрегат Company.
+var stockOptions = domaincompany.StockOptions{
+	WithInfo:    true,
+	WithSummary: true,
 }
 
 // Repository — infra-реализация domaincompany.Repository.
@@ -60,7 +60,7 @@ func (r *Repository) FindByTicker(ctx context.Context, ticker string) (domaincom
 		return nil
 	})
 	p.Go(func(ctx context.Context) error {
-		s, err := r.stock.FindByTicker(ctx, ticker, stockSections)
+		s, err := r.stock.FindByTicker(ctx, ticker, stockOptions)
 		if err != nil {
 			return fmt.Errorf("stock: %w", err)
 		}
