@@ -1,0 +1,19 @@
+// Package company — domain-агрегат «компания» (эмитент бумаги): сам
+// агрегат, его секции, value-объекты (enum-ы), порты источников секций,
+// порт репозитория и доменные ошибки. Здесь живёт всё, что относится
+// к агрегату; сервисы оперируют агрегатом из соседнего пакета services.
+package company
+
+// Company — агрегат «компания». Состоит из секций; каждая секция
+// обязательна — если хотя бы один источник не отдал свою секцию,
+// репозиторий вернёт ErrNotFound вместо неполного агрегата.
+type Company struct {
+	// SecurityDescription — описание ценной бумаги.
+	SecurityDescription SecurityDescription
+
+	// StockInfo — карточка эмитента.
+	StockInfo StockInfo
+
+	// StockSummary — сводные метрики эмитента.
+	StockSummary StockSummary
+}

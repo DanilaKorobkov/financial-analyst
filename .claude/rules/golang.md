@@ -54,6 +54,67 @@ type CompanyInfo struct {
 
 `errgroup` и голый `sync.WaitGroup` запрещены: `conc` даёт recover из паник и единый стиль на проекте.
 
+## Утилиты для коллекций
+
+Для типовых операций над срезами, map'ами, каналами и числами
+используется [`github.com/samber/lo`](https://github.com/samber/lo) —
+не самописные циклы там, где есть подходящий helper. Библиотека
+сделана в духе lodash и закрывает большой кусок функционального
+быта: трансформации (`Map`, `FlatMap`, `Reduce`), фильтрация
+(`Filter`, `Reject`), группировки (`GroupBy`, `KeyBy`, `PartitionBy`),
+работа с уникальностью (`Uniq`, `UniqBy`, `Difference`, `Intersect`,
+`Union`), доступ к коллекциям (`Find`, `FindOrElse`, `Min`, `Max`,
+`Sample`), операции с map'ами (`Keys`, `Values`, `Entries`,
+`Invert`, `Assign`, `OmitBy`, `PickBy`), помощники вокруг типов и
+указателей (`Ternary`, `If`, `ToPtr`, `FromPtr`, `Coalesce`,
+`Empty`, `IsEmpty`), плюс параллельные варианты (`lo.Parallel.*`)
+и channel-utilities. Полный справочник — README пакета.
+
+Канонические замены, которые встречаются в проекте чаще всего:
+
+| Что нужно                                           | Использовать                                   |
+| --------------------------------------------------- | ---------------------------------------------- |
+| Клонировать срез                                    | `lo.Clone(s)`                                  |
+| Преобразовать срез (`for + append`)                 | `lo.Map(s, fn)` / `lo.FlatMap(s, fn)`          |
+| Отфильтровать срез                                  | `lo.Filter(s, fn)` / `lo.Reject(s, fn)`        |
+| Свернуть срез в одно значение                       | `lo.Reduce(s, fn, init)`                       |
+| Уникализировать                                     | `lo.Uniq(s)` / `lo.UniqBy(s, key)`             |
+| Срез → map (по ключу из элемента)                   | `lo.SliceToMap(s, fn)` / `lo.KeyBy(s, fn)`     |
+| Сгруппировать срез по ключу                         | `lo.GroupBy(s, fn)` / `lo.PartitionBy(s, fn)`  |
+| Найти элемент / индекс                              | `lo.Find(s, fn)` / `lo.FindIndexOf(s, fn)`     |
+| Развернуть / разбить на куски / срезать             | `lo.Reverse(s)` / `lo.Chunk(s, n)` / `lo.Drop` |
+| Достать ключи/значения map / отфильтровать map      | `lo.Keys(m)` / `lo.Values(m)` / `lo.PickBy`    |
+| Операции над множествами (объединение, пересечение) | `lo.Union(a,b)` / `lo.Intersect(a,b)`          |
+| Тернарник без вынесения if                          | `lo.Ternary(cond, a, b)`                       |
+| Безопасная работа с указателями                     | `lo.ToPtr(v)` / `lo.FromPtr(p)`                |
+
+Когда сценарий не в этой таблице — открой README библиотеки и
+поищи готовый helper, прежде чем писать цикл. Особенно стоит
+заглянуть туда, если в коде появляется `for` поверх среза или
+map'а ради простой трансформации, фильтра или поиска: с большой
+вероятностью соответствующая функция уже есть.
+
+```go
+// ✅
+copied := lo.Clone(fieldIDs)
+upper := lo.Map(names, func(s string, _ int) string { return strings.ToUpper(s) })
+
+// ❌
+copied := make([]string, len(fieldIDs))
+copy(copied, fieldIDs)
+
+upper := make([]string, 0, len(names))
+for _, n := range names { upper = append(upper, strings.ToUpper(n)) }
+```
+
+Исключения, когда `lo` не нужен:
+
+- Один элемент собрать — обычный `if` / `range` читается лучше.
+- Производительность критична на горячем пути — `lo`-helper часто
+  создаёт промежуточный срез; измерь и обоснуй прямой цикл.
+- Stdlib даёт ту же функцию (`slices.Sort`, `slices.Contains`,
+  `maps.Keys`) — берём stdlib, не `lo`.
+
 ## JSON
 
 Для разбора и сериализации JSON используется `github.com/json-iterator/go` в режиме `jsoniter.ConfigCompatibleWithStandardLibrary` — drop-in для `encoding/json` (sorted map keys, html-escape, `ValidateJsonRawMessage`), но 2–3× быстрее. Тип `json.RawMessage` остаётся из `encoding/json` — это просто `[]byte`.

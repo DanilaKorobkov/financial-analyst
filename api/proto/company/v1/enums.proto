@@ -1,0 +1,63 @@
+// Доменные перечисления для агрегата «компания». Все enum-ы
+// импортируются сущностями (SecurityDescription, StockInfo, StockSummary).
+// *_UNSPECIFIED означает «значения нет» (источник не отдал или код
+// не распознан).
+
+syntax = "proto3";
+
+package company.v1;
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// SecurityType — тип бумаги.
+enum SecurityType {
+  SECURITY_TYPE_UNSPECIFIED = 0;
+  COMMON_SHARE = 1;
+  PREFERRED_SHARE = 2;
+  DEPOSITARY_RECEIPT = 3;
+}
+
+// ListingLevel — котировальный уровень бумаги.
+enum ListingLevel {
+  LISTING_LEVEL_UNSPECIFIED = 0;
+  FIRST = 1;
+  SECOND = 2;
+  THIRD = 3;
+}
+
+// Exchange — биржа листинга бумаги.
+enum Exchange {
+  EXCHANGE_UNSPECIFIED = 0;
+  MOEX = 1;
+}
+
+// Currency — валюта.
+enum Currency {
+  CURRENCY_UNSPECIFIED = 0;
+  RUB = 1;
+  USD = 2;
+  EUR = 3;
+}
+
+// ReportFrequency — частота публикации финансовой отчётности эмитентом.
+enum ReportFrequency {
+  REPORT_FREQUENCY_UNSPECIFIED = 0;
+  YEARLY = 1;
+  QUARTERLY = 2;
+}
+
+// IdeaConsensus — агрегированный консенсус инвест-идей по бумаге.
+enum IdeaConsensus {
+  IDEA_CONSENSUS_UNSPECIFIED = 0;
+  BUY = 1;
+  HOLD = 2;
+  SELL = 3;
+}
+
+// InsiderConsensus — агрегированное направление сделок инсайдеров по бумаге.
+enum InsiderConsensus {
+  INSIDER_CONSENSUS_UNSPECIFIED = 0;
+  BUYS = 1;
+  SELLS = 2;
+  MIXED = 3;
+}

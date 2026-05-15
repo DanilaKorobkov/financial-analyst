@@ -1,3 +1,7 @@
+// Package app — экспортируемая точка сборки приложения financial-analyst.
+//
+// Единственный пакет, который импортирует domain / infra / presentation
+// одновременно. Используется из cmd/server и tests/integration.
 package app
 
 import (
@@ -5,47 +9,51 @@ import (
 
 	"github.com/DanilaKorobkov/financial-analyst/gen/company/v1/companyv1connect"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
-	fccompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/filecache/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker"
-	fmcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/company"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex"
-	moexcompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/company"
+	infracompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/company"
+	fmclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stockinfo"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stocksummary"
+	moexclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
+	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/securitydescription"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
 )
 
 // New собирает все слои приложения и возвращает готовый http.Handler.
 //
-// Чистая композиция: общий клиент → gateway → (опциональный кеш) →
-// CompanyService → Connect handler → http.ServeMux.
-//
-// Компания собирается из двух секций параллельно:
-//   - идентификация — MOEX (без кеша, свободный источник);
-//   - классификация — FinanceMarker (через файловый кеш с TTL, у источника
-//     квота на запросы).
-func New(cfg *Config) http.Handler {
-	moexClient := moex.NewClient(moex.ConfigClient{
+// Поток сборки:
+//  1. Поднимаем HTTP-клиенты внешних источников (каждый со своим
+//     таймаутом и при необходимости — со своим кешем).
+//  2. Поднимаем источники секций (SecurityDescriptionSource, StockInfoSource).
+//  3. Оборачиваем источники в company.Repository — он собирает агрегат
+//     параллельно из своих секций.
+//  4. Создаём CompanyService поверх репозитория.
+//  5. Поднимаем Connect-сервер.
+func New(cfg *Config) (http.Handler, error) {
+	moexHTTP := moexclient.New(moexclient.Config{
 		BaseURL: cfg.Moex.BaseURL,
 		Timeout: cfg.Moex.Timeout,
 	})
-	identities := moexcompany.NewIdentityGateway(moexClient)
 
-	fmClient := financemarker.NewClient(financemarker.ConfigClient{
-		BaseURL: cfg.FinanceMarker.BaseURL,
-		Token:   cfg.FinanceMarker.Token,
-		Timeout: cfg.FinanceMarker.Timeout,
-	})
-	classifications := fccompany.NewClassificationProxy(fccompany.ConfigClassificationProxy{
-		Delegate: fmcompany.NewClassificationGateway(fmClient),
-		Dir:      cfg.ClassCache.Dir,
-		TTL:      cfg.ClassCache.TTL,
+	fmHTTP := fmclient.New(fmclient.Config{
+		BaseURL:  cfg.FinanceMarker.BaseURL,
+		Token:    cfg.FinanceMarker.Token,
+		Timeout:  cfg.FinanceMarker.Timeout,
+		CacheDir: cfg.FinanceMarker.CacheDir,
 	})
 
-	companyService := services.NewCompanyService(identities, classifications)
-	srv := pconnect.NewServer(companyService)
+	companies := infracompany.NewRepository(infracompany.ConfigRepository{
+		SecurityDescription: securitydescription.New(moexHTTP),
+		StockInfo:           stockinfo.New(fmHTTP),
+		StockSummary:        stocksummary.New(fmHTTP),
+	})
+	companyService := services.NewCompanyService(services.ConfigCompanyService{
+		Companies: companies,
+	})
+	srv := pconnect.NewServer(pconnect.ConfigServer{Companies: companyService})
 
 	mux := http.NewServeMux()
 	path, handler := companyv1connect.NewCompanyServiceHandler(srv)
 	mux.Handle(path, handler)
 
-	return mux
+	return mux, nil
 }

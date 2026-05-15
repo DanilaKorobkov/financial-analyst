@@ -1,0 +1,72 @@
+// Карточка эмитента — одна из секций агрегата Company.
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/enums.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// StockInfo — карточка эмитента: классификация GICS, страна, описание,
+// корпоративные ссылки, валюта и частота отчётности.
+message StockInfo {
+  // Название эмитента у справочника. Пример: "Сбербанк".
+  string issuer_name = 1;
+
+  // Сектор эмитента (GICS). Пример: "Финансы".
+  string sector = 2;
+
+  // Группа отраслей (GICS). Пример: "Банковская деятельность".
+  string industry_group = 3;
+
+  // Отрасль эмитента (GICS). Пример: "Банковская деятельность".
+  string industry = 4;
+
+  // Под-отрасль эмитента (GICS). Пример: "Диверсифицированные банки".
+  string sub_industry = 5;
+
+  // Числовой код сектора GICS. Пример: "40".
+  int64 sector_id = 6;
+
+  // Числовой код группы отраслей GICS. Пример: "4010".
+  int64 industry_group_id = 7;
+
+  // Числовой код отрасли GICS. Пример: "401010".
+  int64 industry_id = 8;
+
+  // Числовой код под-отрасли GICS. Пример: "40101010".
+  int64 sub_industry_id = 9;
+
+  // Страна регистрации эмитента. Пример: "Россия".
+  string country = 10;
+
+  // Текстовое описание эмитента в свободной форме.
+  // Пример: "ПАО «Сбербанк» — российский финансовый конгломерат …".
+  string description = 11;
+
+  // Корпоративный сайт эмитента. Пример: "https://www.sberbank.com/ru".
+  string site = 12;
+
+  // Ссылка на страницу раскрытия информации эмитентом.
+  // Пример: "https://www.sberbank.com/ru/investor-relations/groupresults".
+  string disclosure_link = 13;
+
+  // Тикер основной бумаги, к которой привязана отчётность. Пример: "SBER".
+  string primary_report_ticker = 14;
+
+  // Биржа основной отчётной бумаги. Пример: "MOEX".
+  Exchange primary_report_exchange = 15;
+
+  // Биржа листинга бумаги. Пример: "MOEX".
+  Exchange exchange = 16;
+
+  // Валюта торгов бумагой. Пример: "RUB".
+  Currency currency = 17;
+
+  // Частота публикации финансовой отчётности эмитентом. Пример: "QUARTERLY".
+  ReportFrequency report_frequency = 18;
+
+  // Дополнительный листинг на СПБ-бирже. Пример: false.
+  bool spb = 19;
+}

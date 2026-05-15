@@ -25,52 +25,61 @@ allow:
 # которому разрешено собирать всё вместе.
 
 components:
-  # Domain: каждый агрегат — отдельный компонент. Внутри агрегата лежат
-  # entity, value objects, порты (gateway-интерфейсы), доменные sentinel-
-  # ошибки и enum-ы, специфичные для агрегата.
+  # Domain: агрегат «компания». Внутри лежит сам агрегат, его секции,
+  # value objects (enum-ы), порты источников секций, порт репозитория и
+  # доменные sentinel-ошибки.
   domain-company:
-    in: internal/domain/company
+    in: internal/domain/aggregates/company
   # Доменные сервисы. Знают агрегаты — никаких HTTP/gRPC/провайдеров.
   domain-services:
     in: internal/domain/services
 
+  # Infra-реализация company.Repository — оркестрирует источники секций
+  # и собирает агрегат Company.
+  infra-company:
+    in: internal/infra/company
+
   # Адаптеры внешних источников данных. Каждый провайдер разбит на:
   #   - общий клиент (в корне папки провайдера) — resty, error-mapping;
-  #   - подпакеты на каждый порт, переиспользующие этот клиент.
+  #   - подпакеты на каждый порт источника секции, переиспользующие клиент.
   # Подпакет одного провайдера не должен импортировать другой подпакет
   # или другой провайдер.
-  infra-moex:
-    in: internal/infra/moex
-  infra-moex-company:
-    in: internal/infra/moex/company
-  infra-financemarker:
-    in: internal/infra/financemarker
-  infra-financemarker-company:
-    in: internal/infra/financemarker/company
-  # Файловый кеш-Proxy над gateway-портом компании. Знает только
-  # domain-contract порта и сам себя; не зависит ни от одного
-  # конкретного провайдера.
-  infra-filecache-company:
-    in: internal/infra/filecache/company
+  infra-moex-client:
+    in: internal/infra/moex/client
+  # Реализации SecurityDescriptionSource (и других порт-источников MOEX).
+  # Каждый источник — отдельный подпакет провайдера, в нём — сам Source,
+  # парсер, тесты и testdata.
+  infra-moex-sources:
+    in: internal/infra/moex/securitydescription
+  # Общий HTTP-клиент FinanceMarker.
+  infra-financemarker-client:
+    in: internal/infra/financemarker/client
+  # Реализации StockInfoSource (и других порт-источников FinanceMarker).
+  infra-financemarker-sources:
+    in:
+      - internal/infra/financemarker/stockinfo
+      - internal/infra/financemarker/stocksummary
+  # Generic файловый кеш над любым JSON-сериализуемым T.
+  infra-cache-filecache:
+    in: internal/infra/cache/filecache
+  # Кеширующий http.RoundTripper.
+  infra-cache-httpcache:
+    in: internal/infra/cache/httpcache
 
   # Транспортный слой. Знает domain и сгенерированный proto-код (generated).
   presentation:
     in: internal/presentation/**
 
-  # Сгенерированный buf'ом proto-код. За форму его импортов отвечает кодген,
-  # поэтому внутрь не лезем, а снаружи разрешаем импортировать всем, кому надо
-  # (см. commonComponents ниже).
+  # Сгенерированный buf'ом proto-код.
   generated:
     in: gen/**
 
-  # Моки от mockery. Используются только в тестах. Доступны всем через
-  # commonComponents.
+  # Моки от mockery.
   mocks:
     in: mocks/**
 
   # Composition root приложения — собирает domain + infra + presentation
-  # в работающий процесс. Единственный компонент, которому разрешено
-  # знать обо всех остальных.
+  # в работающий процесс.
   app:
     in: app
   cmd:
@@ -86,30 +95,46 @@ deps:
       - domain-services
     anyVendorDeps: true
 
-  infra-moex:
-    anyVendorDeps: true
-
-  infra-moex-company:
+  infra-company:
     mayDependOn:
       - domain-company
-      - infra-moex
-      - infra-moex-company
+      - infra-company
     anyVendorDeps: true
 
-  infra-financemarker:
+  infra-moex-client:
     anyVendorDeps: true
 
-  infra-financemarker-company:
+  infra-moex-sources:
     mayDependOn:
       - domain-company
-      - infra-financemarker
-      - infra-financemarker-company
+      - infra-moex-sources
+      - infra-moex-client
     anyVendorDeps: true
 
-  infra-filecache-company:
+  infra-financemarker-client:
+    mayDependOn:
+      - infra-cache-filecache
+      - infra-cache-httpcache
+      - infra-financemarker-client
+    anyVendorDeps: true
+
+  infra-financemarker-sources:
     mayDependOn:
       - domain-company
-      - infra-filecache-company
+      - infra-cache-httpcache
+      - infra-financemarker-sources
+      - infra-financemarker-client
+    anyVendorDeps: true
+
+  infra-cache-filecache:
+    mayDependOn:
+      - infra-cache-filecache
+    anyVendorDeps: true
+
+  infra-cache-httpcache:
+    mayDependOn:
+      - infra-cache-filecache
+      - infra-cache-httpcache
     anyVendorDeps: true
 
   presentation:
@@ -130,13 +155,14 @@ deps:
 
   app:
     mayDependOn:
+      - app
       - domain-company
       - domain-services
-      - infra-moex
-      - infra-moex-company
-      - infra-financemarker
-      - infra-financemarker-company
-      - infra-filecache-company
+      - infra-company
+      - infra-moex-sources
+      - infra-moex-client
+      - infra-financemarker-sources
+      - infra-financemarker-client
       - presentation
     anyVendorDeps: true
 

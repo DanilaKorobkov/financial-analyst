@@ -1,0 +1,24 @@
+{
+  "info": {
+    "code": "SBER",
+    "name": "Сбербанк",
+    "exchange": "MOEX",
+    "country": "Россия",
+    "currency": "RUB",
+    "sector": "Финансы",
+    "sector_id": 40,
+    "industry": "Банковская деятельность",
+    "industry_id": 401010,
+    "industry_group": "Банковская деятельность",
+    "industry_group_id": 4010,
+    "sub_industry": "Диверсифицированные банки",
+    "sub_industry_id": 40101010,
+    "primary_report_code": "SBER",
+    "primary_report_exchange": "MOEX",
+    "report_frequency": "Q",
+    "spb": false,
+    "description": "ПАО «Сбербанк» — крупнейший универсальный банк России.",
+    "site": "https://www.sberbank.com",
+    "disc_link": "https://www.sberbank.com/ru/investor-relations"
+  }
+}

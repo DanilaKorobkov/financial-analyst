@@ -14,6 +14,8 @@
 тикер
 эмитент
 мажоритарий
+гэп               # дивидендный гэп — устоявшийся биржевой термин
+гэпа
 
 # --- Стандарты бухгалтерской отчётности (RU аббревиатуры) ---
 МСФО              # IFRS, International Financial Reporting Standards
@@ -240,3 +242,33 @@ MOEXIT
 MOEXOG
 ребалансировки
 субиндексе
+
+# --- Тикеры MOEX из VISION.md ---
+SNGS
+SNGSP
+ROSN
+NVTK
+TATN
+PLZL
+CHMF
+MGNT
+MTSS
+RTKM
+POSI
+IRAO
+HYDR
+PIKK
+SMLT
+AKRN
+
+# --- Авторы и имена внешних библиотек (упоминаются в комментариях/документации) ---
+santhosh
+tekuri
+govaluate
+samber            # автор github.com/samber/lo (упоминание в правилах)
+wacc              # Weighted Average Cost of Capital
+financials        # финансовый раздел отчёта (английский)
+
+# --- Go import-алиасы новых пакетов ---
+moexclient        # alias для internal/infra/moex/client (в app/)
+fmclient          # alias для internal/infra/financemarker/client (в app/)

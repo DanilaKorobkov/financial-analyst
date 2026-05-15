@@ -15,10 +15,15 @@ func main() {
 		log.Fatalf("конфигурация: %v", err)
 	}
 
+	handler, err := app.New(&cfg)
+	if err != nil {
+		log.Fatalf("сборка приложения: %v", err)
+	}
+
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           app.New(&cfg),
+		Handler:           handler,
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 	}
 

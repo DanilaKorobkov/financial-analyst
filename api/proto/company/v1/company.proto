@@ -1,12 +1,18 @@
 // Схема Connect-сервиса CompanyService.
 //
-// Возвращает карточку эмитента по тикеру: идентификация бумаги
-// (имя, ISIN, тип, уровень листинга) и классификация эмитента
-// (биржа, валюта, сектор, отрасль, страна, тикер основной бумаги).
+// Возвращает по тикеру типизированный агрегат Company. Агрегат состоит
+// из секций (SecurityDescription, StockInfo, StockSummary); отсутствие
+// секции (поле в Company равно proto-3 default = nil) означает, что
+// соответствующий источник не отдал данных. Доменные перечисления
+// и сами секции вынесены в отдельные .proto-файлы того же пакета.
 
 syntax = "proto3";
 
 package company.v1;
+
+import "company/v1/security_description.proto";
+import "company/v1/stock_info.proto";
+import "company/v1/stock_summary.proto";
 
 option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
 
@@ -20,54 +26,15 @@ message GetCompanyRequest {
 }
 
 message GetCompanyResponse {
+  // Карточка эмитента: агрегат «компания».
   Company company = 1;
 }
 
-// SecurityType — тип бумаги. На первом шаге проекта enum покрывает
-// только акции; остальные значения добавим по мере появления потребителей.
-enum SecurityType {
-  SECURITY_TYPE_UNSPECIFIED = 0;
-  SECURITY_TYPE_COMMON_SHARE = 1;
-  SECURITY_TYPE_PREFERRED_SHARE = 2;
-  SECURITY_TYPE_DEPOSITARY_RECEIPT = 3;
-}
-
-// ListingLevel — котировальный уровень. UNSPECIFIED — уровень не указан.
-enum ListingLevel {
-  LISTING_LEVEL_UNSPECIFIED = 0;
-  LISTING_LEVEL_FIRST = 1;
-  LISTING_LEVEL_SECOND = 2;
-  LISTING_LEVEL_THIRD = 3;
-}
-
-// Exchange — биржа листинга бумаги.
-enum Exchange {
-  EXCHANGE_UNSPECIFIED = 0;
-  EXCHANGE_MOEX = 1;
-}
-
-// Currency — валюта торгов бумагой (ISO 4217).
-enum Currency {
-  CURRENCY_UNSPECIFIED = 0;
-  CURRENCY_RUB = 1;
-  CURRENCY_USD = 2;
-  CURRENCY_EUR = 3;
-}
-
+// Company — агрегат «компания». Каждое поле — отдельная секция;
+// отсутствие секции (nil) означает, что соответствующий источник не
+// отдал данных.
 message Company {
-  string ticker = 1;
-  string isin = 2;
-  string name = 3;
-  SecurityType security_type = 4;
-  ListingLevel listing_level = 5;
-
-  Exchange exchange = 6;
-  Currency currency = 7;
-  string sector = 8;
-  string industry = 9;
-  string country = 10;
-
-  // Тикер основной бумаги эмитента, к которой привязана отчётность.
-  // Для привилегированных акций совпадает с обыкновенными.
-  string primary_report_ticker = 11;
+  SecurityDescription security_description = 1;
+  StockInfo stock_info = 2;
+  StockSummary stock_summary = 3;
 }

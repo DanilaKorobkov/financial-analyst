@@ -7,18 +7,24 @@ import (
 	connectrpc "connectrpc.com/connect"
 
 	companyv1 "github.com/DanilaKorobkov/financial-analyst/gen/company/v1"
-	"github.com/DanilaKorobkov/financial-analyst/internal/domain/company"
+	"github.com/DanilaKorobkov/financial-analyst/internal/domain/aggregates/company"
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 )
+
+// ConfigServer — параметры Connect-сервера.
+type ConfigServer struct {
+	// Companies — domain-сервис, отдающий агрегат Company по тикеру.
+	Companies *services.CompanyService
+}
 
 // Server реализует companyv1connect.CompanyServiceHandler поверх domain-сервиса.
 type Server struct {
 	companies *services.CompanyService
 }
 
-// NewServer собирает Connect-сервер вокруг доменного сервиса.
-func NewServer(companies *services.CompanyService) *Server {
-	return &Server{companies: companies}
+// NewServer собирает Connect-сервер.
+func NewServer(cfg ConfigServer) *Server {
+	return &Server{companies: cfg.Companies}
 }
 
 // GetCompany — unary-метод CompanyService.GetCompany.
@@ -26,13 +32,11 @@ func (s *Server) GetCompany(
 	ctx context.Context,
 	req *connectrpc.Request[companyv1.GetCompanyRequest],
 ) (*connectrpc.Response[companyv1.GetCompanyResponse], error) {
-	found, err := s.companies.GetCompany(ctx, req.Msg.GetTicker())
+	got, err := s.companies.GetCompany(ctx, req.Msg.GetTicker())
 	if err != nil {
 		return nil, mapDomainError(err)
 	}
-	return connectrpc.NewResponse(&companyv1.GetCompanyResponse{
-		Company: toProtoCompany(&found),
-	}), nil
+	return connectrpc.NewResponse(&companyv1.GetCompanyResponse{Company: toProtoCompany(&got)}), nil
 }
 
 // mapDomainError переводит domain-ошибки в Connect-коды.

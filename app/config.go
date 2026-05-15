@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -19,13 +21,15 @@ import (
 //
 // Источник значений — только переменные окружения; дефолтов в коде нет.
 // Отсутствие любой `required` переменной — fatal на старте.
+//
+// Состав карточки компании конфигом не управляется — он вшит в
+// исполняемый файл. В env живут только операционные параметры:
+// адреса/токены провайдеров и параметры HTTP-сервера.
 type Config struct {
-	// Moex — параметры доступа к MOEX ISS REST API.
-	Moex MoexConfig
 	// FinanceMarker — параметры доступа к FinanceMarker REST API.
 	FinanceMarker FinanceMarkerConfig
-	// ClassCache — параметры файлового кеша классификационной секции.
-	ClassCache ClassificationCacheConfig
+	// Moex — параметры доступа к MOEX ISS REST API.
+	Moex MoexConfig
 	// Server — параметры HTTP/Connect-сервера приложения.
 	Server ServerConfig
 }
@@ -34,46 +38,42 @@ type Config struct {
 type MoexConfig struct {
 	// BaseURL — корень MOEX ISS без завершающего слэша.
 	// Пример: `https://iss.moex.com/iss`.
-	BaseURL string `env:"MOEX_BASE_URL,required"`
+	BaseURL string `env:"MOEX_BASE_URL,required,notEmpty"`
 
 	// Timeout — таймаут на один HTTP-запрос к MOEX ISS.
 	// Пример: `10s`.
-	Timeout time.Duration `env:"MOEX_TIMEOUT,required"`
+	Timeout time.Duration `env:"MOEX_TIMEOUT,required,notEmpty"`
 }
 
 // FinanceMarkerConfig — параметры доступа к FinanceMarker REST API.
 type FinanceMarkerConfig struct {
 	// BaseURL — корень FinanceMarker без завершающего слэша.
 	// Пример: `https://financemarker.ru/api/fm/v2`.
-	BaseURL string `env:"FINANCEMARKER_BASE_URL,required"`
+	BaseURL string `env:"FINANCEMARKER_BASE_URL,required,notEmpty"`
 
 	// Token — API-токен FinanceMarker. Передаётся query-параметром
 	// `api_token` во всех запросах.
-	Token string `env:"FINANCEMARKER_TOKEN,required"`
+	Token string `env:"FINANCEMARKER_TOKEN,required,notEmpty"`
+
+	// CacheDir — каталог файлового кеша FinanceMarker. Необязательная
+	// переменная: при пустом значении LoadConfig подставит
+	// `os.UserCacheDir()/financial-analyst/financemarker` — кеш-каталог
+	// пользователя по соглашениям ОС (на macOS — `~/Library/Caches`,
+	// на Linux — `${XDG_CACHE_HOME:-~/.cache}`).
+	CacheDir string `env:"FINANCEMARKER_CACHE_DIR"`
 
 	// Timeout — таймаут на один HTTP-запрос.
-	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required"`
-}
-
-// ClassificationCacheConfig — параметры файлового кеша классификационной
-// секции карточки (поверх FinanceMarker). Свободный MOEX-источник идёт
-// без кеша, поэтому здесь — только параметры одного Proxy.
-type ClassificationCacheConfig struct {
-	// Dir — каталог хранения файлов кеша.
-	Dir string `env:"CLASSIFICATION_CACHE_DIR,required"`
-
-	// TTL — срок жизни записи в кеше. Ноль — без экспирации.
-	TTL time.Duration `env:"CLASSIFICATION_CACHE_TTL,required"`
+	Timeout time.Duration `env:"FINANCEMARKER_TIMEOUT,required,notEmpty"`
 }
 
 // ServerConfig — параметры Connect-сервера financial-analyst.
 type ServerConfig struct {
 	// Port — TCP-порт, который слушает сервер. Bind по всем интерфейсам.
-	Port uint16 `env:"SERVER_PORT,required"`
+	Port uint16 `env:"SERVER_PORT,required,notEmpty"`
 
 	// ReadHeaderTimeout — лимит на чтение заголовков HTTP-запроса.
 	// Защищает от Slowloris-атак; см. http.Server.ReadHeaderTimeout.
-	ReadHeaderTimeout time.Duration `env:"SERVER_READ_HEADER_TIMEOUT,required"`
+	ReadHeaderTimeout time.Duration `env:"SERVER_READ_HEADER_TIMEOUT,required,notEmpty"`
 }
 
 // LoadConfig читает Config из переменных окружения. Перед разбором env
@@ -87,6 +87,14 @@ func LoadConfig() (Config, error) {
 	cfg, err := env.ParseAs[Config]()
 	if err != nil {
 		return Config{}, fmt.Errorf("parse env config: %w", err)
+	}
+
+	if cfg.FinanceMarker.CacheDir == "" {
+		base, err := os.UserCacheDir()
+		if err != nil {
+			return Config{}, fmt.Errorf("resolve user cache dir: %w", err)
+		}
+		cfg.FinanceMarker.CacheDir = filepath.Join(base, "financial-analyst", "financemarker")
 	}
 	return cfg, nil
 }
