@@ -1,18 +1,14 @@
 name: server-checks
 
 # Go-проверки модуля server (lint, compile, test, generated-drift, coverage).
-# Запускаются только при изменениях, которые могут повлиять на сервер: код
-# в server/, его Taskfile, общий toolchain (mise.toml), корневой Taskfile
-# (через который зовутся server-задачи), и сам этот workflow.
+# Запускаются на каждом PR и push в main без path-фильтра: это нужно, чтобы
+# обязательный required-check `server-checks-passed` всегда появлялся в PR
+# (иначе при правках только в .claude/ или web/ check не запускается, и
+# branch protection вечно ждёт его как pending).
 on:
   push:
     branches: [main]
-  pull_request:
-    paths:
-      - server/**
-      - mise.toml
-      - Taskfile.yml
-      - .github/workflows/server-checks.yml
+  pull_request: {}
 
 # Гасим устаревшие прогоны при быстрой череде коммитов в один и тот же PR
 # или ветку: новый коммит отменяет текущий in-flight run, экономит CI-минуты.
@@ -57,3 +53,26 @@ jobs:
 
       # Те же targets, что разработчик запускает локально через `task <target>`.
       - run: task ${{ matrix.target }}
+
+  # Aggregate-«страж»: одна job со стабильным именем, зависящая от всей
+  # матрицы. Именно её добавляем в required status checks ruleset для main.
+  # Расширение матрицы не требует править ruleset — passed автоматически
+  # ждёт всех новых children через `needs: [check]`.
+  #
+  # `if: always()` обязателен: без него job скипается при падении матрицы и
+  # required check остаётся pending, блокируя merge.
+  passed:
+    name: server-checks-passed
+    needs: [check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # failure — хоть один target упал; cancelled — workflow отменён
+      # (например, новым commit через concurrency); skipped — job не
+      # запустился (например, выключен через `if:` в самой матрице). Любой из
+      # трёх = «не всё зелёное» → стражу нужно упасть.
+      - if: >-
+          ${{ contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped') }}
+        run: exit 1

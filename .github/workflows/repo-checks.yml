@@ -43,3 +43,26 @@ jobs:
 
       # Те же targets, что разработчик запускает локально через `task <target>`.
       - run: task ${{ matrix.target }}
+
+  # Aggregate-«страж»: одна job со стабильным именем, зависящая от всей
+  # матрицы. Именно её добавляем в required status checks ruleset для main.
+  # Расширение матрицы не требует править ruleset — passed автоматически
+  # ждёт всех новых children через `needs: [check]`.
+  #
+  # `if: always()` обязателен: без него job скипается при падении матрицы и
+  # required check остаётся pending, блокируя merge.
+  passed:
+    name: repo-checks-passed
+    needs: [check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # failure — хоть один target упал; cancelled — workflow отменён
+      # (например, новым commit через concurrency); skipped — job не
+      # запустился (например, выключен через `if:` в самой матрице). Любой из
+      # трёх = «не всё зелёное» → стражу нужно упасть.
+      - if: >-
+          ${{ contains(needs.*.result, 'failure')
+          || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped') }}
+        run: exit 1
