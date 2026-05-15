@@ -34,10 +34,10 @@ go.work.sum
 # Кеш lychee — локальный результат прошлого прогона чекера ссылок.
 .lycheecache
 
-# Временные каталоги задач lint-generated-* (см. Taskfile.yml). Очищаются
-# trap-ом, но могут остаться при аварийном завершении.
-.lint-generated-proto.*/
-.lint-generated-mocks.*/
+# Временные каталоги переиспользуемой задачи snippets:diff-generated
+# (см. taskfile-snippets.yml). Очищаются trap-ом, но могут остаться при
+# аварийном завершении.
+.diff-generated.*/
 
 # Per-worktree кэши golangci-lint и go-build. Привязаны к корню worktree
 # через mise.toml [env] (GOLANGCI_LINT_CACHE, GOCACHE) — см. там обоснование.

@@ -6,6 +6,15 @@ version: '3'
 # Корневой Taskfile.yml подключает этот файл через `includes: server: ./server`,
 # поэтому из корня задачи зовутся `task server:<name>`.
 
+includes:
+  # Общерепные переиспользуемые таски (см. taskfile-snippets.yml в корне).
+  # `dir: .` означает: snippet-таски запускаются с cwd модуля server/,
+  # а не из директории, где лежит сам snippets-файл.
+  snippets:
+    taskfile: ../taskfile-snippets.yml
+    dir: .
+    internal: true
+
 tasks:
   checks:
     desc: Read-only проверки модуля server (lint + compile + test).
@@ -61,35 +70,27 @@ tasks:
 
   lint-generated-proto:
     desc: Проверить, что gen/ в репозитории совпадает с buf generate.
-    # Генерируем во временный каталог и сравниваем с реальным gen/.
-    # Реальные артефакты не трогаем — проверка идемпотентна: пройдёт →
-    # «git add gen/» после неё ничего не изменит.
     cmds:
-      - |
-          set -euo pipefail
-          tmp="$(mktemp -d -p . .lint-generated-proto.XXXXXX)"
-          trap 'rm -rf "$tmp"' EXIT
+      - task: snippets:diff-generated
+        vars:
           # buf.gen.yaml уже задаёт `out: gen`; --output становится корнем,
-          # поверх которого плагин дописывает свой `out`. Поэтому передаём $tmp,
-          # а не $tmp/gen — иначе получим $tmp/gen/gen.
-          buf generate --output "$tmp"
-          diff -r gen "$tmp/gen"
+          # поверх которого плагин дописывает свой `out`. Поэтому передаём
+          # $OUTPUT_DIR, а не $OUTPUT_DIR/gen — иначе получим .../gen/gen.
+          GEN_CMD: buf generate --output "$OUTPUT_DIR"
+          REAL_DIR: gen
 
   lint-generated-mocks:
     desc: Проверить, что mocks/ в репозитории совпадают с mockery generate.
-    # Аналогично lint-generated-proto, но для mockery. У mockery нет CLI-флага
-    # output-dir — подкладываем временный .mockery.yaml с перезаписанным `dir:`.
+    # У mockery нет CLI-флага output-dir — подкладываем временный
+    # .mockery.yaml с перезаписанным `dir:`, чтобы он писал в $OUTPUT_DIR.
     cmds:
-      - |
-          set -euo pipefail
-          # mockery v3 требует, чтобы выходной каталог лежал внутри текущего
-          # Go-модуля (он определяет import path сгенерированного пакета через
-          # `go list`). Поэтому tmp создаём в корне модуля, а не в /tmp.
-          tmp="$(mktemp -d -p . .lint-generated-mocks.XXXXXX)"
-          trap 'rm -rf "$tmp"' EXIT
-          sed "s|^dir: mocks/|dir: $tmp/mocks/|" .mockery.yaml > "$tmp/.mockery.yaml"
-          mockery --config "$tmp/.mockery.yaml"
-          diff -r mocks "$tmp/mocks"
+      - task: snippets:diff-generated
+        vars:
+          GEN_CMD: |
+            cfg="$OUTPUT_DIR/.mockery.yaml"
+            sed "s|^dir: mocks/|dir: $OUTPUT_DIR/mocks/|" .mockery.yaml > "$cfg"
+            mockery --config "$cfg"
+          REAL_DIR: mocks
 
   test:
     desc: go test + go-test-coverage (пороги покрытия по слоям).

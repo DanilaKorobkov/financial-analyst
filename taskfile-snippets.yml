@@ -1,0 +1,45 @@
+version: '3'
+
+# Общие переиспользуемые цели для Taskfile-ов модулей репозитория.
+# Подключаются в server/Taskfile.yml и web/Taskfile.yml через includes:
+#
+#   includes:
+#     snippets:
+#       taskfile: ../taskfile-snippets.yml
+#       dir: .   # snippet-таски запускаются с cwd включающего модуля
+#
+# Все таски здесь — internal: вызвать `task snippets:<name>` напрямую нельзя,
+# только через `task: snippets:<name>` из другого таска с параметрами vars.
+
+tasks:
+  diff-generated:
+    desc: Сгенерировать артефакты во временный каталог и сравнить с реальным.
+    # Универсальный заслон против дрейфа сгенерированного кода. Работает для
+    # любого генератора (buf, mockery, …), которому можно указать выходной
+    # каталог: GEN_CMD выполняется в shell, $OUTPUT_DIR доступен как env.
+    #
+    # Параметры:
+    #   GEN_CMD  — shell-команда, которая пишет артефакты в $OUTPUT_DIR.
+    #              Многострочные команды допустимы; среда передаётся в bash.
+    #   REAL_DIR — каталог в репозитории (относительно cwd вызывающего модуля),
+    #              с которым сравниваем сгенерированное.
+    #
+    # Реальные артефакты не трогаем — проверка идемпотентна. Падает, если
+    # источник правды (proto-схема, интерфейсы) изменился без перегенерации
+    # либо если сгенерированный код правили руками.
+    internal: true
+    cmds:
+      - |
+          set -euo pipefail
+          # mktemp -d -p . — каталог создаётся в cwd модуля. Это требование
+          # mockery v3 (он определяет import path через `go list` и хочет
+          # видеть OUTPUT_DIR внутри Go-модуля) и не мешает buf.
+          OUTPUT_DIR="$(mktemp -d -p . .diff-generated.XXXXXX)"
+          export OUTPUT_DIR
+          # trap снимает каталог при любом исходе — успех, ошибка diff, SIGINT.
+          # Делать это через Taskfile `defer:` нельзя: tmp-имя живёт в
+          # shell-переменной этого блока, а не в vars Taskfile, и `defer:`
+          # его не видит.
+          trap 'rm -rf "$OUTPUT_DIR"' EXIT
+          {{.GEN_CMD}}
+          diff -r {{.REAL_DIR}} "$OUTPUT_DIR/{{.REAL_DIR}}"

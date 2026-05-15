@@ -3,6 +3,15 @@ version: '3'
 # Taskfile модуля web/. Команды зовутся из корня как `task web:<name>`
 # через includes в корневом Taskfile.yml.
 
+includes:
+  # Общерепные переиспользуемые таски (см. taskfile-snippets.yml в корне).
+  # `dir: .` означает: snippet-таски запускаются с cwd модуля web/,
+  # а не из директории, где лежит сам snippets-файл.
+  snippets:
+    taskfile: ../taskfile-snippets.yml
+    dir: .
+    internal: true
+
 tasks:
   checks:
     desc: Read-only проверки модуля web (контракт ↔ сгенерированный TS-клиент).
@@ -36,16 +45,10 @@ tasks:
 
   lint-generated-proto:
     desc: Проверить, что src/gen/ совпадает с buf generate (защита от дрейфа .proto ↔ TS).
-    # Генерируем во временный каталог и сравниваем с реальным src/gen.
-    # Реальные артефакты не трогаем — проверка идемпотентна. Падает, если
-    # .proto обновили без `task web:generate-proto`, или если кто-то правил
-    # src/gen/ руками — оба сценария значат, что контракт разъехался.
     cmds:
-      - |
-          set -euo pipefail
-          tmp="$(mktemp -d -p . .lint-generated-proto.XXXXXX)"
-          trap 'rm -rf "$tmp"' EXIT
+      - task: snippets:diff-generated
+        vars:
           # buf.gen.yaml уже задаёт `out: src/gen`; переопределяем корень
           # через --output, поверх которого плагин дописывает свой `out`.
-          buf generate ../server --template buf.gen.yaml --output "$tmp"
-          diff -r src/gen "$tmp/src/gen"
+          GEN_CMD: buf generate ../server --template buf.gen.yaml --output "$OUTPUT_DIR"
+          REAL_DIR: src/gen
