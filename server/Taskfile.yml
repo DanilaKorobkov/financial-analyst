@@ -118,6 +118,43 @@ tasks:
     cmds:
       - go build -o "$(mktemp -d)/" ./cmd/server
 
+  run:
+    desc: >-
+      Запустить Connect-сервер. Если порт уже занят — освободить и
+      перезапустить.
+    # cwd этой задачи — ./server (из includes.dir в корневом Taskfile).
+    # .env лежит на корне репо, поэтому пути к нему — относительные (../.env).
+    # preconditions останавливают задачу до cmds; .env обязателен, потому
+    # что caarlos0/env с required без дефолтов упадёт с невнятной ошибкой.
+    #
+    # dotenv грузит переменные из ../.env в env процесса task, и они
+    # наследуются `go run`. godotenv.Load() в app/config.go ищет ./.env
+    # от cwd процесса (=server/) — не найдёт, вернёт ErrNotExist, что код
+    # уже трактует как «файла нет, не ошибка» и использует уже выставленный env.
+    preconditions:
+      - sh: test -f ../.env
+        msg: .env не найден — выполни `cp .env.example .env` в корне репо.
+    dotenv:
+      - ../.env
+    # Порт читаем из самого .env, чтобы Taskfile не дублировал значение
+    # SERVER_PORT и автоматически следовал за конфигом.
+    vars:
+      # `[ -f ../.env ] && grep ... || true` — глушим ошибку grep, если .env
+      # нет: vars вычисляются раньше preconditions, и иначе пользователь
+      # увидит "grep: ../.env: No such file or directory" поверх осмысленного
+      # сообщения.
+      PORT:
+        sh: '[ -f ../.env ] && grep -E "^SERVER_PORT=" ../.env | cut -d= -f2 || true'
+    cmds:
+      # SIGKILL — обработчик процесса не успевает выполниться, ядро снимает
+      # процесс и освобождает порт сразу при доставке сигнала. Это убирает
+      # необходимость опрашивать порт в цикле. `xargs -I{}` корректно
+      # обрабатывает пустой вход (когда порт свободен) — без -I `xargs`
+      # на macOS вызвал бы `kill -9` без аргументов и упал. `/bin/kill` —
+      # потому что встроенный shell go-task (mvdan/sh) не реализует builtin.
+      - lsof -tiTCP:{{.PORT}} -sTCP:LISTEN 2>/dev/null | xargs -I{} /bin/kill -9 {}
+      - go run ./cmd/server
+
   fmt:
     desc: Автофиксы Go-кода через golangci-lint --fix (ошибки игнорируем — их покажет lint).
     cmds:
