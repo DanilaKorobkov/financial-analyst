@@ -21,9 +21,16 @@ includes:
 
 tasks:
   checks:
-    desc: Read-only проверки всего репо (общие линтеры + server:checks).
+    desc: Read-only проверки всего репо (server:checks + repo-checks).
     deps:
       - task: server:checks
+      - task: repo-checks
+
+  repo-checks:
+    desc: Общерепные linters (Markdown/YAML/ссылки/орфография/GitHub Actions).
+    # Параллельный аналог `server:checks` для не-модульного слоя репо.
+    # Тот же набор зеркалит матрица `.github/workflows/repo-checks.yml`.
+    deps:
       - task: lint-yamllint
       - task: lint-markdownlint
       - task: lint-prettier
