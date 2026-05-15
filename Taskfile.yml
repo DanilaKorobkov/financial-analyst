@@ -11,7 +11,13 @@ version: '3'
 # симметричный набор алиасов `task web:<name>`.
 
 includes:
-  server: ./server
+  # `dir` обязателен: без него Go-инструменты (go-arch-lint, buf, mockery)
+  # запускаются из корня репо и ищут свои конфиги (`.go-arch-lint.yml`,
+  # `buf.yaml`) там, где их нет. С `dir: ./server` все задачи модуля
+  # выполняются с cwd=server/.
+  server:
+    taskfile: ./server
+    dir: ./server
 
 tasks:
   checks:

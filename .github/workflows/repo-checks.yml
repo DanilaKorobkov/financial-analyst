@@ -1,0 +1,45 @@
+name: repo-checks
+
+# Общерепные linters: работают по всему репозиторию (Go-код, Markdown, YAML,
+# GitHub Actions, ссылки, орфография). Не привязаны к конкретному модулю,
+# поэтому запускаются без path-фильтра.
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+# Гасим устаревшие прогоны при быстрой череде коммитов в один и тот же PR
+# или ветку.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    # Каждый target — отдельный параллельный job на своём runner.
+    # В UI PR появляются как отдельные статусы
+    # (`repo-checks / check (lint-cspell)` и т.п.).
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - lint-yamllint
+          - lint-markdownlint
+          - lint-prettier
+          - lint-lychee
+          - lint-cspell
+          - lint-actionlint
+    name: check (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # mise ставит инструменты из mise.toml.
+      # Версии — единая точка правды с локальной машиной разработчика.
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      # Те же targets, что разработчик запускает локально через `task <target>`.
+      - run: task ${{ matrix.target }}
