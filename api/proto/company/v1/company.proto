@@ -1,18 +1,17 @@
 // Схема Connect-сервиса CompanyService.
 //
 // Возвращает по тикеру типизированный агрегат Company. Агрегат состоит
-// из секций (SecurityDescription, StockInfo, StockSummary); отсутствие
-// секции (поле в Company равно proto-3 default = nil) означает, что
-// соответствующий источник не отдал данных. Доменные перечисления
-// и сами секции вынесены в отдельные .proto-файлы того же пакета.
+// из секций (SecurityDescription, Stock); отсутствие секции (поле в
+// Company равно proto-3 default = nil) означает, что соответствующий
+// источник не отдал данных. Доменные перечисления и сами секции
+// вынесены в отдельные .proto-файлы того же пакета.
 
 syntax = "proto3";
 
 package company.v1;
 
 import "company/v1/security_description.proto";
-import "company/v1/stock_info.proto";
-import "company/v1/stock_summary.proto";
+import "company/v1/stock.proto";
 
 option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
 
@@ -35,6 +34,5 @@ message GetCompanyResponse {
 // отдал данных.
 message Company {
   SecurityDescription security_description = 1;
-  StockInfo stock_info = 2;
-  StockSummary stock_summary = 3;
+  Stock stock = 2;
 }

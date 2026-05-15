@@ -42,11 +42,13 @@ func (s *companyServiceSuite) TestGetCompanyHappyPath() {
 			ListingLevel: company.ListingLevelFirst,
 			IssueDate:    time.Date(2007, 7, 20, 0, 0, 0, 0, time.UTC),
 		},
-		StockInfo: company.StockInfo{
-			IssuerName: "Сбербанк",
-			Country:    "Россия",
-			Exchange:   company.ExchangeMOEX,
-			Currency:   company.CurrencyRUB,
+		Stock: company.Stock{
+			Info: company.StockInfo{
+				IssuerName: "Сбербанк",
+				Country:    "Россия",
+				Exchange:   company.ExchangeMOEX,
+				Currency:   company.CurrencyRUB,
+			},
 		},
 	}
 	s.companies.EXPECT().

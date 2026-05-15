@@ -68,28 +68,30 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 				IssueDate:    issueDate,
 				IssueSize:    21586948000,
 			},
-			StockInfo: company.StockInfo{
-				IssuerName:          "Сбербанк",
-				Sector:              "Финансы",
-				Industry:            "Банковская деятельность",
-				Country:             "Россия",
-				PrimaryReportTicker: "SBER",
-				Exchange:            company.ExchangeMOEX,
-				Currency:            company.CurrencyRUB,
-			},
-			StockSummary: company.StockSummary{
-				Capital:           97627.3,
-				EPS:               78.8,
-				PEG:               0.56,
-				GrahamTarget:      160.46,
-				DividendFrequency: 1,
-				DividendYield12M:  10.65,
-				GrowthRevenue3Y:   10.59,
-				IdeaBuy:           9,
-				IdeaTarget:        387.392,
-				IdeaConsensus:     company.IdeaConsensusBuy,
-				InsiderConsensus:  company.InsiderConsensusBuys,
-				ChangedAt:         changedAt,
+			Stock: company.Stock{
+				Info: company.StockInfo{
+					IssuerName:          "Сбербанк",
+					Sector:              "Финансы",
+					Industry:            "Банковская деятельность",
+					Country:             "Россия",
+					PrimaryReportTicker: "SBER",
+					Exchange:            company.ExchangeMOEX,
+					Currency:            company.CurrencyRUB,
+				},
+				Summary: company.StockSummary{
+					Capital:           97627.3,
+					EPS:               78.8,
+					PEG:               0.56,
+					GrahamTarget:      160.46,
+					DividendFrequency: 1,
+					DividendYield12M:  10.65,
+					GrowthRevenue3Y:   10.59,
+					IdeaBuy:           9,
+					IdeaTarget:        387.392,
+					IdeaConsensus:     company.IdeaConsensusBuy,
+					InsiderConsensus:  company.InsiderConsensusBuys,
+					ChangedAt:         changedAt,
+				},
 			},
 		}, nil).
 		Once()
@@ -107,13 +109,16 @@ func (s *serverSuite) TestGetCompanyHappyPath() {
 	s.Equal(int64(21586948000), desc.GetIssueSize())
 	s.Equal(issueDate.Unix(), desc.GetIssueDate().GetSeconds())
 
-	info := resp.Msg.GetCompany().GetStockInfo()
+	stock := resp.Msg.GetCompany().GetStock()
+	s.Require().NotNil(stock)
+
+	info := stock.GetInfo()
 	s.Require().NotNil(info)
 	s.Equal("Сбербанк", info.GetIssuerName())
 	s.Equal(companyv1.Exchange_MOEX, info.GetExchange())
 	s.Equal(companyv1.Currency_RUB, info.GetCurrency())
 
-	summary := resp.Msg.GetCompany().GetStockSummary()
+	summary := stock.GetSummary()
 	s.Require().NotNil(summary)
 	s.InDelta(97627.3, summary.GetCapital(), 1e-6)
 	s.InDelta(78.8, summary.GetEps(), 1e-6)
@@ -137,10 +142,12 @@ func (s *serverSuite) TestGetCompanyEnumCodes() {
 				SecurityType: company.SecurityTypePreferredShare,
 				ListingLevel: company.ListingLevelSecond,
 			},
-			StockInfo: company.StockInfo{
-				Exchange:        company.ExchangeMOEX,
-				Currency:        company.CurrencyUSD,
-				ReportFrequency: company.ReportFrequencyQuarterly,
+			Stock: company.Stock{
+				Info: company.StockInfo{
+					Exchange:        company.ExchangeMOEX,
+					Currency:        company.CurrencyUSD,
+					ReportFrequency: company.ReportFrequencyQuarterly,
+				},
 			},
 		}, nil).
 		Once()
@@ -152,7 +159,7 @@ func (s *serverSuite) TestGetCompanyEnumCodes() {
 	s.Equal(companyv1.SecurityType_PREFERRED_SHARE, desc.GetSecurityType())
 	s.Equal(companyv1.ListingLevel_SECOND, desc.GetListingLevel())
 
-	info := resp.Msg.GetCompany().GetStockInfo()
+	info := resp.Msg.GetCompany().GetStock().GetInfo()
 	s.Equal(companyv1.Exchange_MOEX, info.GetExchange())
 	s.Equal(companyv1.Currency_USD, info.GetCurrency())
 	s.Equal(companyv1.ReportFrequency_QUARTERLY, info.GetReportFrequency())

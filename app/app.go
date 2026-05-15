@@ -11,8 +11,7 @@ import (
 	"github.com/DanilaKorobkov/financial-analyst/internal/domain/services"
 	infracompany "github.com/DanilaKorobkov/financial-analyst/internal/infra/company"
 	fmclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/client"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stockinfo"
-	"github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stocksummary"
+	fmstock "github.com/DanilaKorobkov/financial-analyst/internal/infra/financemarker/stock"
 	moexclient "github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/client"
 	"github.com/DanilaKorobkov/financial-analyst/internal/infra/moex/securitydescription"
 	pconnect "github.com/DanilaKorobkov/financial-analyst/internal/presentation/connect"
@@ -23,7 +22,7 @@ import (
 // Поток сборки:
 //  1. Поднимаем HTTP-клиенты внешних источников (каждый со своим
 //     таймаутом и при необходимости — со своим кешем).
-//  2. Поднимаем источники секций (SecurityDescriptionSource, StockInfoSource).
+//  2. Поднимаем источники секций (SecurityDescriptionSource, StockSource).
 //  3. Оборачиваем источники в company.Repository — он собирает агрегат
 //     параллельно из своих секций.
 //  4. Создаём CompanyService поверх репозитория.
@@ -43,8 +42,7 @@ func New(cfg *Config) (http.Handler, error) {
 
 	companies := infracompany.NewRepository(infracompany.ConfigRepository{
 		SecurityDescription: securitydescription.New(moexHTTP),
-		StockInfo:           stockinfo.New(fmHTTP),
-		StockSummary:        stocksummary.New(fmHTTP),
+		Stock:               fmstock.New(fmHTTP),
 	})
 	companyService := services.NewCompanyService(services.ConfigCompanyService{
 		Companies: companies,

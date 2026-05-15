@@ -1,0 +1,20 @@
+// Карточка эмитента — секция агрегата Company, объединяющая
+// классификацию и описание (info) и сводные метрики (summary).
+
+syntax = "proto3";
+
+package company.v1;
+
+import "company/v1/stock_info.proto";
+import "company/v1/stock_summary.proto";
+
+option go_package = "github.com/DanilaKorobkov/financial-analyst/gen/company/v1;companyv1";
+
+// Stock — карточка эмитента.
+message Stock {
+  // Классификация и описание эмитента.
+  StockInfo info = 1;
+
+  // Сводные метрики эмитента.
+  StockSummary summary = 2;
+}
