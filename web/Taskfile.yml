@@ -35,6 +35,13 @@ tasks:
     cmds:
       - npm run build
 
+  docker-build:
+    desc: Собрать Docker-образ фронта (fa-web:dev) из Dockerfile.
+    # cwd задачи — ./web (из includes.dir в корневом Taskfile), контекст
+    # сборки — точка. Образ локальный, в registry не пушим.
+    cmds:
+      - docker build -t fa-web:dev .
+
   generate-proto:
     desc: Сгенерировать TS-клиент Connect из proto-схем сервера. Артефакты — в src/gen/.
     # Плагин protoc-gen-es ставится через mise (см. mise.toml,

@@ -32,7 +32,7 @@ tasks:
       - task: repo-checks
 
   repo-checks:
-    desc: Общерепные linters (Markdown/YAML/ссылки/орфография/GitHub Actions).
+    desc: Общерепные linters + hadolint + сборка Docker-образов.
     # Параллельный аналог `server:checks` для не-модульного слоя репо.
     # Тот же набор зеркалит матрица `.github/workflows/repo-checks.yml`.
     deps:
@@ -42,6 +42,8 @@ tasks:
       - task: lint-lychee
       - task: lint-cspell
       - task: lint-actionlint
+      - task: lint-hadolint
+      - task: docker-build
 
   lint-yamllint:
     desc: yamllint по всем YAML-файлам.
@@ -92,6 +94,28 @@ tasks:
     # не нужен и потенциально ломает обработку reusable workflows в подкаталогах.
     cmds:
       - actionlint
+
+  lint-hadolint:
+    desc: hadolint — best practices Docker + shellcheck в RUN.
+    # Правила: https://github.com/hadolint/hadolint/wiki (DL3xxx/DL4xxx,
+    # плюс SC2xxx из shellcheck). Запуск через Docker, а не mise: у
+    # hadolint 2.12.0 нет darwin-arm64 бинарника, x86_64 падает под Rosetta.
+    cmds:
+      - >-
+          docker run --rm -i
+          -v "$PWD:/workspace:ro" -w /workspace
+          ghcr.io/hadolint/hadolint:v2.12.0
+          hadolint server/Dockerfile web/Dockerfile
+
+  docker-build:
+    desc: Собрать Docker-образы обоих сервисов (server + web) параллельно.
+    # Сама сборка живёт внутри модулей: server:docker-build и web:docker-build —
+    # каждый знает свой Dockerfile, контекст и тег. Тут только агрегатор,
+    # симметричный другим композитным задачам корня (run, fmt, checks).
+    # Артефакты — локальные теги fa-server:dev и fa-web:dev, в registry не пушим.
+    deps:
+      - task: server:docker-build
+      - task: web:docker-build
 
   fmt:
     desc: Запустить все formatters (Go + Markdown).

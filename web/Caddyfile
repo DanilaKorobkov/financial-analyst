@@ -1,0 +1,49 @@
+# Конфигурация Caddy для production-образа фронта (web/Dockerfile).
+#
+# Зачем нужен Caddy. `vite build` выдаёт набор статических файлов
+# (index.html + assets/*.js|css|woff2). В production-контейнере их кто-то
+# должен раздавать по HTTP. caddy:2-alpine — минимальный статик-сервер
+# с встроенным reverse proxy; альтернатива nginx без необходимости
+# писать к нему конфиг.
+#
+# Зачем именно этот Caddyfile, а не дефолтный конфиг образа caddy:2-alpine.
+# Без своего Caddyfile сломались бы две вещи:
+#
+#   1. Клиентская маршрутизация SPA. Любой URL, кроме существующего файла
+#      (например, /company/SBER), отдал бы 404 — физически такого файла
+#      в /srv нет. Директива `try_files {path} /index.html` ниже отдаёт
+#      index.html на любой неизвестный путь, и дальше клиентский роутер
+#      React разбирает URL сам.
+#
+#   2. Connect-RPC вызовы. Фронт ходит на относительный путь
+#      /company.v1.* (см. web/src/api.ts, `baseUrl: '/'`). Без
+#      reverse proxy на backend контейнер с фронтом отдавал бы 404 на
+#      все API-вызовы — приложение не работало бы. CORS на сервере
+#      не настроен; этот же подход с одним origin используется и в dev
+#      (Vite proxy в web/vite.config.ts).
+#
+# Маршрутизация:
+#   /company.v1.*    → reverse proxy на server:8080 (Connect-сервер).
+#   всё остальное    → статика из /srv, SPA-fallback на /index.html.
+#
+# Имя хоста `server` — это имя контейнера Connect-сервера в общей
+# Docker-сети (Dokploy/compose). В локальной разработке web-контейнер не
+# используется: фронт поднимается через `task web:run` (Vite dev-сервер
+# с прокси на http://localhost:8080).
+:80 {
+	encode gzip
+
+	# Connect-RPC: путь вида /<package>.<Service>/<Method>.
+	# Текущий контракт — только company.v1.
+	handle /company.v1.* {
+		reverse_proxy server:8080
+	}
+
+	# SPA: сначала пробуем отдать запрошенный файл, иначе index.html —
+	# чтобы клиентский роутер отрабатывал любой URL без 404.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
