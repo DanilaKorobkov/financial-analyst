@@ -96,11 +96,36 @@ tasks:
       - actionlint
 
   lint-hadolint:
-    desc: hadolint — линтер Dockerfile (best practices Docker + shellcheck в RUN).
+    desc: hadolint — линтер Dockerfile.
+    # Что проверяет:
+    #
+    # 1) Best practices официальной документации Docker — правила DL3xxx/DL4xxx
+    #    (полный список — https://github.com/hadolint/hadolint/wiki):
+    #    использование :latest у FROM-образа (DL3007), отсутствие WORKDIR
+    #    (DL3000), `apt-get install` без --no-install-recommends (DL3015),
+    #    `apt-get update` без `install` в том же слое (кэш протухает — DL3009),
+    #    отсутствие пина версий пакетов в `apk add` / `pip install` / `npm install`
+    #    (DL3018/DL3013/DL3016), `RUN cd && ...` вместо WORKDIR (DL3003),
+    #    `ADD` там, где достаточно `COPY` (DL3020), запуск процесса из root
+    #    (DL3002) и т.п.
+    #
+    # 2) shellcheck внутри директив RUN — правила SC2xxx
+    #    (https://github.com/koalaman/shellcheck/wiki): переменные без
+    #    кавычек, в которых возможны пробелы (SC2086), `cd $foo` без проверки кода
+    #    возврата (SC2164), бесполезный `cat | grep` (SC2002), неверное
+    #    использование `&&`/`;` в составных командах.
+    #
+    # На наших Dockerfile это ловит, в частности, неправильное цитирование
+    # переменных в `RUN go build` / `RUN npm ci`, любые FROM-образы без
+    # явного тега, попытку использовать `apk add` без `=version`.
+    #
     # Запускается через официальный Docker-образ: у hadolint 2.12.0 нет
-    # darwin-arm64 бинарника, x86_64 под Rosetta падает (см. комментарий в
-    # mise.toml). Docker-вариант одинаково работает на arm64 mac и ubuntu CI.
-    # Версия v2.12.0 совпадает с последним релизом инструмента.
+    # darwin-arm64 бинарника, а x86_64-сборка под Rosetta падает SIGSEGV
+    # (https://github.com/hadolint/hadolint/releases). Docker-вариант
+    # одинаково работает на arm64 mac и ubuntu CI. Это согласуется с
+    # tooling.md: исключение разрешено для того, что mise не может поставить
+    # в работоспособном виде. Версия v2.12.0 совпадает с последним релизом
+    # инструмента.
     cmds:
       - >-
           docker run --rm -i
