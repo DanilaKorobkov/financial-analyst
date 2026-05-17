@@ -32,7 +32,7 @@ tasks:
       - task: repo-checks
 
   repo-checks:
-    desc: Общерепные linters (Markdown/YAML/ссылки/орфография/GitHub Actions).
+    desc: Общерепные linters + hadolint + сборка Docker-образов.
     # Параллельный аналог `server:checks` для не-модульного слоя репо.
     # Тот же набор зеркалит матрица `.github/workflows/repo-checks.yml`.
     deps:
@@ -42,6 +42,8 @@ tasks:
       - task: lint-lychee
       - task: lint-cspell
       - task: lint-actionlint
+      - task: lint-hadolint
+      - task: docker:build
 
   lint-yamllint:
     desc: yamllint по всем YAML-файлам.
@@ -92,6 +94,38 @@ tasks:
     # не нужен и потенциально ломает обработку reusable workflows в подкаталогах.
     cmds:
       - actionlint
+
+  lint-hadolint:
+    desc: hadolint — линтер Dockerfile (best practices Docker + shellcheck в RUN).
+    # Запускается через официальный Docker-образ: у hadolint 2.12.0 нет
+    # darwin-arm64 бинарника, x86_64 под Rosetta падает (см. комментарий в
+    # mise.toml). Docker-вариант одинаково работает на arm64 mac и ubuntu CI.
+    # Версия v2.12.0 совпадает с последним релизом инструмента.
+    cmds:
+      - >-
+          docker run --rm -i
+          -v "$PWD:/workspace:ro" -w /workspace
+          ghcr.io/hadolint/hadolint:v2.12.0
+          hadolint server/Dockerfile web/Dockerfile
+
+  docker:build:
+    desc: Собрать Docker-образы обоих сервисов (server + web).
+    # Параллельная сборка серверного и фронтового образов. Требует
+    # запущенного Docker daemon. Артефакты — локальные теги fa-server:dev
+    # и fa-web:dev. Образы локальные, в registry не публикуются.
+    deps:
+      - task: docker:build:server
+      - task: docker:build:web
+
+  docker:build:server:
+    desc: Собрать образ Connect-сервера (fa-server:dev) из server/Dockerfile.
+    cmds:
+      - docker build -t fa-server:dev ./server
+
+  docker:build:web:
+    desc: Собрать образ фронта (fa-web:dev) из web/Dockerfile.
+    cmds:
+      - docker build -t fa-web:dev ./web
 
   fmt:
     desc: Запустить все formatters (Go + Markdown).

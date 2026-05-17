@@ -284,3 +284,8 @@ financials        # финансовый раздел отчёта (англий
 moexclient        # alias для internal/infra/moex/client (в app/)
 fmclient          # alias для internal/infra/financemarker/client (в app/)
 fmstock           # alias для internal/infra/financemarker/stock (в app/)
+
+# --- Docker / runtime окружение ---
+distroless        # семейство минимальных образов от Google (gcr.io/distroless/*),
+                  # без shell и пакетного менеджера — runtime для production-бинарника
+Dokploy           # self-hosted PaaS для деплоя Docker-образов (https://dokploy.com)

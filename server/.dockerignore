@@ -1,0 +1,29 @@
+# Контекст сборки для server/Dockerfile.
+# Исключаем всё, что не нужно для `go build ./cmd/server`, чтобы не раздувать
+# контекст и не инвалидировать кеш слоёв при изменении тестов/моков/IDE-файлов.
+
+# Тесты и фикстуры
+*_test.go
+**/testdata/
+
+# Сгенерированные моки — нужны только для тестов
+mocks/
+
+# VCS и IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Локальные кеши и артефакты сборки
+.golangci-cache/
+.gocache/
+.cache/
+coverage.*
+*.out
+*.coverprofile
+profile.cov
+
+# Dockerfile и dockerignore сами в образе не нужны
+Dockerfile
+.dockerignore

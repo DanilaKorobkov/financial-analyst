@@ -1,0 +1,21 @@
+# Контекст сборки для web/Dockerfile.
+# Исключаем то, что либо тяжело (node_modules — ставится в образе командой
+# `npm ci`), либо генерируется заново (dist/), либо просто не нужно
+# во время сборки.
+#
+# ВАЖНО: src/gen/ НЕ исключается — это сгенерированный из proto TS-клиент,
+# нужен для tsc/vite build (см. .claude/rules/web/code.md).
+
+node_modules/
+dist/
+.vite/
+
+# VCS и IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Dockerfile и dockerignore сами в образе не нужны
+Dockerfile
+.dockerignore

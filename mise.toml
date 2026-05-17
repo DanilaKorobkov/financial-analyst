@@ -141,3 +141,10 @@ node = "22.11.0"
 # (app/, cmd/) — единственное место, которому разрешено знать обо всех слоях.
 # Документация: https://github.com/fe3dback/go-arch-lint
 "go:github.com/fe3dback/go-arch-lint" = "1.14.0"
+
+# hadolint в mise НЕ ставим: последний релиз 2.12.0 не публикует
+# darwin-arm64 бинарник (https://github.com/hadolint/hadolint/releases),
+# а x86_64-сборка под Rosetta падает SIGSEGV. Линтер запускается через
+# официальный Docker-образ ghcr.io/hadolint/hadolint:v2.12.0 в задаче
+# `lint-hadolint`. Это согласуется с tooling.md: исключение разрешено для
+# того, что mise поставить не может в работоспособном виде.

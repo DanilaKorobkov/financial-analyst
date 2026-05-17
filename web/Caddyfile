@@ -1,0 +1,27 @@
+# Раздача SPA-сборки и reverse proxy Connect-RPC вызовов на server.
+#
+# Маршрутизация:
+#   /company.v1.*    → reverse proxy на server:8080 (Connect-сервер).
+#   всё остальное    → статика из /srv, SPA-fallback на /index.html.
+#
+# Имя хоста `server` — это имя контейнера Connect-сервера в общей
+# Docker-сети (Dokploy/compose). В локальной разработке web-контейнер не
+# используется: фронт поднимается через `task web:run` (Vite dev-сервер
+# с прокси на http://localhost:8080).
+:80 {
+	encode gzip
+
+	# Connect-RPC: путь вида /<package>.<Service>/<Method>.
+	# Текущий контракт — только company.v1.
+	handle /company.v1.* {
+		reverse_proxy server:8080
+	}
+
+	# SPA: сначала пробуем отдать запрошенный файл, иначе index.html —
+	# чтобы клиентский роутер отрабатывал любой URL без 404.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
