@@ -119,6 +119,13 @@ tasks:
     cmds:
       - go build -o "$(mktemp -d)/" ./cmd/server
 
+  docker-build:
+    desc: Собрать Docker-образ Connect-сервера (fa-server:dev) из Dockerfile.
+    # cwd этой задачи — ./server (из includes.dir в корневом Taskfile),
+    # поэтому контекст сборки — точка. Образ локальный, в registry не пушим.
+    cmds:
+      - docker build -t fa-server:dev .
+
   run:
     desc: >-
       Запустить Connect-сервер. Если порт уже занят — освободить и

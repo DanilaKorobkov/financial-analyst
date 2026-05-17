@@ -69,8 +69,10 @@ Vite-сборки под Caddy.
 Локальная сборка обоих образов:
 
 ```bash
-task docker:build
+task docker-build
 ```
+
+По отдельности — `task server:docker-build` и `task web:docker-build`.
 
 Запуск Connect-сервера. `.env` с реальными значениями (см.
 [`.env.example`](./.env.example)) обязателен — конфиг читается только из

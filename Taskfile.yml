@@ -43,7 +43,7 @@ tasks:
       - task: lint-cspell
       - task: lint-actionlint
       - task: lint-hadolint
-      - task: docker:build
+      - task: docker-build
 
   lint-yamllint:
     desc: yamllint по всем YAML-файлам.
@@ -133,24 +133,15 @@ tasks:
           ghcr.io/hadolint/hadolint:v2.12.0
           hadolint server/Dockerfile web/Dockerfile
 
-  docker:build:
-    desc: Собрать Docker-образы обоих сервисов (server + web).
-    # Параллельная сборка серверного и фронтового образов. Требует
-    # запущенного Docker daemon. Артефакты — локальные теги fa-server:dev
-    # и fa-web:dev. Образы локальные, в registry не публикуются.
+  docker-build:
+    desc: Собрать Docker-образы обоих сервисов (server + web) параллельно.
+    # Сама сборка живёт внутри модулей: server:docker-build и web:docker-build —
+    # каждый знает свой Dockerfile, контекст и тег. Тут только агрегатор,
+    # симметричный другим композитным задачам корня (run, fmt, checks).
+    # Артефакты — локальные теги fa-server:dev и fa-web:dev, в registry не пушим.
     deps:
-      - task: docker:build:server
-      - task: docker:build:web
-
-  docker:build:server:
-    desc: Собрать образ Connect-сервера (fa-server:dev) из server/Dockerfile.
-    cmds:
-      - docker build -t fa-server:dev ./server
-
-  docker:build:web:
-    desc: Собрать образ фронта (fa-web:dev) из web/Dockerfile.
-    cmds:
-      - docker build -t fa-web:dev ./web
+      - task: server:docker-build
+      - task: web:docker-build
 
   fmt:
     desc: Запустить все formatters (Go + Markdown).
