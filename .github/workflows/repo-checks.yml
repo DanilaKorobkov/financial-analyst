@@ -29,6 +29,13 @@ jobs:
           - lint-lychee
           - lint-cspell
           - lint-actionlint
+          # Линт Dockerfile-ов: запускается из Docker-образа hadolint,
+          # daemon на ubuntu-latest уже есть из коробки — доп. setup не нужен.
+          - lint-hadolint
+          # Сборка Docker-образов модулей — на CI работают как отдельные
+          # job'ы (server и web параллельно), это даёт чистые статусы в PR.
+          - server:docker-build
+          - web:docker-build
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:
