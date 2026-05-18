@@ -57,20 +57,24 @@ tasks:
       - yamllint .
 
   lint-markdownlint:
-    desc: markdownlint-cli2 — структура корневого README.md и .claude/**/*.md.
-    # Scope — только «ничья земля». Модули проверяют свои .md сами.
+    desc: markdownlint-cli2 — структура Markdown «ничьей земли».
+    # Список файлов берём через `git ls-files` с исключением server/, web/:
+    # уважает .gitignore и держит scope «ничьей земли» единообразно для
+    # markdownlint, prettier и lychee.
     cmds:
-      - markdownlint-cli2 "*.md" ".claude/**/*.md"
+      - >-
+          git ls-files --cached --others --exclude-standard '*.md' ':!server/**' ':!web/**'
+          | xargs markdownlint-cli2
 
   lint-prettier:
-    desc: prettier --check — оформление корневого README.md и .claude/**/*.md.
+    desc: prettier --check — оформление Markdown «ничьей земли».
     cmds:
-      - prettier --check "*.md" ".claude/**/*.md"
+      - >-
+          git ls-files --cached --others --exclude-standard '*.md' ':!server/**' ':!web/**'
+          | xargs prettier --check
 
   lint-lychee:
     desc: lychee — проверка ссылок в Markdown «ничьей земли».
-    # Список файлов берём через `git ls-files`: уважает .gitignore и
-    # исключает scope модулей.
     cmds:
       - >-
           git ls-files --cached --others --exclude-standard '*.md' ':!server/**' ':!web/**'
@@ -87,26 +91,33 @@ tasks:
       - cspell --no-progress --no-summary "**/*" "**/.*/**/*"
 
   fmt:
-    desc: Запустить все formatters во всех модулях и в «ничьей земле».
-    # Используем cmds (последовательно): fmt-markdownlint и fmt-prettier
-    # работают по одним и тем же .md-файлам — сначала структура, потом
-    # оформление поверх. server:fmt и web:fmt идут параллельно через свои
-    # модули, не конфликтуют с корневыми .md.
+    desc: Запустить все formatters (server:fmt + web:fmt + repo-fmt).
     cmds:
       - task: server:fmt
       - task: web:fmt
+      - task: repo-fmt
+
+  repo-fmt:
+    desc: Автофиксы Markdown «ничьей земли».
+    # cmds последовательно: fmt-markdownlint и fmt-prettier работают по одним
+    # и тем же .md — сначала структура, потом оформление поверх.
+    cmds:
       - task: fmt-markdownlint
       - task: fmt-prettier
 
   fmt-markdownlint:
-    desc: markdownlint-cli2 --fix — автофиксы структуры Markdown в «ничьей земле».
+    desc: markdownlint-cli2 --fix — автофиксы структуры Markdown «ничьей земле».
     cmds:
-      - markdownlint-cli2 --fix "*.md" ".claude/**/*.md" || true
+      - >-
+          git ls-files --cached --others --exclude-standard '*.md' ':!server/**' ':!web/**'
+          | xargs markdownlint-cli2 --fix || true
 
   fmt-prettier:
-    desc: prettier --write — автофикс оформления Markdown в «ничьей земле».
+    desc: prettier --write — автофикс оформления Markdown «ничьей земли».
     cmds:
-      - prettier --write "*.md" ".claude/**/*.md"
+      - >-
+          git ls-files --cached --others --exclude-standard '*.md' ':!server/**' ':!web/**'
+          | xargs prettier --write
 
   run:
     desc: Запустить все модули проекта параллельно (server, web).
