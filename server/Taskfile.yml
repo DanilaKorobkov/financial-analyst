@@ -120,11 +120,14 @@ tasks:
       - go build -o "$(mktemp -d)/" ./cmd/server
 
   docker-build:
-    desc: Собрать Docker-образ Connect-сервера (fa-server:dev) из Dockerfile.
+    desc: Собрать Docker-образ Connect-сервера (financial-analyst-server:dev) из Dockerfile.
     # cwd этой задачи — ./server (из includes.dir в корневом Taskfile),
     # поэтому контекст сборки — точка. Образ локальный, в registry не пушим.
+    # Имя совпадает с именем пакета в GHCR
+    # (ghcr.io/<owner>/financial-analyst-server) — один словарь локально
+    # и на VPS, чтобы не путаться при ручной отладке.
     cmds:
-      - docker build -t fa-server:dev .
+      - docker build -t financial-analyst-server:dev .
 
   run:
     desc: >-

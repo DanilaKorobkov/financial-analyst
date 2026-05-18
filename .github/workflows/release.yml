@@ -1,0 +1,71 @@
+name: release
+
+# Автоматический выпуск релизов через semantic-release.
+#
+# Зачем: получить полную автоматику цикла «merge → версия → образ».
+# Каждый push в main с conventional-commit'ом feat/fix/refactor/perf/etc.
+# превращается в git-тег vX.Y.Z и GitHub Release с заметками. Триггер
+# для publish-images.yml (он реагирует на push: tags: ['v*']) приходит
+# из этого тега. Релиз-PR'а нет — он не нужен, потому что плагины
+# `@semantic-release/git` и `@semantic-release/changelog` НЕ подключены
+# (см. .releaserc.json). Это значит:
+#   * бот ничего не пушит обратно в main → bypass branch protection
+#     не требуется, штатного GITHUB_TOKEN достаточно;
+#   * CHANGELOG.md в репо не существует, история релизов живёт только
+#     в GitHub Releases.
+
+on:
+  push:
+    branches: [main]
+
+# Концепция параллелизма: cancel-in-progress: false. Если коммит N+1
+# смерджен через минуту после N, второй прогон release.yml дождётся
+# первого, чтобы у каждого был свой инкрементный тег (vX.Y.Z+1, а не
+# конкурентная гонка за один и тот же номер).
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+# Минимальный набор прав:
+#   * contents:write — создать git-tag и GitHub Release через API;
+#   * issues:write / pull-requests:write — semantic-release-github плагин
+#     может комментировать связанные issues / PRs о релизе.
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 — semantic-release читает весь commit-log от
+      # прошлого тега, иначе он не увидит коммитов и пропустит релиз.
+      # persist-credentials: false — мы НЕ хотим, чтобы git-команды
+      # использовали сохранённый в локальном конфиге токен;
+      # semantic-release-github ходит через GITHUB_TOKEN из env
+      # (он же передан в шаг ниже).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # semantic-release — Node.js утилита. Версия Node — LTS-линейка,
+      # совпадает с web/Dockerfile (нет смысла держать рассогласованные
+      # версии в одном репозитории).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Готовый wrapper-action ставит semantic-release и плагины из
+      # extra_plugins. conventional-changelog-conventionalcommits даёт
+      # preset, на который ссылается .releaserc.json — без него
+      # commit-analyzer и release-notes-generator упадут с
+      # "Cannot find module 'conventional-changelog-conventionalcommits'".
+      - uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            conventional-changelog-conventionalcommits@7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

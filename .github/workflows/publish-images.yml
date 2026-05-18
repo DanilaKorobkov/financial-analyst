@@ -1,0 +1,83 @@
+name: publish-images
+
+# Сборка и публикация Docker-образов в GHCR.
+#
+# Триггер — push git-тега вида v*. Теги создаёт semantic-release
+# (см. release.yml) при каждом релиз-достойном коммите в main.
+# Прямой push в main этот workflow не запускает: образ выпускается
+# только по релизной отметке, чтобы в registry не было «двигающихся»
+# тегов и неименованных артефактов.
+#
+# Sanity-build обоих образов на каждом PR делает repo-checks.yml
+# (target'ы server:docker-build / web:docker-build в его матрице) —
+# дублировать его здесь не нужно.
+
+on:
+  push:
+    tags: [v*]
+
+# Каждый тег — отдельная группа concurrency (по ref). Параллельные
+# теги не конфликтуют, но повторный push того же тега подождёт
+# текущий прогон, чтобы не было гонки за слой кеша registry.
+concurrency:
+  group: publish-images-${{ github.ref }}
+  cancel-in-progress: false
+
+# Минимальный набор прав: чтение исходников + запись пакетов в GHCR.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    # Матрица из двух образов: server и web. fail-fast: false, чтобы
+    # падение одного не останавливало второй — отлаживать всегда
+    # удобнее, когда видно сразу оба результата.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: financial-analyst-server
+            context: ./server
+          - image: financial-analyst-web
+            context: ./web
+    name: publish (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # buildx нужен для современных BuildKit-фич (multi-stage cache,
+      # provenance/attestations по умолчанию у build-push-action).
+      - uses: docker/setup-buildx-action@v3
+
+      # Логин в GHCR штатным GITHUB_TOKEN. Никаких PAT'ов и секретов
+      # сверху: токен workflow'а с permission packages:write умеет
+      # пушить в ghcr.io/<owner>/<image>.
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # metadata-action превращает git-ref в набор Docker-тегов.
+      # type=semver,pattern={{version}} срезает префикс "v" и даёт
+      # чистый SemVer-тег (v0.3.0 → 0.3.0). Других тегов не выпускаем
+      # сознательно — :latest и :main создают неоднозначность версии
+      # на VPS, immutable :vX.Y.Z единственно осмыслен для Dokploy.
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}}
+
+      # Build + push в один шаг. Кеш буфера выключен сознательно
+      # (см. план PR 2): для пет-проекта с редкими релизами надёжность
+      # «всегда чистая сборка» ценнее экономии минут CI.
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
