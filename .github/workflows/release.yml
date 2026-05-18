@@ -63,9 +63,11 @@ jobs:
       # preset, на который ссылается .releaserc.json — без него
       # commit-analyzer и release-notes-generator упадут с
       # "Cannot find module 'conventional-changelog-conventionalcommits'".
+      # Версия 8 совместима с release-notes-generator из v4 action;
+      # 7 даёт TypeError в formatDate (устаревший dateformat API).
       - uses: cycjimmy/semantic-release-action@v4
         with:
           extra_plugins: |
-            conventional-changelog-conventionalcommits@7
+            conventional-changelog-conventionalcommits@8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
