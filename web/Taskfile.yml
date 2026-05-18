@@ -36,11 +36,14 @@ tasks:
       - npm run build
 
   docker-build:
-    desc: Собрать Docker-образ фронта (fa-web:dev) из Dockerfile.
+    desc: Собрать Docker-образ фронта (financial-analyst-web:dev) из Dockerfile.
     # cwd задачи — ./web (из includes.dir в корневом Taskfile), контекст
     # сборки — точка. Образ локальный, в registry не пушим.
+    # Имя совпадает с именем пакета в GHCR
+    # (ghcr.io/<owner>/financial-analyst-web) — один словарь локально
+    # и на VPS, чтобы не путаться при ручной отладке.
     cmds:
-      - docker build -t fa-web:dev .
+      - docker build -t financial-analyst-web:dev .
 
   generate-proto:
     desc: Сгенерировать TS-клиент Connect из proto-схем сервера. Артефакты — в src/gen/.

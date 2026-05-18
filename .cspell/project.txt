@@ -289,3 +289,7 @@ fmstock           # alias для internal/infra/financemarker/stock (в app/)
 distroless        # семейство минимальных образов от Google (gcr.io/distroless/*),
                   # без shell и пакетного менеджера — runtime для production-бинарника
 Dokploy           # self-hosted PaaS для деплоя Docker-образов (https://dokploy.com)
+
+# --- CI / релизы ---
+releaserc         # имя конфига semantic-release (.releaserc.json) — индустриальный нейминг
+cycjimmy          # автор github.com/cycjimmy/semantic-release-action (используется в release.yml)

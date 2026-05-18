@@ -114,10 +114,18 @@
 │   │   └── structure.md                   # ← этот файл
 │   └── skills/                            # Локальные skills
 │
-├── .github/                               # GitHub Actions workflows
+├── .github/
+│   └── workflows/                         # GitHub Actions
+│       ├── pr-title.yml                   # Валидация заголовка PR (conventional commits, ≤72 символа)
+│       ├── repo-checks.yml                # Общерепные проверки PR: linters + sanity-build обоих образов
+│       ├── server-checks.yml              # Go-проверки PR: lint, test, compile, generated-drift
+│       ├── web-checks.yml                 # Web-проверки PR: контроль генерированного TS-клиента
+│       ├── release.yml                    # semantic-release: git-tag vX.Y.Z + GitHub Release на push в main
+│       └── publish-images.yml             # Сборка и публикация образов в GHCR на push тега v*
 ├── .cspell/, cspell.config.yaml           # Словари cspell (общерепные)
 ├── lychee.toml                            # Конфиг lychee (общерепной)
 ├── mise.toml                              # Версии инструментов. См. tooling.md
+├── .releaserc.json                        # Конфиг semantic-release (см. .github/workflows/release.yml)
 ├── Taskfile.yml                           # Общерепные линтеры + делегация в server/
 ├── .env.example                           # Шаблон env (FINANCEMARKER_TOKEN, MOEX_BASE_URL, …)
 ├── LICENSE
