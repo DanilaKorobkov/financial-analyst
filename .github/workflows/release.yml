@@ -10,9 +10,19 @@ name: release
 # `@semantic-release/git` и `@semantic-release/changelog` НЕ подключены
 # (см. .releaserc.json). Это значит:
 #   * бот ничего не пушит обратно в main → bypass branch protection
-#     не требуется, штатного GITHUB_TOKEN достаточно;
+#     не требуется;
 #   * CHANGELOG.md в репо не существует, история релизов живёт только
 #     в GitHub Releases.
+#
+# Почему GITHUB_TOKEN НЕ используется. По дизайну GitHub Actions
+# события, созданные через штатный GITHUB_TOKEN, не запускают другие
+# workflow'ы — это защита от циклов CI. Если бы semantic-release
+# создавал тег v* через GITHUB_TOKEN, publish-images.yml не стартовал
+# бы на push этого тега. Поэтому используется отдельный токен
+# GitHub App: события от App-токена считаются «внешними» и нормально
+# запускают последующие workflow'ы. App установлен на этом репо,
+# имеет права Contents: Read and write. Секреты RELEASER_APP_ID и
+# RELEASER_APP_PRIVATE_KEY заведены в Settings → Secrets → Actions.
 
 on:
   push:
@@ -26,30 +36,39 @@ concurrency:
   group: release
   cancel-in-progress: false
 
-# Минимальный набор прав:
-#   * contents:write — создать git-tag и GitHub Release через API;
-#   * issues:write / pull-requests:write — semantic-release-github плагин
-#     может комментировать связанные issues / PRs о релизе.
+# Права workflow'а используются только для get-token шага (он сам
+# по себе ничего не пишет в репо). Реальные операции записи делает
+# App-токен из create-github-app-token; его права определяются
+# установкой App, а не permissions этого workflow'а.
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   release:
     name: release
     runs-on: ubuntu-latest
     steps:
+      # Меняем GITHUB_TOKEN на короткоживущий installation token
+      # GitHub App. App установлен на этом репо с правом
+      # Contents: Read and write; токен живёт ~1 час, дальше action
+      # выпускает новый при следующем прогоне.
+      - id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASER_APP_ID }}
+          private-key: ${{ secrets.RELEASER_APP_PRIVATE_KEY }}
+
       # fetch-depth: 0 — semantic-release читает весь commit-log от
       # прошлого тега, иначе он не увидит коммитов и пропустит релиз.
-      # persist-credentials: false — мы НЕ хотим, чтобы git-команды
-      # использовали сохранённый в локальном конфиге токен;
-      # semantic-release-github ходит через GITHUB_TOKEN из env
-      # (он же передан в шаг ниже).
+      # token: App-токен — нужен, если semantic-release делает
+      # git-операции (для push tags он использует GitHub API, но
+      # checkout всё равно лучше делать тем же токеном, чтобы
+      # не путать identities).
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
+          token: ${{ steps.app-token.outputs.token }}
 
       # semantic-release — Node.js утилита. Версия Node — LTS-линейка,
       # совпадает с web/Dockerfile (нет смысла держать рассогласованные
@@ -70,4 +89,4 @@ jobs:
           extra_plugins: |
             conventional-changelog-conventionalcommits@8
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
