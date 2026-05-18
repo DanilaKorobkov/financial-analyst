@@ -1,0 +1,10 @@
+---
+- name: Bootstrap чистого Ubuntu VPS до состояния, готового к установке Dokploy
+  hosts: prod
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: common
+    - role: geerlingguy.swap
+    - role: geerlingguy.docker

@@ -1,0 +1,13 @@
+---
+# Переменные, общие для всех хостов inventory. Параметры сторонних ролей
+# (geerlingguy.swap, geerlingguy.docker) держим здесь, а не в defaults роли
+# common — это переменные не common, а composition'а playbook.
+
+# geerlingguy.swap: 2 ГБ swap-файла + щадящий swappiness для Docker-хоста с 4 ГБ RAM.
+swap_file_size_mb: '2048'
+swap_swappiness: '10'
+
+# geerlingguy.docker: ставим Docker из официального репо Docker Inc. — это
+# совпадает с тем, что использует сам Dokploy installer. Compose-plugin
+# нужен, потому что Dokploy и приложение управляются через docker compose.
+docker_install_compose_plugin: true

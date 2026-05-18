@@ -1,0 +1,14 @@
+---
+# Шаблон host_vars для боевого VPS. Скопируй в prod-vps.yml (без .example),
+# заполни реальными значениями. Реальный файл в репозиторий не уходит
+# (см. bootstrap/.gitignore).
+#
+# ansible_host             IP или DNS-имя VPS.
+# ansible_user             Пользователь, под которым ходит ansible. У провайдеров
+#                          VPS обычно root + ключ из панели или cloud-init.
+# ansible_ssh_private_key_file
+#                          Путь к локальному private-key, парный публичному
+#                          ключу, который провайдер положил в authorized_keys VPS.
+ansible_host: REPLACE_ME_WITH_VPS_IP
+ansible_user: root
+ansible_ssh_private_key_file: ~/.ssh/id_ed25519

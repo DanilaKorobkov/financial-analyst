@@ -1,0 +1,55 @@
+---
+# Smoke-проверки состояния узла после bootstrap-playbook'а. Запускается
+# отдельно (после bootstrap.yml), не через handlers — это независимый
+# контракт «узел готов к Dokploy».
+
+- name: Smoke — bootstrap состояние узла
+  hosts: prod
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Проверить, что swap-файл активен
+      ansible.builtin.command: swapon --show=NAME --noheadings
+      register: swap_check
+      changed_when: false
+      failed_when: swap_check.stdout | trim == ''
+
+    - name: Проверить, что docker info возвращает 0
+      ansible.builtin.command: docker info
+      changed_when: false
+
+    - name: Проверить, что unattended-upgrades systemd-unit активен
+      ansible.builtin.systemd_service:
+        name: unattended-upgrades
+      register: unattended_status
+      failed_when: unattended_status.status.ActiveState != 'active'
+
+    - name: Прочитать текущий timezone
+      ansible.builtin.command: timedatectl show -p Timezone --value
+      register: timezone_check
+      changed_when: false
+
+    - name: Утверждение — timezone выставлен в заявленное значение
+      ansible.builtin.assert:
+        that:
+          - timezone_check.stdout | trim == (common_timezone | default('Europe/Berlin'))
+        fail_msg: >-
+          Текущий timezone "{{ timezone_check.stdout | trim }}" не совпадает с ожидаемым
+          "{{ common_timezone | default('Europe/Berlin') }}".
+
+    - name: Прочитать эффективный sshd-конфиг
+      ansible.builtin.command: sshd -T
+      register: sshd_smoke
+      changed_when: false
+
+    - name: Утверждение — sshd hardened (key-only, root prohibit-password)
+      ansible.builtin.assert:
+        that:
+          - "'passwordauthentication no' in sshd_smoke.stdout"
+          - >-
+              'permitrootlogin prohibit-password' in sshd_smoke.stdout
+              or 'permitrootlogin no' in sshd_smoke.stdout
+        fail_msg: >-
+          sshd принимает пароли или разрешает root-логин по паролю —
+          см. bootstrap/README.md.

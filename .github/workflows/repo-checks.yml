@@ -36,6 +36,11 @@ jobs:
           # job'ы (server и web параллельно), это даёт чистые статусы в PR.
           - server:docker-build
           - web:docker-build
+          # bootstrap/ — Ansible-каркас. Каждый target в матрице запускает
+          # bootstrap:deps как dependency (ansible-galaxy install), поэтому
+          # отдельного шага установки ролей в workflow не нужно.
+          - bootstrap:lint
+          - bootstrap:syntax-check
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:

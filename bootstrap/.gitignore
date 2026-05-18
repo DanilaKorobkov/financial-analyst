@@ -1,0 +1,16 @@
+# Реальные host_vars (с IP боевого VPS и путём к ключу) в репо не коммитим.
+# В репо живёт только .example. Соответствующее правило для тестовых
+# Lima-VM (fa-bootstrap.yml и подобных) — там же.
+inventory/host_vars/*.yml
+!inventory/host_vars/*.yml.example
+
+# Сюда ansible-galaxy ставит внешние роли (geerlingguy.swap, geerlingguy.docker)
+# по requirements.yml — сборочный артефакт, не часть исходников.
+.galaxy/
+
+# ansible-lint клонирует роли из requirements.yml в локальный кэш .ansible/
+# для анализа — этот каталог создаётся автоматически при запуске линта.
+.ansible/
+
+# retry-файлы Ansible после провалившегося прогона.
+*.retry

@@ -1,0 +1,21 @@
+---
+# Все переменные роли common обязаны быть префиксированы `common_` —
+# конвенция ansible-lint var-naming[no-role-prefix]. Это даёт глобально
+# уникальные имена и сразу видно, какая роль владеет переменной.
+
+# Timezone узла. Default — Europe/Berlin (провайдер weasel.cloud Himalia DE).
+# Override через host_vars/<host>.yml, если VPS живёт в другом регионе.
+common_timezone: Europe/Berlin
+
+# Базовый набор пакетов на любой Ubuntu-узел. Минимум: HTTP-клиент, git
+# (для on-host клона при необходимости), удобства SSH-сессии (htop, vim),
+# инфраструктура для добавления сторонних apt-репозиториев (ca-certificates,
+# gnupg, software-properties-common).
+common_apt_packages:
+  - curl
+  - git
+  - htop
+  - vim
+  - ca-certificates
+  - gnupg
+  - software-properties-common

@@ -1,0 +1,14 @@
+---
+# Конфиг ansible-lint для bootstrap/. По умолчанию ansible-lint ищет playbook'и
+# в корне cwd; у нас они в playbooks/ + tests/. Явно перечисляем входы, чтобы
+# линт реально что-то проверял (default-поведение даёт «0 files processed»).
+exclude_paths:
+  - .galaxy/
+
+# profile: production — самый строгий встроенный профиль (включает name[casing],
+# yaml[*], no-changed-when и т.п.). Тот же профиль, который ansible-lint
+# репортит как «достигнутый» по дефолту.
+profile: production
+
+# Прогон с verbosity=0 — без trace, только понятные сообщения.
+verbosity: 0

@@ -1,0 +1,22 @@
+---
+# Внешние Ansible-роли с Galaxy. Ставятся в bootstrap/.galaxy/ командой
+# `task bootstrap:deps` (ansible-galaxy role install -r requirements.yml).
+# Версии фиксируются точно — обновление через явный bump в этом файле.
+
+roles:
+  - name: geerlingguy.swap
+    version: 2.0.0
+
+  - name: geerlingguy.docker
+    version: 8.0.0
+
+collections:
+  # community.general — модуль timezone и прочие универсальные плагины,
+  # которые в ansible-core не входят.
+  - name: community.general
+    version: 12.6.1
+
+  # ansible.posix — модуль `mount` нужен geerlingguy.swap для записи swap-файла
+  # в /etc/fstab. Без коллекции syntax-check playbook geerlingguy валится.
+  - name: ansible.posix
+    version: 2.1.0

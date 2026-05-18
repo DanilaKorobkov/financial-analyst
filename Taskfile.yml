@@ -35,6 +35,13 @@ tasks:
     desc: Общерепные linters + hadolint + сборка Docker-образов.
     # Параллельный аналог `server:checks` для не-модульного слоя репо.
     # Тот же набор зеркалит матрица `.github/workflows/repo-checks.yml`.
+    #
+    # bootstrap:* НЕ кладём в deps — ansible-lint/ansible-playbook падают с
+    # «Ansible requires blocking IO on stdin/stdout/stderr» при параллельном
+    # запуске через go-task (родительский shell ставит stderr в non-blocking).
+    # Поэтому гоняем их в `cmds` после параллельных deps — последовательно,
+    # с нормальным stderr. В CI каждая bootstrap-задача — отдельный job
+    # матрицы, там этой проблемы нет.
     deps:
       - task: lint-yamllint
       - task: lint-markdownlint
@@ -44,6 +51,9 @@ tasks:
       - task: lint-actionlint
       - task: lint-hadolint
       - task: docker-build
+    cmds:
+      - task: bootstrap:lint
+      - task: bootstrap:syntax-check
 
   lint-yamllint:
     desc: yamllint по всем YAML-файлам.
@@ -147,3 +157,67 @@ tasks:
     deps:
       - task: server:run
       - task: web:run
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # bootstrap:* — Ansible-каркас для подготовки VPS под Dokploy.
+  # Все задачи выполняются с cwd=bootstrap/, чтобы ansible.cfg и
+  # относительные пути (inventory, roles_path, playbooks/) работали без
+  # дополнительных флагов.
+  # ──────────────────────────────────────────────────────────────────────────
+
+  bootstrap:deps:
+    desc: Ставит внешние Ansible-роли и коллекции из requirements.yml в bootstrap/.galaxy/.
+    dir: bootstrap
+    cmds:
+      - ansible-galaxy role install -r requirements.yml --roles-path .galaxy
+      - ansible-galaxy collection install -r requirements.yml --collections-path .galaxy/collections
+    # Идемпотентность через status: если все роли и коллекции уже стоят —
+    # задача skip. Каталоги создаются ansible-galaxy при первой установке.
+    status:
+      - test -d .galaxy/geerlingguy.swap
+      - test -d .galaxy/geerlingguy.docker
+      - test -d .galaxy/collections/ansible_collections/community/general
+      - test -d .galaxy/collections/ansible_collections/ansible/posix
+
+  bootstrap:lint:
+    desc: ansible-lint — статический анализ Ansible-playbook'ов и ролей в bootstrap/.
+    dir: bootstrap
+    deps:
+      - task: bootstrap:deps
+    cmds:
+      # Перечисляем входы явно: по дефолту ansible-lint ищет playbook'и в cwd, а
+      # у нас playbook лежит в playbooks/. Конфиг — .ansible-lint в этом каталоге.
+      - ansible-lint playbooks/ roles/ tests/
+
+  bootstrap:syntax-check:
+    desc: ansible-playbook --syntax-check — проверка синтаксиса bootstrap-playbook'а.
+    dir: bootstrap
+    deps:
+      - task: bootstrap:deps
+    cmds:
+      - ansible-playbook --syntax-check playbooks/bootstrap.yml
+
+  bootstrap:check:
+    desc: Dry-run прогон bootstrap-playbook'а (без изменений на хосте).
+    # Требует заполненный inventory/host_vars/<host>.yml. Подробнее — bootstrap/README.md.
+    dir: bootstrap
+    deps:
+      - task: bootstrap:deps
+    cmds:
+      - ansible-playbook --check playbooks/bootstrap.yml
+
+  bootstrap:run:
+    desc: Реальный прогон bootstrap-playbook'а на целевом хосте (см. bootstrap/README.md).
+    dir: bootstrap
+    deps:
+      - task: bootstrap:deps
+    cmds:
+      - ansible-playbook playbooks/bootstrap.yml
+
+  bootstrap:smoke:
+    desc: Прогон tests/smoke.yml — проверка состояния узла после bootstrap:run.
+    dir: bootstrap
+    deps:
+      - task: bootstrap:deps
+    cmds:
+      - ansible-playbook tests/smoke.yml

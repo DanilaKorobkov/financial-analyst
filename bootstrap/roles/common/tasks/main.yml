@@ -1,0 +1,60 @@
+---
+- name: Обновить apt-кэш и применить безопасные обновления установленных пакетов
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: safe
+    cache_valid_time: 3600
+
+- name: Установить базовые пакеты системы
+  ansible.builtin.apt:
+    name: "{{ common_apt_packages }}"
+    state: present
+
+- name: Выставить timezone узла
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Установить unattended-upgrades для автоматических security-патчей
+  ansible.builtin.apt:
+    name:
+      - unattended-upgrades
+      - apt-listchanges
+    state: present
+
+- name: Включить периодические автоматические обновления (APT::Periodic)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: '0644'
+    owner: root
+    group: root
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+
+# Sshd hardening — через assert, а не enforce. Ubuntu cloud-образы
+# по умолчанию приходят с PermitRootLogin=prohibit-password и
+# PasswordAuthentication=no. Если провайдер выкатил отличающийся образ —
+# playbook упадёт здесь, и решение принимается вручную (вместо того,
+# чтобы автоматически перезаписать sshd_config и потенциально потерять
+# доступ).
+- name: Прочитать эффективный sshd-конфиг
+  ansible.builtin.command: sshd -T
+  register: common_sshd_effective_config
+  changed_when: false
+  check_mode: false
+
+- name: Утверждение — sshd принимает только ключевую аутентификацию
+  ansible.builtin.assert:
+    that:
+      - "'passwordauthentication no' in common_sshd_effective_config.stdout"
+      - >-
+          'permitrootlogin prohibit-password' in common_sshd_effective_config.stdout
+          or 'permitrootlogin no' in common_sshd_effective_config.stdout
+    fail_msg: >-
+      sshd принимает пароли или разрешает root-логин по паролю.
+      Это противоречит требованию bootstrap — провайдер VPS должен
+      поставлять чистую Ubuntu с ключ-only доступом. Поправь
+      /etc/ssh/sshd_config вручную (PasswordAuthentication no,
+      PermitRootLogin prohibit-password) и перезапусти playbook.
+    success_msg: sshd hardened (key-only, root prohibit-password).
