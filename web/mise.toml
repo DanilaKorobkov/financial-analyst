@@ -1,0 +1,51 @@
+# Версии инструментов модуля web (Vite + React фронт).
+# Локально и в CI берутся отсюда — `mise install` в web/ поднимает всё.
+#
+# Изоляция от других модулей: server/mise.toml закрепляет свой набор; общерепные
+# проверки «ничьей земли» (workflows, корневой README, .claude/**) живут
+# в корневом mise.toml. Дублирование версий task/cspell/yamllint/lychee
+# с server/ — сознательная цена изоляции toolchain между модулями.
+
+[tools]
+
+# Node — рантайм Vite/React. LTS-линейка.
+node = "22.11.0"
+
+# Task runner модуля (Taskfile.yml) — единый вход для lint/fmt/build.
+task = "3.49.1"
+
+# buf — нужен для web:generate-proto: генерирует TS-клиент из proto-схем
+# server/api/proto через web/buf.gen.yaml (template указывает на ../server).
+"aqua:bufbuild/buf" = "1.69.0"
+
+# protoc-gen-es — TS-генератор для buf. Используется в web/buf.gen.yaml.
+# По смыслу — CLI-плагин buf, как protoc-gen-go в server/mise.toml; в
+# package.json не уезжает (это противоречит tooling.md: «CLI-утилиты ставятся
+# только через mise»). npm-backend mise — тот же механизм, через который
+# уже ставятся cspell/markdownlint-cli2/prettier.
+"npm:@bufbuild/protoc-gen-es" = "2.12.0"
+
+# Python + pipx нужны как backend для yamllint.
+python = "3.14"
+pipx = "latest"
+
+# yamllint — линтер YAML-файлов модуля (web/Taskfile.yml, web/buf.gen.yaml).
+"pipx:yamllint" = "1.38.0"
+
+# markdownlint-cli2 — линтер структуры Markdown в scope web/**.
+"npm:markdownlint-cli2" = "0.14.0"
+
+# Prettier — форматирование Markdown и прочих файлов в scope web/**.
+"npm:prettier" = "3.3.3"
+
+# cspell — code-aware spell-checker для scope web/**. Конфиг —
+# web/cspell.config.yaml; проектный словарь — web/.cspell/project.txt.
+"npm:cspell" = "8.14.4"
+
+# Русский словарь для cspell. Подключается через `import` в
+# web/cspell.config.yaml; путь определяется через NODE_PATH, выставляемый
+# задачей lint-cspell в web/Taskfile.yml.
+"npm:@cspell/dict-ru_ru" = "2.3.2"
+
+# lychee — быстрый чекер ссылок в Markdown.
+"aqua:lycheeverse/lychee" = "0.15.1"

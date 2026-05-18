@@ -1,0 +1,93 @@
+# Версии инструментов модуля server (Go-сервер).
+# Локально и в CI берутся отсюда — `mise install` в server/ поднимает всё.
+#
+# Изоляция от других модулей: web/mise.toml закрепляет свой набор; общерепные
+# проверки «ничьей земли» (workflows, корневой README, .claude/**) живут
+# в корневом mise.toml. Дублирование версий task/cspell/yamllint/lychee
+# с web/ — сознательная цена изоляции toolchain между модулями.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ENV — переменные окружения, общие для всех `mise exec` и task-задач модуля.
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# golangci-lint и go-build по умолчанию пишут кэш в один глобальный каталог
+# пользователя; индекс на абсолютные пути ломается при удалении worktree
+# (остаются ошибки в несуществующих файлах). Привязываем оба кэша к корню
+# текущего mise-config (`{{config_root}}` = server/), у каждого worktree свой
+# кэш в server/.golangci-cache/ и server/.gocache/. Каталоги в .gitignore.
+[env]
+GOLANGCI_LINT_CACHE = "{{config_root}}/.golangci-cache"
+GOCACHE = "{{config_root}}/.gocache"
+# Личные репозитории владельца тянутся напрямую с GitHub в обход корпоративных
+# go-прокси (могут блокировать модули моложе 30 дней по security-политике).
+# Проверка контрольных сумм остаётся через sum.golang.org.
+GONOPROXY = "github.com/DanilaKorobkov/*"
+
+[tools]
+
+# Основной рантайм модуля — runtime-код Connect-сервера.
+go = "1.26.3"
+
+# Линтер Go-кода — единая точка правды по стилю и проверкам (.golangci.yml).
+golangci-lint = "2.12.2"
+
+# Task runner модуля (Taskfile.yml) — единый вход для lint/fmt/test.
+task = "3.49.1"
+
+# Нужен как backend для pipx-пакетов (yamllint). Минимум 3.10.
+python = "3.14"
+
+# pipx нужен mise как backend для установки yamllint.
+pipx = "latest"
+
+# yamllint — линтер YAML-файлов модуля (server/Taskfile.yml, server/buf.yaml,
+# server/.go-arch-lint.yml, server/.mockery.yaml, server/.testcoverage.yml).
+"pipx:yamllint" = "1.38.0"
+
+# Node нужен как backend для npm-пакетов (markdownlint-cli2, cspell, prettier).
+node = "22.11.0"
+
+# markdownlint-cli2 — линтер структуры Markdown. Конфиг — .markdownlint-cli2.jsonc
+# в корне репозитория (общий формат), но запуск ограничен scopeом server/**.
+"npm:markdownlint-cli2" = "0.14.0"
+
+# cspell — code-aware spell-checker для scope server/**. Конфиг —
+# server/cspell.config.yaml; проектный словарь — server/.cspell/project.txt.
+"npm:cspell" = "8.14.4"
+
+# Русский словарь для cspell (в bundle cspell его нет — только en_US/en_GB).
+# Подключается через `import` в server/cspell.config.yaml; путь определяется
+# через NODE_PATH, выставляемый задачей lint-cspell в server/Taskfile.yml.
+"npm:@cspell/dict-ru_ru" = "2.3.2"
+
+# lychee — быстрый чекер ссылок в Markdown.
+"aqua:lycheeverse/lychee" = "0.15.1"
+
+# Prettier — форматирование Markdown (выравнивание GFM-таблиц, нормализация
+# пробелов). Парный к markdownlint-cli2.
+"npm:prettier" = "3.3.3"
+
+# buf — CLI для protobuf-схем: линт, breaking-check, кодген.
+"aqua:bufbuild/buf" = "1.69.0"
+
+# protoc-плагины для buf generate. Ставятся через go-backend mise
+# (собираются из исходников по pinned версии — единая сборка локально и в CI).
+"go:google.golang.org/protobuf/cmd/protoc-gen-go" = "1.36.6"
+"go:connectrpc.com/connect/cmd/protoc-gen-connect-go" = "1.18.1"
+
+# mockery — генератор mock-объектов по Go-интерфейсам.
+"aqua:vektra/mockery" = "3.7.0"
+
+# govulncheck — официальный сканер уязвимостей от команды Go.
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.1.4"
+
+# go-test-coverage — гейт по порогам покрытия тестами поверх `go test -coverprofile`.
+"go:github.com/vladopajic/go-test-coverage/v2" = "2.18.4"
+
+# structfielddocs — проектный go/analysis-линтер из github.com/DanilaKorobkov/go-checkers.
+# Требует doc-комментарий строкой выше у каждого экспортируемого поля
+# экспортируемой структуры.
+"go:github.com/DanilaKorobkov/go-checkers/cmd/structfielddocs" = "0.1.0"
+
+# go-arch-lint — детерминированная проверка слоёной архитектуры по графу импортов.
+"go:github.com/fe3dback/go-arch-lint" = "1.14.0"

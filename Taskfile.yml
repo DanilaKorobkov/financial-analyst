@@ -1,144 +1,112 @@
 version: '3'
 
 # Корневой Taskfile репозитория. Делится на две части:
-#   1. Общерепные linters/formatters (yamllint, markdownlint, prettier, lychee,
-#      cspell, actionlint) — работают по всему репо, включая `.github/`,
-#      `.claude/`, корневые `*.md`.
-#   2. Делегация в server/Taskfile.yml через `includes`. Go-задачи модуля
-#      сервера зовутся `task server:<name>` (например `task server:test`).
+#   1. repo-checks — линтеры «ничьей земли» (файлы, не принадлежащие ни одному
+#      модулю): .github/workflows/, корневой README.md, .claude/**, корневые
+#      конфиги. Бинарники — из корневого mise.toml.
+#   2. Делегация в server/Taskfile.yml и web/Taskfile.yml через `includes`.
+#      Задачи модулей зовутся `task server:<name>` и `task web:<name>`.
 #
-# При появлении web/ рядом с server/ сюда добавится `web: ./web` и
-# симметричный набор алиасов `task web:<name>`.
+# Изоляция: каждый модуль (server, web) сам проверяет свои файлы своими
+# бинарниками (см. server/Taskfile.yml и web/Taskfile.yml). Корневой
+# Taskfile НЕ ходит в scope модулей — там это уже сделано.
 
 includes:
-  # `dir` обязателен: без него Go-инструменты (go-arch-lint, buf, mockery)
-  # запускаются из корня репо и ищут свои конфиги (`.go-arch-lint.yml`,
-  # `buf.yaml`) там, где их нет. С `dir: ./server` все задачи модуля
-  # выполняются с cwd=server/.
+  # `dir` обязателен: без него Go-инструменты внутри server (go-arch-lint, buf,
+  # mockery) запускаются из корня репо и не находят свои конфиги.
   server:
     taskfile: ./server
     dir: ./server
   # web/ — Vite + React фронт. Команды зовутся как `task web:<name>` и
-  # выполняются с cwd=web/, чтобы npm видел package.json.
+  # выполняются с cwd=web/, чтобы npm/buf видели свои конфиги.
   web:
     taskfile: ./web
     dir: ./web
 
 tasks:
   checks:
-    desc: Read-only проверки всего репо (server:checks + repo-checks).
+    desc: Read-only проверки всего репо (server:checks + web:checks + repo-checks).
     deps:
       - task: server:checks
+      - task: web:checks
       - task: repo-checks
 
   repo-checks:
-    desc: Общерепные linters + hadolint + сборка Docker-образов.
-    # Параллельный аналог `server:checks` для не-модульного слоя репо.
+    desc: Линтеры «ничьей земли» репозитория (workflows, корневой README, .claude/**).
+    # Параллельный аналог `server:checks` / `web:checks` для не-модульного слоя.
     # Тот же набор зеркалит матрица `.github/workflows/repo-checks.yml`.
     deps:
+      - task: lint-actionlint
       - task: lint-yamllint
       - task: lint-markdownlint
       - task: lint-prettier
       - task: lint-lychee
       - task: lint-cspell
-      - task: lint-actionlint
-      - task: lint-hadolint
-      - task: docker-build
+
+  lint-actionlint:
+    desc: actionlint — статический анализ GitHub Actions workflows (.github/workflows/*.yml).
+    # actionlint сам находит .github/workflows/*.yml — glob не нужен.
+    cmds:
+      - actionlint
 
   lint-yamllint:
-    desc: yamllint по всем YAML-файлам.
+    desc: yamllint по YAML-файлам «ничьей земли».
+    # `.yamllint.yml` уже игнорирует server/, web/, node_modules через `ignore:`.
+    # Проходимся по корню; модульные YAML проверяют сами модули.
     cmds:
       - yamllint .
 
   lint-markdownlint:
-    desc: markdownlint-cli2 — структура Markdown (заголовки, списки, code fences).
-    # `**/*.md` — обычные пути; `**/.*/**/*.md` — dot-каталоги на ЛЮБОМ уровне
-    # (`.claude/`, `foo/.bar/baz.md`, `.github/workflows/...`). `.git` режется
-    # ignore-правилом в `.markdownlint-cli2.jsonc`.
+    desc: markdownlint-cli2 — структура корневого README.md и .claude/**/*.md.
+    # Scope — только «ничья земля». Модули проверяют свои .md сами.
     cmds:
-      - markdownlint-cli2 "**/*.md" "**/.*/**/*.md"
+      - markdownlint-cli2 "*.md" ".claude/**/*.md"
 
   lint-prettier:
-    desc: prettier --check — оформление Markdown (выравнивание GFM-таблиц, пробелы).
-    # Парный к lint-markdownlint: markdownlint проверяет структуру, prettier — оформление.
-    # Globs совпадают с lint-markdownlint; игнор-пути берутся из .gitignore автоматически.
+    desc: prettier --check — оформление корневого README.md и .claude/**/*.md.
     cmds:
-      - prettier --check "**/*.md" "**/.*/**/*.md"
+      - prettier --check "*.md" ".claude/**/*.md"
 
   lint-lychee:
-    desc: lychee — проверка ссылок в Markdown (внешние URL, локальные пути, якоря).
-    # Список файлов берём через `git ls-files --cached --others --exclude-standard`:
-    # это даёт tracked + untracked файлы, уважая .gitignore. Так автоматически
-    # исключается `web/node_modules/**/*.md` (сторонние README с битыми ссылками,
-    # которые не наш код). Передавать bash-glob `**/*.md` нельзя — он подбирает
-    # node_modules, а lychee `exclude_path` действует только при автообходе.
+    desc: lychee — проверка ссылок в Markdown «ничьей земли».
+    # Список файлов берём через `git ls-files`: уважает .gitignore и
+    # исключает scope модулей.
     cmds:
-      - git ls-files --cached --others --exclude-standard "*.md" | xargs lychee --no-progress
+      - >-
+          git ls-files --cached --others --exclude-standard '*.md' ':!server/**' ':!web/**'
+          | xargs lychee --no-progress
 
   lint-cspell:
-    desc: cspell — орфография ru/en во всём репозитории (Go, MD, YAML, TOML, ...).
-    # NODE_PATH указывает на установку русского словаря через mise.
-    # Без этого cspell не найдёт @cspell/dict-ru_ru, импортированный в cspell.config.yaml
-    # (mise ставит каждый npm-пакет в свой изолированный prefix; см. подробнее
-    # README или комментарий у `npm:@cspell/dict-ru_ru` в mise.toml).
-    # `mise where` возвращает каталог установки — одинаково работает локально и в CI.
+    desc: cspell — орфография ru/en в «ничьей земле».
+    # ignorePaths в cspell.config.yaml исключает server/** и web/**.
+    # NODE_PATH указывает на установку русского словаря через корневой mise.toml.
     env:
       NODE_PATH:
         sh: echo "$(mise where npm:@cspell/dict-ru_ru)/lib/node_modules"
     cmds:
       - cspell --no-progress --no-summary "**/*" "**/.*/**/*"
 
-  lint-actionlint:
-    desc: actionlint — статический анализ GitHub Actions workflows (.github/workflows/*.yml).
-    # Без аргументов actionlint сам находит .github/workflows/*.yml; явный glob
-    # не нужен и потенциально ломает обработку reusable workflows в подкаталогах.
-    cmds:
-      - actionlint
-
-  lint-hadolint:
-    desc: hadolint — best practices Docker + shellcheck в RUN.
-    # Правила: https://github.com/hadolint/hadolint/wiki (DL3xxx/DL4xxx,
-    # плюс SC2xxx из shellcheck). Запуск через Docker, а не mise: у
-    # hadolint 2.12.0 нет darwin-arm64 бинарника, x86_64 падает под Rosetta.
-    cmds:
-      - >-
-          docker run --rm -i
-          -v "$PWD:/workspace:ro" -w /workspace
-          ghcr.io/hadolint/hadolint:v2.12.0
-          hadolint server/Dockerfile web/Dockerfile
-
-  docker-build:
-    desc: Собрать Docker-образы обоих сервисов (server + web) параллельно.
-    # Сама сборка живёт внутри модулей: server:docker-build и web:docker-build —
-    # каждый знает свой Dockerfile, контекст и тег. Тут только агрегатор,
-    # симметричный другим композитным задачам корня (run, fmt, checks).
-    # Артефакты — локальные теги fa-server:dev и fa-web:dev, в registry не пушим.
-    deps:
-      - task: server:docker-build
-      - task: web:docker-build
-
   fmt:
-    desc: Запустить все formatters (Go + Markdown).
-    # Используем cmds (последовательно), а не deps (параллельно): fmt-markdownlint
-    # и fmt-prettier работают по одним и тем же .md-файлам, и порядок важен —
-    # сначала markdownlint правит структуру, затем Prettier нормализует
-    # оформление поверх. server:fmt — Go-файлы, конфликта нет, но идёт первой
-    # строкой для единообразия.
+    desc: Запустить все formatters во всех модулях и в «ничьей земле».
+    # Используем cmds (последовательно): fmt-markdownlint и fmt-prettier
+    # работают по одним и тем же .md-файлам — сначала структура, потом
+    # оформление поверх. server:fmt и web:fmt идут параллельно через свои
+    # модули, не конфликтуют с корневыми .md.
     cmds:
       - task: server:fmt
+      - task: web:fmt
       - task: fmt-markdownlint
       - task: fmt-prettier
 
   fmt-markdownlint:
-    desc: markdownlint-cli2 --fix — автофиксы структуры Markdown (стиль пайпов, маркеры списков).
-    # Ошибки игнорируем: неисправляемые проблемы покажет lint-markdownlint в `task lint`.
+    desc: markdownlint-cli2 --fix — автофиксы структуры Markdown в «ничьей земле».
     cmds:
-      - markdownlint-cli2 --fix "**/*.md" "**/.*/**/*.md" || true
+      - markdownlint-cli2 --fix "*.md" ".claude/**/*.md" || true
 
   fmt-prettier:
-    desc: prettier --write — автофикс оформления Markdown (выравнивание таблиц, пробелы).
+    desc: prettier --write — автофикс оформления Markdown в «ничьей земле».
     cmds:
-      - prettier --write "**/*.md" "**/.*/**/*.md"
+      - prettier --write "*.md" ".claude/**/*.md"
 
   run:
     desc: Запустить все модули проекта параллельно (server, web).
@@ -147,3 +115,9 @@ tasks:
     deps:
       - task: server:run
       - task: web:run
+
+  docker-build:
+    desc: Собрать Docker-образы обоих сервисов (server + web) параллельно.
+    deps:
+      - task: server:docker-build
+      - task: web:docker-build

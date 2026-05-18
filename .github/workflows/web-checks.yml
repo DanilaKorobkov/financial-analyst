@@ -1,69 +1,65 @@
 name: web-checks
 
-# Проверки модуля web (контракт ↔ сгенерированный TS-клиент).
-# Запускаются на каждом PR и push в main без path-фильтра, чтобы обязательный
-# required-check `web-checks-passed` всегда появлялся в PR (иначе при правках
-# только в .claude/ или server/ check не запускается, и branch protection
-# вечно ждёт его как pending).
+# Проверки модуля web: линтеры scope (yamllint, markdownlint, prettier,
+# lychee, cspell, hadolint), контракт ↔ сгенерированный TS-клиент,
+# docker-build. Все бинарники — из web/mise.toml.
+#
+# Запускается без path-фильтра: обязательный required-check
+# `web-checks-passed` обязан появляться даже на PR, который не трогает
+# web/ — иначе branch protection виснет в pending.
 on:
   push:
     branches: [main]
   pull_request: {}
 
 # Гасим устаревшие прогоны при быстрой череде коммитов в один и тот же PR
-# или ветку: новый коммит отменяет текущий in-flight run, экономит CI-минуты.
+# или ветку.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
-    # Каждый target — отдельная параллельная job на своём runner; в UI PR
-    # появляются как отдельные статусы (web-checks / check (...)), видно,
-    # какой именно упал, без чтения общего лога.
     strategy:
       fail-fast: false
       matrix:
         target:
-          # `web:lint-generated-proto` — проверка, ради которой этот workflow
-          # существует: запускает buf generate во временный каталог и
-          # сравнивает с зафиксированным в репозитории src/gen. Падает, если
-          # proto-схема изменилась без `task web:generate-proto` либо если
-          # кто-то правил src/gen руками. Гарантирует, что контракт и его
-          # клиент меняются одной транзакцией (одним PR).
-          - web:lint-generated-proto
+          - lint-generated-proto
+          - lint-yamllint
+          - lint-markdownlint
+          - lint-prettier
+          - lint-lychee
+          - lint-cspell
+          - lint-hadolint
+          - docker-build
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
+    # Все `run:` шаги в этом job выполняются с cwd=web/.
+    defaults:
+      run:
+        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
-      # mise ставит инструменты из mise.toml — buf, task и protoc-gen-es
-      # (`npm:@bufbuild/protoc-gen-es`). Дополнительный `npm ci` не нужен:
+      # mise ставит инструменты из web/mise.toml — buf, node, task,
+      # protoc-gen-es, линтеры. Дополнительный `npm ci` не нужен:
       # генерация TS-клиента не зависит от runtime-библиотек фронта.
       - uses: jdx/mise-action@v2
         with:
           install: true
           cache: true
+          working_directory: web
 
-      # Те же targets, что разработчик гоняет локально через `task <target>`.
       - run: task ${{ matrix.target }}
 
   # Aggregate-«страж»: одна job со стабильным именем, зависящая от всей
   # матрицы. Именно её добавляем в required status checks ruleset для main.
-  # Расширение матрицы не требует править ruleset — passed автоматически
-  # ждёт всех новых children через `needs: [check]`.
-  #
-  # `if: always()` обязателен: без него job скипается при падении матрицы и
-  # required check остаётся pending, блокируя merge.
   passed:
     name: web-checks-passed
     needs: [check]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      # failure — хоть один target упал; cancelled — workflow отменён (новый
-      # коммит через concurrency); skipped — job не запустился. Любой из трёх
-      # = «не всё зелёное» → стражу нужно упасть.
       - if: >-
           ${{ contains(needs.*.result, 'failure')
           || contains(needs.*.result, 'cancelled')

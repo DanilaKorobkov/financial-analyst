@@ -1,17 +1,25 @@
 version: '3'
 
-# Go-задачи модуля server. Запускаются из директории server/ — все пути
+# Задачи модуля server. Запускаются из директории server/ — все пути
 # и конфиги (.golangci.yml, .go-arch-lint.yml, .mockery.yaml,
-# .testcoverage.yml, buf.yaml, buf.gen.yaml) относительны этому каталогу.
-# Корневой Taskfile.yml подключает этот файл через `includes: server: ./server`,
-# поэтому из корня задачи зовутся `task server:<name>`.
+# .testcoverage.yml, buf.yaml, buf.gen.yaml, cspell.config.yaml) относительны
+# этому каталогу. Корневой Taskfile.yml подключает этот файл через
+# `includes: server: ./server`, поэтому из корня задачи зовутся
+# `task server:<name>`.
+#
+# Линт-задачи scope модуля (yamllint, markdownlint, prettier, lychee, cspell,
+# hadolint) живут здесь, а не на корне: каждый модуль проверяет только свои файлы
+# своими бинарниками из server/mise.toml. Общерепные конфиги-правила
+# (.markdownlint-cli2.jsonc, .prettierrc.yaml, .yamllint.yml, lychee.toml)
+# подхватываются по поиску вверх по дереву (markdownlint-cli2, prettier) либо
+# передаются явно (-c, --config) — это даёт единый стиль на репо без
+# дублирования правил.
 
 includes:
-  # Общерепные переиспользуемые таски (см. taskfile-snippets.yml в корне).
-  # `dir: .` означает: snippet-таски запускаются с cwd модуля server/,
-  # а не из директории, где лежит сам snippets-файл.
+  # Переиспользуемые snippets — лежат рядом, в server/, чтобы модуль не зависел
+  # от корня (см. ../web/taskfile-snippets.yml — симметричная копия).
   snippets:
-    taskfile: ../taskfile-snippets.yml
+    taskfile: ./taskfile-snippets.yml
     dir: .
     internal: true
 
@@ -24,7 +32,7 @@ tasks:
       - task: test
 
   lint:
-    desc: Запустить все Go-линтеры модуля параллельно.
+    desc: Запустить все линтеры модуля параллельно.
     deps:
       - task: lint-golangci-lint
       - task: lint-structfielddocs
@@ -33,6 +41,12 @@ tasks:
       - task: lint-buf
       - task: lint-generated-proto
       - task: lint-generated-mocks
+      - task: lint-yamllint
+      - task: lint-markdownlint
+      - task: lint-prettier
+      - task: lint-lychee
+      - task: lint-cspell
+      - task: lint-hadolint
 
   lint-golangci-lint:
     desc: golangci-lint по всему Go-коду.
@@ -41,25 +55,16 @@ tasks:
 
   lint-structfielddocs:
     desc: Проектный анализатор — doc-комментарии у экспортируемых полей структур.
-    # Исполняемый файл ставится через mise, версия зафиксирована в mise.toml.
-    # Источник — go:github.com/DanilaKorobkov/go-checkers/cmd/structfielddocs.
     cmds:
       - structfielddocs ./...
 
   lint-arch:
     desc: go-arch-lint — проверка слоёной архитектуры (.go-arch-lint.yml).
-    # Запрещает запрещённые стрелки между компонентами (domain → infra и т.п.).
-    # Конфиг — .go-arch-lint.yml рядом с этим Taskfile; описывает границы слоёв,
-    # исключения для composition root (app/, cmd/) и общие компоненты (gen/, mocks/).
     cmds:
       - go-arch-lint check
 
   lint-govulncheck:
     desc: govulncheck — проверка известных CVE в Go-зависимостях и stdlib.
-    # Официальный сканер уязвимостей от команды Go (golang.org/x/vuln).
-    # В отличие от audit-инструментов по списку модулей анализирует call graph
-    # и репортит только реально достижимые из проекта уязвимости — меньше
-    # шума. База — https://vuln.go.dev. Exit code != 0 при findings — CI падает.
     cmds:
       - govulncheck ./...
 
@@ -73,16 +78,11 @@ tasks:
     cmds:
       - task: snippets:diff-generated
         vars:
-          # buf.gen.yaml уже задаёт `out: gen`; --output становится корнем,
-          # поверх которого плагин дописывает свой `out`. Поэтому передаём
-          # $OUTPUT_DIR, а не $OUTPUT_DIR/gen — иначе получим .../gen/gen.
           GEN_CMD: buf generate --output "$OUTPUT_DIR"
           REAL_DIR: gen
 
   lint-generated-mocks:
     desc: Проверить, что mocks/ в репозитории совпадают с mockery generate.
-    # У mockery нет CLI-флага output-dir — подкладываем временный
-    # .mockery.yaml с перезаписанным `dir:`, чтобы он писал в $OUTPUT_DIR.
     cmds:
       - task: snippets:diff-generated
         vars:
@@ -92,25 +92,63 @@ tasks:
             mockery --config "$cfg"
           REAL_DIR: mocks
 
+  lint-yamllint:
+    desc: yamllint по YAML-файлам модуля.
+    cmds:
+      - yamllint .
+
+  lint-markdownlint:
+    desc: markdownlint-cli2 — структура Markdown-файлов модуля.
+    # Конфиг общерепной (.markdownlint-cli2.jsonc) подхватывается
+    # автообходом вверх. Если .md-файлов в модуле нет — задача no-op.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs markdownlint-cli2
+
+  lint-prettier:
+    desc: prettier --check — оформление Markdown-файлов модуля.
+    # Конфиг общерепной (.prettierrc.yaml) подхватывается автообходом вверх.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs prettier --check
+
+  lint-lychee:
+    desc: lychee — проверка ссылок в Markdown-файлах модуля.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs lychee --config ../lychee.toml --no-progress
+
+  lint-cspell:
+    desc: cspell — орфография ru/en в scope модуля server.
+    # NODE_PATH указывает на установку русского словаря через server/mise.toml.
+    env:
+      NODE_PATH:
+        sh: echo "$(mise where npm:@cspell/dict-ru_ru)/lib/node_modules"
+    cmds:
+      - cspell --no-progress --no-summary --config cspell.config.yaml "**/*" "**/.*/**/*"
+
+  lint-hadolint:
+    desc: hadolint — best practices Docker + shellcheck в RUN для Dockerfile модуля.
+    # Запуск через docker: у hadolint 2.12.0 нет darwin-arm64 бинарника.
+    # Контекст — только server/Dockerfile (web/Dockerfile проверяет web:lint-hadolint).
+    cmds:
+      - >-
+          docker run --rm -i
+          -v "$PWD:/workspace:ro" -w /workspace
+          ghcr.io/hadolint/hadolint:v2.12.0
+          hadolint Dockerfile
+
   test:
     desc: go test + go-test-coverage (пороги покрытия по слоям).
-    # -covermode=atomic — единственный режим, корректный при `-race` и при
-    # параллельных пакетах; -coverpkg=./... учитывает покрытие в пакетах,
-    # которые тестируются опосредованно (например, domain покрывается тестами
-    # на presentation). Без него go test пишет в профиль только пакеты, у
-    # которых есть собственные _test.go-файлы — и слой с золотыми тестами
-    # наверху не засчитывается слою с логикой внизу.
-    #
-    # Сразу за `go test` идёт go-test-coverage — порог покрытия из
-    # .testcoverage.yml. Один task = один пробег тестов; cmds выполняются
-    # последовательно, поэтому проверка порогов всегда читает свежий
-    # coverage.out, без отдельной зависимой задачи.
     cmds:
       - go test -race -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
       - go-test-coverage --config=./.testcoverage.yml
 
   compile:
-    desc: Проверить, что все binaries cmd/* компилируются. Каждый — отдельная задача, в параллель.
+    desc: Проверить, что все binaries cmd/* компилируются.
     deps:
       - task: compile-server
 
@@ -121,8 +159,6 @@ tasks:
 
   docker-build:
     desc: Собрать Docker-образ Connect-сервера (fa-server:dev) из Dockerfile.
-    # cwd этой задачи — ./server (из includes.dir в корневом Taskfile),
-    # поэтому контекст сборки — точка. Образ локальный, в registry не пушим.
     cmds:
       - docker build -t fa-server:dev .
 
@@ -130,43 +166,47 @@ tasks:
     desc: >-
       Запустить Connect-сервер. Если порт уже занят — освободить и
       перезапустить.
-    # cwd этой задачи — ./server (из includes.dir в корневом Taskfile).
-    # .env лежит на корне репо, поэтому пути к нему — относительные (../.env).
-    # preconditions останавливают задачу до cmds; .env обязателен, потому
-    # что caarlos0/env с required без дефолтов упадёт с невнятной ошибкой.
-    #
-    # dotenv грузит переменные из ../.env в env процесса task, и они
-    # наследуются `go run`. godotenv.Load() в app/config.go ищет ./.env
-    # от cwd процесса (=server/) — не найдёт, вернёт ErrNotExist, что код
-    # уже трактует как «файла нет, не ошибка» и использует уже выставленный env.
+    # .env лежит рядом с модулем (server/.env). Конфиг читается только из
+    # переменных окружения через caarlos0/env — без .env требуемые поля
+    # упадут с невнятной ошибкой, поэтому preconditions останавливают
+    # задачу до cmds.
     preconditions:
-      - sh: test -f ../.env
-        msg: .env не найден — выполни `cp .env.example .env` в корне репо.
+      - sh: test -f .env
+        msg: .env не найден — выполни `cp .env.example .env` в server/.
     dotenv:
-      - ../.env
-    # Порт читаем из самого .env, чтобы Taskfile не дублировал значение
-    # SERVER_PORT и автоматически следовал за конфигом.
+      - .env
     vars:
-      # `[ -f ../.env ] && grep ... || true` — глушим ошибку grep, если .env
-      # нет: vars вычисляются раньше preconditions, и иначе пользователь
-      # увидит "grep: ../.env: No such file or directory" поверх осмысленного
-      # сообщения.
       PORT:
-        sh: '[ -f ../.env ] && grep -E "^SERVER_PORT=" ../.env | cut -d= -f2 || true'
+        sh: '[ -f .env ] && grep -E "^SERVER_PORT=" .env | cut -d= -f2 || true'
     cmds:
-      # SIGKILL — обработчик процесса не успевает выполниться, ядро снимает
-      # процесс и освобождает порт сразу при доставке сигнала. Это убирает
-      # необходимость опрашивать порт в цикле. `xargs -I{}` корректно
-      # обрабатывает пустой вход (когда порт свободен) — без -I `xargs`
-      # на macOS вызвал бы `kill -9` без аргументов и упал. `/bin/kill` —
-      # потому что встроенный shell go-task (mvdan/sh) не реализует builtin.
       - lsof -tiTCP:{{.PORT}} -sTCP:LISTEN 2>/dev/null | xargs -I{} /bin/kill -9 {}
       - go run ./cmd/server
 
   fmt:
-    desc: Автофиксы Go-кода через golangci-lint --fix (ошибки игнорируем — их покажет lint).
+    desc: Автофиксы кода модуля (Go + Markdown).
+    cmds:
+      - task: fmt-go
+      - task: fmt-markdownlint
+      - task: fmt-prettier
+
+  fmt-go:
+    desc: golangci-lint --fix — автофиксы Go-кода (ошибки игнорируем, их покажет lint).
     cmds:
       - golangci-lint run --fix ./... || true
+
+  fmt-markdownlint:
+    desc: markdownlint-cli2 --fix — автофиксы структуры Markdown-файлов модуля.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs markdownlint-cli2 --fix || true
+
+  fmt-prettier:
+    desc: prettier --write — автофикс оформления Markdown-файлов модуля.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs prettier --write
 
   generate:
     desc: Сгенерировать весь автоматически создаваемый код параллельно (proto + mocks).

@@ -134,14 +134,12 @@ rules:
   key-ordering: disable
 
 # Файлы и пути, которые не проверяем.
-# Scope модулей (server/, web/) проверяются собственными задачами
-# `task server:lint-yamllint` и `task web:lint-yamllint` через тот же конфиг
-# (`yamllint -c ../.yamllint.yml .`), поэтому из корневого обхода исключены.
 ignore: |
   .git/
   .idea/
   vendor/
   node_modules/
-  server/
-  web/
+  dist/
+  .vite/
+  src/gen/
   .diff-generated.*/

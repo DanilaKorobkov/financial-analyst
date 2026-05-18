@@ -1,8 +1,11 @@
 name: repo-checks
 
-# Общерепные linters: работают по всему репозиторию (Go-код, Markdown, YAML,
-# GitHub Actions, ссылки, орфография). Не привязаны к конкретному модулю,
-# поэтому запускаются без path-фильтра.
+# Линтеры «ничьей земли» репозитория: .github/workflows/*.yml,
+# корневой README.md, .claude/**, корневые конфиги.
+# Scope server/** и web/** проверяются собственными workflow
+# (server-checks, web-checks) — здесь явно исключены.
+#
+# Бинарники — из корневого mise.toml (без Go-toolchain, buf, mockery).
 on:
   push:
     branches: [main]
@@ -17,57 +20,39 @@ concurrency:
 jobs:
   check:
     # Каждый target — отдельный параллельный job на своём runner.
-    # В UI PR появляются как отдельные статусы
-    # (`repo-checks / check (lint-cspell)` и т.п.).
+    # В UI PR появляются как `repo-checks / check (lint-cspell)` и т.п.
     strategy:
       fail-fast: false
       matrix:
         target:
+          - lint-actionlint
           - lint-yamllint
           - lint-markdownlint
           - lint-prettier
           - lint-lychee
           - lint-cspell
-          - lint-actionlint
-          # Линт Dockerfile-ов: запускается из Docker-образа hadolint,
-          # daemon на ubuntu-latest уже есть из коробки — доп. setup не нужен.
-          - lint-hadolint
-          # Сборка Docker-образов модулей — на CI работают как отдельные
-          # job'ы (server и web параллельно), это даёт чистые статусы в PR.
-          - server:docker-build
-          - web:docker-build
     name: check (${{ matrix.target }})
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # mise ставит инструменты из mise.toml.
-      # Версии — единая точка правды с локальной машиной разработчика.
+      # mise ставит инструменты из корневого mise.toml — node, python,
+      # pipx-yamllint, npm-линтеры, lychee, actionlint.
       - uses: jdx/mise-action@v2
         with:
           install: true
           cache: true
 
-      # Те же targets, что разработчик запускает локально через `task <target>`.
       - run: task ${{ matrix.target }}
 
   # Aggregate-«страж»: одна job со стабильным именем, зависящая от всей
   # матрицы. Именно её добавляем в required status checks ruleset для main.
-  # Расширение матрицы не требует править ruleset — passed автоматически
-  # ждёт всех новых children через `needs: [check]`.
-  #
-  # `if: always()` обязателен: без него job скипается при падении матрицы и
-  # required check остаётся pending, блокируя merge.
   passed:
     name: repo-checks-passed
     needs: [check]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      # failure — хоть один target упал; cancelled — workflow отменён
-      # (например, новым commit через concurrency); skipped — job не
-      # запустился (например, выключен через `if:` в самой матрице). Любой из
-      # трёх = «не всё зелёное» → стражу нужно упасть.
       - if: >-
           ${{ contains(needs.*.result, 'failure')
           || contains(needs.*.result, 'cancelled')

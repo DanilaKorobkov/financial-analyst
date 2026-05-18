@@ -1,22 +1,117 @@
 version: '3'
 
-# Taskfile модуля web/. Команды зовутся из корня как `task web:<name>`
-# через includes в корневом Taskfile.yml.
+# Задачи модуля web. Запускаются из директории web/ — все пути и конфиги
+# (buf.gen.yaml, cspell.config.yaml) относительны этому каталогу. Корневой
+# Taskfile.yml подключает этот файл через `includes: web: ./web`, поэтому
+# из корня задачи зовутся `task web:<name>`.
+#
+# Линт-задачи scope модуля (yamllint, markdownlint, prettier, lychee, cspell,
+# hadolint) живут здесь, а не на корне: каждый модуль проверяет только свои файлы
+# своими бинарниками из web/mise.toml. Общерепные конфиги-правила берутся
+# через автообход вверх или через -c/--config.
 
 includes:
-  # Общерепные переиспользуемые таски (см. taskfile-snippets.yml в корне).
-  # `dir: .` означает: snippet-таски запускаются с cwd модуля web/,
-  # а не из директории, где лежит сам snippets-файл.
+  # Переиспользуемые snippets — лежат рядом, в web/, чтобы модуль не зависел
+  # от корня (см. ../server/taskfile-snippets.yml — симметричная копия).
   snippets:
-    taskfile: ../taskfile-snippets.yml
+    taskfile: ./taskfile-snippets.yml
     dir: .
     internal: true
 
 tasks:
   checks:
-    desc: Read-only проверки модуля web (контракт ↔ сгенерированный TS-клиент).
+    desc: Read-only проверки модуля web (lint + контракт ↔ сгенерированный TS-клиент).
+    deps:
+      - task: lint
+
+  lint:
+    desc: Запустить все линтеры модуля параллельно.
     deps:
       - task: lint-generated-proto
+      - task: lint-yamllint
+      - task: lint-markdownlint
+      - task: lint-prettier
+      - task: lint-lychee
+      - task: lint-cspell
+      - task: lint-hadolint
+
+  lint-generated-proto:
+    desc: Проверить, что src/gen/ совпадает с buf generate (защита от дрейфа .proto ↔ TS).
+    cmds:
+      - task: snippets:diff-generated
+        vars:
+          # buf.gen.yaml уже задаёт `out: src/gen`; переопределяем корень
+          # через --output, поверх которого плагин дописывает свой `out`.
+          GEN_CMD: buf generate ../server --template buf.gen.yaml --output "$OUTPUT_DIR"
+          REAL_DIR: src/gen
+
+  lint-yamllint:
+    desc: yamllint по YAML-файлам модуля.
+    cmds:
+      - yamllint .
+
+  lint-markdownlint:
+    desc: markdownlint-cli2 — структура Markdown-файлов модуля.
+    # Конфиг общерепной (.markdownlint-cli2.jsonc) подхватывается автообходом
+    # вверх. Если .md-файлов в модуле нет — задача no-op.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs markdownlint-cli2
+
+  lint-prettier:
+    desc: prettier --check — оформление Markdown-файлов модуля.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs prettier --check
+
+  lint-lychee:
+    desc: lychee — проверка ссылок в Markdown-файлах модуля.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs lychee --config ../lychee.toml --no-progress
+
+  lint-cspell:
+    desc: cspell — орфография ru/en в scope модуля web.
+    # NODE_PATH указывает на установку русского словаря через web/mise.toml.
+    env:
+      NODE_PATH:
+        sh: echo "$(mise where npm:@cspell/dict-ru_ru)/lib/node_modules"
+    cmds:
+      - cspell --no-progress --no-summary --config cspell.config.yaml "**/*" "**/.*/**/*"
+
+  lint-hadolint:
+    desc: hadolint — best practices Docker + shellcheck в RUN для Dockerfile модуля.
+    # Запуск через docker: у hadolint 2.12.0 нет darwin-arm64 бинарника.
+    # Контекст — только web/Dockerfile (server/Dockerfile проверяет server:lint-hadolint).
+    cmds:
+      - >-
+          docker run --rm -i
+          -v "$PWD:/workspace:ro" -w /workspace
+          ghcr.io/hadolint/hadolint:v2.12.0
+          hadolint Dockerfile
+
+  fmt:
+    desc: Автофиксы Markdown-файлов модуля.
+    cmds:
+      - task: fmt-markdownlint
+      - task: fmt-prettier
+
+  fmt-markdownlint:
+    desc: markdownlint-cli2 --fix — автофиксы структуры Markdown-файлов модуля.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs markdownlint-cli2 --fix || true
+
+  fmt-prettier:
+    desc: prettier --write — автофикс оформления Markdown-файлов модуля.
+    cmds:
+      - >-
+          files=$(git ls-files --cached --others --exclude-standard '*.md' '**/*.md');
+          [ -z "$files" ] || echo "$files" | xargs prettier --write
 
   install:
     desc: Поставить npm-зависимости фронта.
@@ -37,25 +132,11 @@ tasks:
 
   docker-build:
     desc: Собрать Docker-образ фронта (fa-web:dev) из Dockerfile.
-    # cwd задачи — ./web (из includes.dir в корневом Taskfile), контекст
-    # сборки — точка. Образ локальный, в registry не пушим.
     cmds:
       - docker build -t fa-web:dev .
 
   generate-proto:
     desc: Сгенерировать TS-клиент Connect из proto-схем сервера. Артефакты — в src/gen/.
-    # Плагин protoc-gen-es ставится через mise (см. mise.toml,
-    # `npm:@bufbuild/protoc-gen-es`); buf находит его в PATH автоматически.
-    # buf-конфиг — web/buf.gen.yaml, входной модуль .proto — ../server.
+    # Плагин protoc-gen-es ставится через web/mise.toml; buf находит его в PATH.
     cmds:
       - buf generate ../server --template buf.gen.yaml
-
-  lint-generated-proto:
-    desc: Проверить, что src/gen/ совпадает с buf generate (защита от дрейфа .proto ↔ TS).
-    cmds:
-      - task: snippets:diff-generated
-        vars:
-          # buf.gen.yaml уже задаёт `out: src/gen`; переопределяем корень
-          # через --output, поверх которого плагин дописывает свой `out`.
-          GEN_CMD: buf generate ../server --template buf.gen.yaml --output "$OUTPUT_DIR"
-          REAL_DIR: src/gen

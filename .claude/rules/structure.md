@@ -3,8 +3,11 @@
 Карта репозитория для быстрой навигации. Слои и правила изоляции — `golang.md`.
 
 Репозиторий организован как модульный монолит: серверная часть на Go живёт в
-`server/`, frontend появится рядом в `web/`. Общий toolchain (mise, общерепные
-линтеры, корневой Taskfile) — на корне.
+`server/`, фронт — в `web/`. Toolchain **изолирован между модулями**: у каждого
+модуля свой `mise.toml`, свой `Taskfile.yml`, своя копия
+`taskfile-snippets.yml` и свой словарь cspell. Корневой слой репозитория
+держит только линтеры «ничьей земли» — `.github/workflows/`, корневой
+`README.md`, `.claude/**`, корневые конфиги.
 
 ## Дерево
 
@@ -43,64 +46,37 @@
 │   │
 │   ├── internal/
 │   │   ├── domain/                        # Ядро, не знает о транспорте и провайдерах
-│   │   │   ├── aggregates/
-│   │   │   │   └── company/               # Агрегат Company: корень + секции + порты + ошибки
-│   │   │   │       ├── company.go
-│   │   │   │       ├── securitydescription.go
-│   │   │   │       ├── stockdividend.go
-│   │   │   │       ├── stockidea.go
-│   │   │   │       ├── stockinfo.go
-│   │   │   │       ├── stockinsidertransaction.go
-│   │   │   │       ├── stockoperation.go
-│   │   │   │       ├── stockowner.go
-│   │   │   │       ├── stockratio.go
-│   │   │   │       ├── stockreport.go
-│   │   │   │       ├── stockshare.go
-│   │   │   │       ├── stocksummary.go
-│   │   │   │       ├── stock_period.go
-│   │   │   │       ├── stock_source.go    # Порт источника stock-секций
-│   │   │   │       ├── repository.go      # Порт CompanyRepository
-│   │   │   │       ├── enums.go
-│   │   │   │       └── errors.go          # Sentinel-ошибки (ErrCompanyNotFound, …)
-│   │   │   └── services/
-│   │   │       └── company_service.go     # Use-case'ы поверх портов агрегатов
-│   │   │
 │   │   ├── infra/                         # Адаптеры внешних систем (реализации портов)
-│   │   │   ├── company/
-│   │   │   │   └── repository.go          # Composite-репозиторий: собирает Company из источников
-│   │   │   ├── moex/                      # MOEX ISS
-│   │   │   │   ├── client/client.go       # resty-клиент
-│   │   │   │   └── securitydescription/
-│   │   │   │       ├── source.go
-│   │   │   │       ├── parser.go
-│   │   │   │       └── testdata/
-│   │   │   ├── financemarker/             # FinanceMarker
-│   │   │   │   ├── client/client.go
-│   │   │   │   └── stock/
-│   │   │   │       ├── source.go
-│   │   │   │       ├── parser.go
-│   │   │   │       ├── query.go
-│   │   │   │       └── testdata/
-│   │   │   └── cache/
-│   │   │       ├── filecache/
-│   │   │       └── httpcache/
-│   │   │
 │   │   └── presentation/                  # Транспортный слой
-│   │       └── connect/
-│   │           ├── server.go              # Connect-handlers
-│   │           └── mapper.go              # domain ↔ proto
 │   │
 │   ├── mocks/                             # mockery, зеркалит internal/. Руками не править
-│   │   └── internal_/...
 │   │
+│   ├── .cspell/project.txt                # Локальный словарь cspell scope server
+│   ├── cspell.config.yaml                 # Конфиг cspell scope server
+│   ├── .yamllint.yml                      # Конфиг yamllint scope server
+│   ├── mise.toml                          # Toolchain модуля (go, golangci-lint, buf, mockery, линтеры)
+│   ├── taskfile-snippets.yml              # Переиспользуемые snippets (копия web-версии)
+│   ├── .env.example                       # Шаблон env (FINANCEMARKER_TOKEN, MOEX_BASE_URL, …)
 │   ├── go.mod                             # module github.com/DanilaKorobkov/financial-analyst
 │   ├── go.sum
-│   ├── Taskfile.yml                       # Go-задачи (task server:checks, server:test, …)
+│   ├── Taskfile.yml                       # task server:<name> (lint/test/run/docker-build/…)
 │   ├── buf.yaml, buf.gen.yaml             # Конфиг buf (proto lint + кодген)
 │   ├── .go-arch-lint.yml                  # Проверка изоляции слоёв
 │   ├── .golangci.yml                      # Линтеры Go
 │   ├── .mockery.yaml                      # Конфиг mockery
-│   └── .testcoverage.yml                  # Пороги покрытия
+│   ├── .testcoverage.yml                  # Пороги покрытия
+│   └── Dockerfile                         # multi-stage сборка сервера
+│
+├── web/                                   # Vite + React фронт
+│   ├── src/, index.html, …
+│   ├── .cspell/project.txt                # Локальный словарь cspell scope web
+│   ├── cspell.config.yaml                 # Конфиг cspell scope web
+│   ├── .yamllint.yml                      # Конфиг yamllint scope web
+│   ├── mise.toml                          # Toolchain модуля (node, buf, protoc-gen-es, линтеры)
+│   ├── taskfile-snippets.yml              # Переиспользуемые snippets (копия server-версии)
+│   ├── Taskfile.yml                       # task web:<name> (lint/build/run/docker-build/…)
+│   ├── buf.gen.yaml                       # Кодген TS-клиента из server/api/proto
+│   └── Dockerfile                         # multi-stage сборка фронта под Caddy
 │
 ├── .claude/
 │   ├── CLAUDE.md                          # Концепция системы
@@ -111,22 +87,39 @@
 │   │   ├── git.md                         # Branches, commits, PR
 │   │   ├── tooling.md                     # mise — единственная точка правды для версий
 │   │   ├── cspell.md                      # Словари и борьба с англицизмами
+│   │   ├── web/code.md                    # Конвенции frontend-модуля
 │   │   └── structure.md                   # ← этот файл
 │   └── skills/                            # Локальные skills
 │
 ├── .github/                               # GitHub Actions workflows
-├── .cspell/, cspell.config.yaml           # Словари cspell (общерепные)
-├── lychee.toml                            # Конфиг lychee (общерепной)
-├── mise.toml                              # Версии инструментов. См. tooling.md
-├── Taskfile.yml                           # Общерепные линтеры + делегация в server/
-├── .env.example                           # Шаблон env (FINANCEMARKER_TOKEN, MOEX_BASE_URL, …)
+│                                          # repo-checks / server-checks / web-checks
+├── .cspell/project.txt                    # Словарь cspell «ничьей земли»
+├── cspell.config.yaml                     # Конфиг cspell «ничьей земли» (ignorePaths server/** web/**)
+├── .yamllint.yml                          # Конфиг yamllint «ничьей земли» (server/, web/ в `ignore:`)
+├── .markdownlint-cli2.jsonc               # Конфиг markdownlint (общий)
+├── .prettierrc.yaml                       # Конфиг prettier (общий)
+├── lychee.toml                            # Конфиг lychee (общий)
+├── mise.toml                              # Toolchain «ничьей земли» (yamllint, markdownlint, cspell, lychee, actionlint)
+├── Taskfile.yml                           # repo-checks + агрегатор checks/fmt/run/docker-build
 ├── LICENSE
 └── README.md
 ```
 
 ## Команды
 
-Все Go-задачи модуля сервера зовутся `task server:<name>` (например
-`task server:test`, `task server:lint-golangci-lint`). Корневой
-`task checks` композирует `server:checks` плюс общерепные линтеры.
-Запуск сервера — `task run-server` из корня (читает `.env` корня).
+Из корня:
+
+- `task checks` — `server:checks` + `web:checks` + `repo-checks` параллельно.
+- `task fmt` — fmt во всех модулях + «ничья земля».
+- `task run` — поднять server и web параллельно.
+- `task docker-build` — собрать оба Docker-образа.
+- `task repo-checks` — линтеры «ничьей земли».
+
+Точечно: `task server:<name>` (например `task server:test`,
+`task server:lint-golangci-lint`), `task web:<name>` (например
+`task web:lint-generated-proto`, `task web:build`).
+
+Изнутри модуля работают «короткие» имена без префикса: `cd server && task test`,
+`cd web && task build`.
+
+`task server:run` читает `server/.env` (см. `server/.env.example`).

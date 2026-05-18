@@ -1,0 +1,66 @@
+# Конфиг cspell — code-aware spell-checker для scope server/.
+# Документация: https://cspell.org/configuration/
+# Запуск: `cspell "**/*"` из server/ (см. server/Taskfile.yml -> lint-cspell).
+
+# Версия схемы конфига cspell. Текущая стабильная — 0.2.
+version: "0.2"
+
+# Языки/locale, на которых может быть текст в scope server/.
+language: ru,en
+
+# Подключаемые внешние конфиги словарей.
+# `@cspell/dict-ru_ru` ставится через server/mise.toml; путь определяется через
+# NODE_PATH, выставляемый в server/Taskfile.yml -> lint-cspell.
+import:
+  - "@cspell/dict-ru_ru/cspell-ext.json"
+
+# Bundled-словари cspell.
+dictionaries:
+  - en_US
+  - en-common-misspellings
+  - softwareTerms
+  - companies
+  - filetypes
+  - golang
+  - bash
+  - shell
+  - git
+  - node
+  - npm
+  - docker
+  - project
+
+# Локальный словарь модуля server.
+dictionaryDefinitions:
+  - name: project
+    path: ./.cspell/project.txt
+    addWords: true
+
+# Минимальная длина слова для проверки.
+minWordLength: 4
+
+# Уважать .gitignore модуля.
+useGitignore: true
+
+# Дополнительные пути, которые НЕ проверяем (поверх .gitignore).
+ignorePaths:
+  - "**/.git/**"
+  - go.sum
+  - "**/*.lock"
+  - "**/testdata/**"        # Тестовые фикстуры: специально кривые данные.
+  - "**/gen/**"             # Сгенерированный protobuf-код.
+  - "**/mocks/**"           # Сгенерированные mockery mocks.
+  - mise.toml               # Список инструментов: пакеты, GitHub-логины, aqua-пути.
+  - .cspell/project.txt     # Сам словарь не проверяем (рекурсия).
+  - .golangci-cache/
+  - .gocache/
+
+# Паттерны, которые внутри файлов вырезаются ДО проверки (regex).
+ignoreRegExpList:
+  - https?://\S+
+  - \b(?:github|gitlab|bitbucket)\.com/[\w.-]+/[\w.-]+
+  - \b[0-9a-f]{7,40}\b
+  - \b[A-Za-z0-9+/=]{32,}\b
+  - \b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b
+
+allowCompoundWords: true

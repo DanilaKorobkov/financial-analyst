@@ -1,0 +1,291 @@
+# Проектный словарь cspell.
+# Сюда добавляем ТОЛЬКО то, чего нет в общих словарях ru_ru/en_US/softwareTerms/companies:
+#   - устоявшиеся доменные термины на русском (без английского эквивалента в контексте),
+#   - аббревиатуры/тикеры,
+#   - имена брендов и идентификаторы из URL.
+# Транслит англицизмов (тулинг/билд/скиллы/...) — НЕ добавляем; пишем по-английски.
+# Сокращения и жаргон в прозе — НЕ добавляем; пишем полную форму.
+# Опечатки — НЕ добавляем; исправляем в исходниках.
+#
+# Формат: одно слово на строку. Регистр не важен. # — комментарий.
+
+# --- Финансовые термины (RU), устоявшиеся, отсутствующие в общем ru_ru ---
+мультипликатор
+тикер
+эмитент
+мажоритарий
+гэп               # дивидендный гэп — устоявшийся биржевой термин
+гэпа
+
+# --- Стандарты бухгалтерской отчётности (RU аббревиатуры) ---
+МСФО              # IFRS, International Financial Reporting Standards
+РСБУ              # Российские стандарты бухгалтерского учёта
+IFRS              # International Financial Reporting Standards
+GAAP              # Generally Accepted Accounting Principles
+
+# --- Доменные термины-сокращения (EN) ---
+EBITDAPS          # EBITDA per share — отдельное поле в отчётности эмитента
+FCFPS             # Free Cash Flow per share — отдельное поле в отчётности эмитента
+
+# --- Доменные русские термины ---
+гранулярность     # гранулярность отчётного периода (Y/Q/H/YTM)
+гранулярности
+нераспределённая  # нераспределённая прибыль — устоявшийся термин баланса
+
+# --- Финансовые сокращения (EN) ---
+EBITDA
+EBIT
+CAPEX
+ROIC
+ROCE
+CAGR              # Compound Annual Growth Rate
+ARPC              # Average Revenue Per Client
+ARPU              # Average Revenue Per User
+GMV               # Gross Merchandise Value
+РЕПО              # сделка РЕПО
+
+# --- Биржи и MIC-коды (ISO 10383) ---
+MOEX
+HKEX              # Hong Kong Stock Exchange
+MISX              # MIC код Московской биржи
+
+# --- Тикеры MOEX (используются в примерах ответов API) ---
+SBER
+SBERP
+YDEX
+LKOH
+OZON
+VTBR
+GAZP
+SIBN
+AQUA
+DOMRF
+
+# --- Имена полей FinanceMarker API (snake_case фрагменты) ---
+pfcf              # P/FCF
+pffo              # P/FFO
+evebitda          # EV/EBITDA (в API без слешей)
+debtebitda        # Debt/EBITDA
+depr              # depreciation (в depr_depl_amort)
+depl              # depletion (в depr_depl_amort)
+invesments        # опечатка эмитента в имени поля `cash_equiv_st_invesments` — оставляем как в API
+reestr            # `reestr_close_date` — поле API (транслит «реестр»)
+perc              # `c_perc_profit` / `t_perc_profit` — поля API
+aprs              # operation_metric_id (ARPC)
+
+# --- Бренды российских эмитентов / групп ---
+Сбер              # бренд группы Сбербанка
+Сбера             # родительный падеж
+Финам             # брокер «Финам»
+АКБФ              # «АКБФ Инвестиции»
+РСХБ              # Россельхозбанк («РСХБ Инвестиции»)
+
+# --- Имена сервисов и брендов ---
+FinanceMarker
+amannn            # GitHub-аккаунт автора action-semantic-pull-request
+tabler            # @tabler/icons-react — иконпак, упомянут в правилах web/
+
+# --- Имена инструментов проекта (нет ни в одном bundle-словаре cspell) ---
+golangci        # golangci-lint
+pipx            # Python CLI installer
+
+# --- Идентификаторы protobuf / Connect (используются в hand-written коде) ---
+companyv        # пакет gen/company/v1 → companyv1 / companyv1connect
+connectrpc      # connectrpc.com/connect — runtime библиотека Connect
+Isin            # геттер сгенерированного proto-поля isin (GetIsin)
+timestamppb     # google.golang.org/protobuf/types/known/timestamppb
+pconnect        # импорт-алиас presentation/connect в композиции
+
+# --- Имена Go-библиотек проекта ---
+resty           # HTTP-клиент github.com/go-resty/resty/v2
+godotenv        # библиотека github.com/joho/godotenv (.env loader)
+jsoniter        # JSON-парсер github.com/json-iterator/go
+
+# --- Директивы линтеров ---
+nolint          # директива golangci-lint в коде
+
+# --- MOEX ISS API термины (имена эндпоинтов / блоков / параметров) ---
+deviationcoeffs   # имя эндпоинта /iss/.../deviationcoeffs.json
+sdfi              # своп-кривые SDFI (Standard Derivatives Financial Instruments)
+SDFI
+msfo              # /iss/cci/accounting/msfo-full — МСФО на латинице в URL
+
+# --- MOEX ISS: имена полей блоков и query-параметров (часть встречается в URL) ---
+SECID
+secid
+TRADENO
+NUMTRADES
+Numtrades
+numtrades
+VALTRD
+WAPRICE
+waprice
+PREVPRICE
+PREVWAPRICE
+PREVLEGALCLOSEPRICE
+LCURRENTPRICE
+LASTCHANGEPRCNT
+WADEPSRATE
+WAREPORATE
+WAREPORATEFIXN
+WAVAL
+ISQUALIFIEDINVESTORS
+EMITENTMISMATCHCUR
+SECTORID
+CURRENCYID
+currencyid
+curveid
+indexid
+oichange
+turnoversprevdate
+TRENDCLSPR
+YIELDTOOFFER
+GSPREADBP
+ZSPREADBP
+
+# --- MOEX ISS: коды бордов, рынков, валютных инструментов ---
+TQBR
+TQOB
+TQIF
+TQTF
+EQBR
+EQOB
+SELT
+CETS
+CNGD
+SPEQ
+RPMO
+LICU
+AUCB
+RUSFARCNY
+GLDRUB
+CNYRUB
+selt
+
+# --- MOEX ISS: коды индексов и тикеров ---
+IMOEX
+MOEXBC
+MMVB
+RTSI
+HLOCV
+OHLC
+ZCYC
+zcyc
+ABIO
+AFKS
+GMKN
+NLMK
+PHOR
+TCSG
+YNDX
+
+# --- ZCYC модель Nelson-Siegel-Svensson ---
+Siegel
+Svensson
+
+# --- Прочие термины MOEX/финансы ---
+cbrf
+CBRF
+agro
+mamc
+emitent
+EMITENT
+okpo
+ОКПО
+МКПАО
+
+# --- Производные русские формы, отсутствующие в общем ru_ru ---
+регистронезависимы   # от «регистронезависимый» (мн.ч. кратк.)
+непустоту            # вин.п. «непустота»
+
+# --- Доменные русские термины ---
+Мосбиржа
+мульти
+дюрация
+Дюрация
+дюрации
+делистнутые
+делистнутых
+экспирированных
+ребрендинге
+редомициляция
+редомицилированных
+редомициляцию
+субиндекс
+субиндексы
+субфедеральные
+ребалансировка
+сублинейно
+сублинейный
+
+# --- Внешние сервисы ---
+Refinitiv
+
+# --- Go import-алиасы (составные lowercase-идентификаторы) ---
+domaincompany     # alias для internal/domain/company в подпакетах infra
+moexcompany       # alias для internal/infra/moex/company в composition root и тестах
+fmcompany         # alias для internal/infra/financemarker/company в composition root и тестах
+fccompany         # alias для internal/infra/filecache/company в composition root и тестах
+
+# --- Имена внешних библиотек ---
+diskv             # github.com/peterbourgon/diskv — disk-backed kv для файлового кеша
+
+# --- Имена инструментов разработки ---
+govulncheck       # официальный сканер CVE для Go (golang.org/x/vuln)
+gosec             # security-линтер для Go
+caarlos           # автор github.com/caarlos0/env (упоминание в комментариях)
+mvdan             # автор встроенного POSIX-shell в go-task (mvdan/sh)
+Korobkov          # фамилия владельца репозитория, фигурирует в URL бейджей
+structfielddocs   # бинарь линтера из github.com/DanilaKorobkov/go-checkers
+
+# --- ISIN / SECID для ОФЗ ---
+RMFS
+
+# --- Опечатки исходных данных, которые сохраняем для верности ---
+bencmark         # реально встречается в полях MOEX
+determinat       # имя поля MOEX
+SMAL              # boardid MOEX (Securities Market Algorithm List)
+редомицилированные
+Мосбиржи
+субфед
+делистнутым
+MOEXIT
+MOEXOG
+ребалансировки
+субиндексе
+
+# --- Тикеры MOEX из VISION.md ---
+SNGS
+SNGSP
+ROSN
+NVTK
+TATN
+PLZL
+CHMF
+MGNT
+MTSS
+RTKM
+POSI
+IRAO
+HYDR
+PIKK
+SMLT
+AKRN
+
+# --- Авторы и имена внешних библиотек (упоминаются в комментариях/документации) ---
+santhosh
+tekuri
+govaluate
+samber            # автор github.com/samber/lo (упоминание в правилах)
+wacc              # Weighted Average Cost of Capital
+financials        # финансовый раздел отчёта (английский)
+
+# --- Go import-алиасы новых пакетов ---
+moexclient        # alias для internal/infra/moex/client (в app/)
+fmclient          # alias для internal/infra/financemarker/client (в app/)
+fmstock           # alias для internal/infra/financemarker/stock (в app/)
+
+# --- Docker / runtime окружение ---
+distroless        # семейство минимальных образов от Google (gcr.io/distroless/*),
+                  # без shell и пакетного менеджера — runtime для production-бинарника
+Dokploy           # self-hosted PaaS для деплоя Docker-образов (https://dokploy.com)

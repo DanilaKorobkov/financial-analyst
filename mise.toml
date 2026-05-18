@@ -1,143 +1,58 @@
-# Единая точка правды для версий инструментов проекта.
-# Локально и в CI берутся отсюда — `mise install` в корне поднимает всё.
+# Версии инструментов «ничьей земли» репозитория — файлы, не принадлежащие
+# ни одному модулю: .github/workflows/, корневой README.md, .claude/**,
+# корневые конфиги (.markdownlint-cli2.jsonc, .prettierrc.yaml, lychee.toml,
+# cspell.config.yaml, .yamllint.yml, mise.toml).
+#
+# Go-toolchain, buf, mockery и т.п. живут в server/mise.toml; node-стек фронта —
+# в web/mise.toml. Здесь только то, чем чекаются файлы вне server/ и web/.
 #
 # Установка mise: https://mise.jdx.dev/getting-started.html
-#   macOS:        brew install mise
-#   Linux/macOS:  curl https://mise.run | sh
-# После установки добавить shell-хук (см. ссылку выше) — иначе версии
-# не будут автоматически переключаться при `cd` в проект.
 
-# ──────────────────────────────────────────────────────────────────────────────
-# ENV — переменные окружения, общие для всех `mise exec` и task-задач проекта.
-# ──────────────────────────────────────────────────────────────────────────────
-#
-# Зачем: golangci-lint и go-build по умолчанию пишут кэш в один глобальный
-# каталог пользователя (~/Library/Caches/golangci-lint, ~/Library/Caches/go-build
-# на macOS). Кэш индексируется абсолютными путями файлов; когда git-worktree
-# удаляется, его пути остаются в общем кэше и при следующем lint в *другом*
-# worktree линтер репортит ошибки в несуществующих файлах. Лечится только
-# ручным `golangci-lint cache clean`.
-#
-# Привязываем оба кэша к корню текущего worktree (`{{config_root}}` у mise =
-# директория, где лежит этот mise.toml). У каждого worktree свой кэш в
-# собственной директории — удалили worktree, кэш ушёл с ним; коллизий между
-# параллельными worktrees нет.
-#
-# Каталоги исключены из git (.gitignore: .golangci-cache/, .gocache/).
+# Перебиваем GOCACHE / GOLANGCI_LINT_CACHE, которые приезжают из родительского
+# mise.toml: worktree живёт внутри main-репозитория и mise по traversal тянет
+# его конфиг. Без этой перебивки `task server:<name>` из корня worktree
+# использует кэш main-репо, в котором лежат записи с путями main-репо —
+# из-за чего из корня worktree линтер репортит «ошибки» в чужих файлах
+# с путями вида `../../../../internal/...`.
+# Для случая `cd server && task <name>` те же значения задаёт server/mise.toml
+# [env] (там {{config_root}} = server/, путь получается тот же).
 [env]
-GOLANGCI_LINT_CACHE = "{{config_root}}/.golangci-cache"
-GOCACHE = "{{config_root}}/.gocache"
-# Личные репозитории владельца тянутся напрямую с GitHub в обход корпоративных
-# go-прокси, которые могут блокировать модули моложе 30 дней по security-политике.
-# Проверка контрольных сумм остаётся включённой через sum.golang.org.
-GONOPROXY = "github.com/DanilaKorobkov/*"
+GOCACHE = "{{config_root}}/server/.gocache"
+GOLANGCI_LINT_CACHE = "{{config_root}}/server/.golangci-cache"
 
 [tools]
 
-# Основной рантайм проекта — весь runtime-код на Go.
-go = "1.26.3"
-
-# Линтер Go-кода — единая точка правды по стилю и проверкам (.golangci.yml).
-golangci-lint = "2.12.2"
-
-# Task runner проекта (Taskfile.yml) — единый вход для lint/fmt/test.
+# Task runner — единый вход для repo-checks.
 task = "3.49.1"
 
-# Нужен как backend для pipx-пакетов (yamllint и т.п.). Минимум 3.10.
+# Python + pipx нужны как backend для yamllint.
 python = "3.14"
-
-# pipx нужен mise как backend для установки yamllint; mise тянет его через
-# aqua-backend (github.com/pypa/pipx с GitHub Releases) — без системных зависимостей.
 pipx = "latest"
 
-# yamllint — де-факто стандарт линтинга YAML; ставится через pipx-backend mise.
+# yamllint — линтер YAML-файлов «ничьей земли»: .github/workflows/*.yml,
+# .yamllint.yml, cspell.config.yaml.
 "pipx:yamllint" = "1.38.0"
 
-# Node нужен как backend для npm-пакетов (markdownlint-cli2, cspell).
-# LTS-линейка — стабильность важнее свежести.
+# Node нужен как backend для npm-пакетов (markdownlint-cli2, cspell, prettier).
 node = "22.11.0"
 
-# markdownlint-cli2 — линтер структуры Markdown: заголовки, списки, code fences,
-# таблицы. Конфиг — .markdownlint-cli2.jsonc в корне. Версии правил см.
-# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+# markdownlint-cli2 — линтер структуры Markdown для корневого README.md
+# и .claude/**/*.md. Конфиг — .markdownlint-cli2.jsonc.
 "npm:markdownlint-cli2" = "0.14.0"
 
-# cspell — code-aware spell-checker для всего репозитория (Go, MD, YAML, TOML и т.д.).
-# Понимает синтаксис языков, разбивает camelCase, пропускает code fences/URL.
-# Конфиг — cspell.config.yaml; проектный словарь — .cspell/project.txt.
+# cspell — орфография ru/en для «ничьей земли». Scope server/** и web/**
+# вырезан в cspell.config.yaml через ignorePaths.
 "npm:cspell" = "8.14.4"
 
-# Русский словарь для cspell (в bundle cspell его нет — только en_US/en_GB).
-# Подключается через `import` в cspell.config.yaml; путь определяется через
-# NODE_PATH, выставляемый задачей lint-spell в Taskfile.yml.
+# Русский словарь для cspell (в bundle cspell его нет).
 "npm:@cspell/dict-ru_ru" = "2.3.2"
 
-# lychee — быстрый чекер ссылок в Markdown (внешние URL, локальные пути, якоря).
-# Rust binary через aqua-backend mise (GitHub Releases). Конфиг — lychee.toml.
+# lychee — чекер ссылок в Markdown. Конфиг — lychee.toml.
 "aqua:lycheeverse/lychee" = "0.15.1"
 
-# Prettier — де-факто стандарт форматирования Markdown в индустрии. Парный
-# инструмент к markdownlint-cli2: markdownlint проверяет структуру, Prettier
-# приводит оформление (выравнивание GFM-таблиц, нормализация пробелов и
-# переносов) к единому виду. Конфиг — .prettierrc.yaml; список игнорируемых
-# путей берётся из .gitignore автоматически (Prettier 3+).
+# Prettier — оформление Markdown. Парный к markdownlint-cli2.
 "npm:prettier" = "3.3.3"
 
-# actionlint — статический анализатор GitHub Actions workflows
-# (.github/workflows/*.yml): синтаксис, валидность выражений ${{ }}, корректность
-# runner labels, shell-команды внутри run (через shellcheck, если установлен),
-# использование устаревших set-output и т.п. Конфиг по умолчанию — без
-# дополнительного файла; при необходимости можно завести .github/actionlint.yaml.
+# actionlint — статический анализатор GitHub Actions workflows.
+# По смыслу repo-only: .github/ принадлежит репозиторию, не модулю.
 "aqua:rhysd/actionlint" = "1.7.12"
-
-# buf — CLI для protobuf-схем: линт, breaking-check, кодген.
-"aqua:bufbuild/buf" = "1.69.0"
-
-# protoc-плагины для buf generate. Ставятся через go-backend mise
-# (собираются из исходников по pinned версии — единая сборка локально и в CI).
-# Remote plugins на buf.build требуют авторизации с конца 2024, поэтому
-# плагины подтянуты как локальные исполняемые файлы — это соответствует tooling.md
-# (go-backend mise разрешён, как и для govulncheck).
-"go:google.golang.org/protobuf/cmd/protoc-gen-go" = "1.36.6"
-"go:connectrpc.com/connect/cmd/protoc-gen-connect-go" = "1.18.1"
-
-# protoc-gen-es — TS-генератор для buf (используется web/buf.gen.yaml).
-# По смыслу — такой же CLI-плагин buf, как protoc-gen-go выше; держать его
-# в web/package.json как devDependency противоречит tooling.md
-# («CLI-утилиты ставятся только через mise»). Тип npm-backend mise — тот же
-# механизм, через который уже ставятся cspell/markdownlint-cli2/prettier.
-"npm:@bufbuild/protoc-gen-es" = "2.12.0"
-
-# mockery — генератор mock-объектов по Go-интерфейсам (заменяет hand-rolled fakes).
-"aqua:vektra/mockery" = "3.7.0"
-
-# govulncheck — официальный сканер уязвимостей от команды Go
-# (golang.org/x/vuln). В отличие от gosec (паттерны кода) проверяет реальные
-# CVE в зависимостях и stdlib с учётом call graph: репортит только то, что
-# фактически вызывается из проекта. База — https://vuln.go.dev. Ставится
-# через go-backend mise — собирается из исходников по pinned версии, что
-# гарантирует одинаковую сборку локально и в CI. Плагины protoc-gen-go и
-# protoc-gen-connect-go выше — тот же подход.
-"go:golang.org/x/vuln/cmd/govulncheck" = "1.1.4"
-
-# go-test-coverage — гейт по порогам покрытия тестами поверх `go test -coverprofile`.
-# Парсит coverage.out, считает % покрытия по файлам / пакетам / total и сравнивает
-# с порогами из .testcoverage.yml. Override-секция позволяет задавать разные пороги
-# по слоям архитектуры (domain — 100%, presentation — 100%, infra — 80%; cmd
-# исключается). Exit code != 0 при недоборе — CI падает.
-# Документация: https://github.com/vladopajic/go-test-coverage
-"go:github.com/vladopajic/go-test-coverage/v2" = "2.18.4"
-
-# structfielddocs — проектный go/analysis-линтер из github.com/DanilaKorobkov/go-checkers.
-# Требует doc-комментарий строкой выше у каждого экспортируемого поля
-# экспортируемой структуры. Тот же шаблон, что у govulncheck/protoc-плагинов:
-# go-backend mise собирает CLI из исходников по pinned версии.
-"go:github.com/DanilaKorobkov/go-checkers/cmd/structfielddocs" = "0.1.0"
-
-# go-arch-lint — детерминированная проверка слоёной архитектуры по графу импортов.
-# Описание компонентов и разрешённых стрелок зависимостей — в .go-arch-lint.yml
-# в корне репозитория. Падает, если, например, internal/domain/** импортирует
-# что-то из internal/infra/** или internal/presentation/**. Composition root
-# (app/, cmd/) — единственное место, которому разрешено знать обо всех слоях.
-# Документация: https://github.com/fe3dback/go-arch-lint
-"go:github.com/fe3dback/go-arch-lint" = "1.14.0"

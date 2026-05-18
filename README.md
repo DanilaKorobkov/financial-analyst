@@ -7,7 +7,13 @@
 
 ## Установка окружения
 
-Все инструменты проекта (Go, golangci-lint, task, yamllint и т.д.) ставятся через [mise](https://mise.jdx.dev/) — версии зафиксированы в [`mise.toml`](./mise.toml).
+Репозиторий — модульный монолит. У каждого модуля свой toolchain:
+
+- [`server/mise.toml`](./server/mise.toml) — Go-сервер (go, golangci-lint, buf, mockery и т.п.) и линтеры scope `server/`.
+- [`web/mise.toml`](./web/mise.toml) — Vite + React фронт (node, buf, protoc-gen-es) и линтеры scope `web/`.
+- [`mise.toml`](./mise.toml) (корень) — линтеры «ничьей земли» репозитория (`.github/workflows/`, корневой README, `.claude/**`).
+
+Все инструменты ставятся через [mise](https://mise.jdx.dev/) — версии зафиксированы в `mise.toml`.
 
 ### 1. Поставить mise
 
@@ -43,13 +49,13 @@ echo 'eval "$(mise activate bash)"' >> ~/.bashrc
 
 ### 3. Поставить инструменты проекта
 
-В корне репозитория:
+mise активируется по `cd` в каталог с `mise.toml`, поэтому:
 
 ```bash
-mise install
+mise install                  # корневой toolchain «ничьей земли»
+mise install -C server        # toolchain Go-сервера
+mise install -C web           # toolchain фронта
 ```
-
-Команда поднимает всё из `mise.toml`: Go, golangci-lint, task, python+pipx, yamllint.
 
 ### 4. Проверить
 
@@ -57,7 +63,9 @@ mise install
 task fmt checks
 ```
 
-Если зелёно — окружение готово.
+Из корня запускаются три параллельных слоя: `server:checks` (Go-линтеры, тесты, линтеры scope `server/`), `web:checks` (генерация TS-клиента, линтеры scope `web/`) и `repo-checks` (линтеры «ничьей земли»). Если зелено — окружение готово.
+
+Точечно: `task server:checks`, `task web:checks`, `task repo-checks`.
 
 ## Docker-образы
 
@@ -75,11 +83,11 @@ task docker-build
 По отдельности — `task server:docker-build` и `task web:docker-build`.
 
 Запуск Connect-сервера. `.env` с реальными значениями (см.
-[`.env.example`](./.env.example)) обязателен — конфиг читается только из
-переменных окружения:
+[`server/.env.example`](./server/.env.example)) обязателен — конфиг читается
+только из переменных окружения:
 
 ```bash
-docker run --rm --env-file .env -p 8080:8080 fa-server:dev
+docker run --rm --env-file server/.env -p 8080:8080 fa-server:dev
 ```
 
 Запуск фронта. Smoke-проверка раздачи статики; вызовы `/company.v1.*`
@@ -90,7 +98,7 @@ docker run --rm -p 8080:80 fa-web:dev
 ```
 
 Для повседневной локальной разработки Docker не нужен: бэк поднимается
-через `task server:run`, фронт — через `task web:run` (Vite dev-сервер
-перенаправляет `/company.v1.*` на `http://localhost:8080`); обе команды разом —
-`task run`. Docker-образы используются только для production-сборки и
-smoke-проверки артефактов.
+через `task server:run` (читает `server/.env`), фронт — через `task web:run`
+(Vite dev-сервер перенаправляет `/company.v1.*` на `http://localhost:8080`);
+обе команды разом — `task run`. Docker-образы используются только для
+production-сборки и smoke-проверки артефактов.
