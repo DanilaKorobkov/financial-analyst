@@ -53,6 +53,19 @@ pipx = "latest"
 # yamllint — де-факто стандарт линтинга YAML; ставится через pipx-backend mise.
 "pipx:yamllint" = "1.38.0"
 
+# Ansible-core — runtime для bootstrap/ (см. bootstrap/README.md). Подаёт
+# в PATH ansible, ansible-playbook, ansible-galaxy. Используется только для
+# подготовки боевого VPS до установки Dokploy. Через pipx-backend.
+# Версия пиннится совместимо с ansible-lint ниже (на момент ansible-lint
+# 26.4.0 совместимая ansible-core — 2.20.x).
+"pipx:ansible-core" = "2.20.5"
+
+# ansible-lint — статический анализатор playbook'ов и ролей (bootstrap/).
+# Подключён в task bootstrap:lint и в матрицу .github/workflows/repo-checks.yml.
+# Тянет в свой venv ту же ansible-core 2.20.x — pipx изолирует пакеты, так что
+# два venv с одной и той же ansible-core это нормально (pipx-стиль).
+"pipx:ansible-lint" = "26.4.0"
+
 # Node нужен как backend для npm-пакетов (markdownlint-cli2, cspell).
 # LTS-линейка — стабильность важнее свежести.
 node = "22.11.0"

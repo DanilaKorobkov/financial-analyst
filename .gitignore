@@ -52,3 +52,8 @@ go.work.sum
 node_modules/
 web/dist/
 web/.vite/
+
+# Сборочные артефакты Ansible-каркаса bootstrap/: внешние роли и
+# коллекции (.galaxy/), кэш ansible-lint с клонами этих ролей (.ansible/).
+bootstrap/.galaxy/
+bootstrap/.ansible/

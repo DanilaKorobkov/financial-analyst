@@ -1,0 +1,52 @@
+---
+# =============================================================================
+# requirements.yml — манифест внешних зависимостей Ansible.
+# =============================================================================
+#
+# ЧТО ЭТО.
+# Здесь перечислено, какие чужие Ansible-роли и коллекции мы используем, и в
+# каких именно версиях. Это аналог package.json / go.mod, только для Ansible.
+# Версии фиксируются точно — обновление через явный bump в этом файле,
+# чтобы поведение playbook'а не менялось «само» между прогонами.
+#
+# КАК СВЯЗАН С ДРУГИМИ ФАЙЛАМИ.
+# - Читается командой `task bootstrap:deps` (см. ../Taskfile.yml), которая
+#   зовёт `ansible-galaxy role install -r requirements.yml` и
+#   `ansible-galaxy collection install -r requirements.yml`. Артефакты
+#   ставятся в .galaxy/ — этот каталог в .gitignore.
+# - Роли подключаются в playbooks/bootstrap.yml блоком `roles:`.
+# - Коллекции (модули вида community.general.timezone) подключаются
+#   автоматически — Ansible сам находит их через ansible.cfg → collections_path.
+
+roles:
+  # geerlingguy.swap — добавляет swap-файл нужного размера, прописывает его
+  # в /etc/fstab, настраивает vm.swappiness. Используется в bootstrap.yml.
+  # Параметры роли (swap_file_size_mb, swap_swappiness) задаются в
+  # inventory/group_vars/all.yml.
+  # Документация: https://github.com/geerlingguy/ansible-role-swap
+  - name: geerlingguy.swap
+    version: 2.0.0
+
+  # geerlingguy.docker — ставит Docker Engine из официального репо Docker Inc.
+  # (не из Ubuntu apt), включает systemd-сервис, опционально ставит compose-
+  # плагин. Это та же версия Docker, которую использует сам Dokploy installer.
+  # Параметры (docker_install_compose_plugin) — в group_vars/all.yml.
+  # Документация: https://github.com/geerlingguy/ansible-role-docker
+  - name: geerlingguy.docker
+    version: 8.0.0
+
+collections:
+  # community.general — большой пакет модулей, не входящих в ansible-core.
+  # Из него нам нужен модуль `timezone` (использует роль common). Если позже
+  # понадобятся другие модули отсюда (например, `ufw`, `make`, `htpasswd`) —
+  # они уже доступны без дополнительной установки.
+  # Документация: https://docs.ansible.com/ansible/latest/collections/community/general/
+  - name: community.general
+    version: 12.6.1
+
+  # ansible.posix — модули для POSIX-систем. Конкретно нам нужен `mount`,
+  # его внутри использует роль geerlingguy.swap для прописывания swap-файла
+  # в /etc/fstab. Без этой коллекции `task bootstrap:syntax-check` падает на
+  # парсинге geerlingguy.swap с ошибкой «couldn't resolve module 'mount'».
+  - name: ansible.posix
+    version: 2.1.0

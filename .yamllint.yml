@@ -121,9 +121,11 @@ rules:
     quote-type: any
     required: only-when-needed
 
-  # Маркер `---` нужен для multi-doc YAML. У нас одно-доковые файлы.
-  document-start:
-    present: false
+  # Маркер `---` нужен для multi-doc YAML. У нас одно-доковые файлы; правило
+  # отключено целиком, чтобы не воевать с поддиректориями, где `---`
+  # обязателен по соглашениям инструмента (например, Ansible playbook'и
+  # в bootstrap/).
+  document-start: disable
 
   # Маркер `...` (конец документа) почти никогда не нужен.
   document-end:
@@ -141,3 +143,5 @@ ignore: |
   node_modules/
   .lint-generated-proto.*/
   .lint-generated-mocks.*/
+  bootstrap/.galaxy/
+  bootstrap/.ansible/

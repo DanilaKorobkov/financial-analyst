@@ -102,6 +102,20 @@
 │   ├── .mockery.yaml                      # Конфиг mockery
 │   └── .testcoverage.yml                  # Пороги покрытия
 │
+├── bootstrap/                             # Ansible-каркас: чистая Ubuntu LTS → узел, готовый к Dokploy
+│   ├── ansible.cfg
+│   ├── inventory/
+│   │   ├── hosts.yml                      # group prod, host prod-vps (без IP)
+│   │   ├── group_vars/all.yml             # параметры geerlingguy.swap / .docker
+│   │   └── host_vars/
+│   │       └── prod-vps.yml.example       # шаблон host_vars (реальный — в .gitignore)
+│   ├── playbooks/bootstrap.yml            # common → swap → docker
+│   ├── roles/common/                      # apt upgrade, timezone, unattended-upgrades, assert sshd
+│   ├── requirements.yml                   # geerlingguy.swap, .docker + community.general
+│   ├── tests/smoke.yml                    # idempotency-проверки после bootstrap:run
+│   ├── README.md
+│   └── .gitignore                         # .galaxy/, host_vars/*.yml кроме .example
+│
 ├── .claude/
 │   ├── CLAUDE.md                          # Концепция системы
 │   ├── rules/                             # Конвенции проекта

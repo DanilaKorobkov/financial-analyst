@@ -1,0 +1,119 @@
+---
+# =============================================================================
+# roles/common/tasks/main.yml — главный список действий роли common.
+# =============================================================================
+#
+# ЧТО ЭТО.
+# В Ansible-роли каталог tasks/ содержит сами действия — главный файл всегда
+# main.yml. Каждая запись (`- name: ...`) — отдельный task, у него есть имя,
+# модуль (apt, copy, command, assert, ...) и параметры. Ansible выполняет
+# таски строго сверху вниз, и для каждого репортит ok / changed / failed.
+#
+# КАК СВЯЗАН С ДРУГИМИ ФАЙЛАМИ.
+# - Переменные {{ common_timezone }}, {{ common_apt_packages }} берутся из
+#   ../defaults/main.yml (могут быть перебиты в inventory/host_vars).
+# - Эта роль подключена в ../../../playbooks/bootstrap.yml как первая.
+# - Модуль community.general.timezone приходит из коллекции, описанной в
+#   ../../../requirements.yml.
+# - Smoke-проверки этих действий — в ../../../tests/smoke.yml.
+
+# ─── Шаг 1: обновить apt-кэш и пакеты системы ────────────────────────────────
+# Модуль apt — стандарт для Debian/Ubuntu. update_cache=true делает `apt update`.
+# upgrade=safe ставит security-обновления для УЖЕ установленных пакетов
+# (аналог `apt upgrade`, но без обновлений, требующих удаления/замены пакетов).
+# cache_valid_time=3600 — не делать update повторно, если кэш свежее часа
+# (важно для идемпотентности: повторный прогон не зовёт apt update без нужды).
+- name: Обновить apt-кэш и применить безопасные обновления установленных пакетов
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: safe
+    cache_valid_time: 3600
+
+# ─── Шаг 2: поставить базовые пакеты ─────────────────────────────────────────
+# state=present = «должен быть установлен». Если уже стоит — ok, ничего не
+# делает. Если нет — apt install и пометка changed. Список приходит из
+# defaults/main.yml.
+- name: Установить базовые пакеты системы
+  ansible.builtin.apt:
+    name: "{{ common_apt_packages }}"
+    state: present
+
+# ─── Шаг 3: выставить timezone ───────────────────────────────────────────────
+# Модуль community.general.timezone сам решает, нужен ли systemctl restart
+# systemd-timedated. Идемпотентен: если timezone уже Europe/Berlin — ok.
+- name: Выставить timezone узла
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+# ─── Шаг 4: поставить unattended-upgrades ────────────────────────────────────
+# unattended-upgrades — стандартный механизм Debian/Ubuntu для автоматической
+# установки security-патчей. apt-listchanges — сопутствующий пакет, шлёт root'у
+# email с changelog'ом обновлений (письма локально, не наружу).
+- name: Установить unattended-upgrades для автоматических security-патчей
+  ansible.builtin.apt:
+    name:
+      - unattended-upgrades
+      - apt-listchanges
+    state: present
+
+# ─── Шаг 5: включить периодические обновления ────────────────────────────────
+# Модуль copy записывает файл по dest=. Идемпотентен: если содержимое уже
+# совпадает — ok, ничего не делает.
+# Файл /etc/apt/apt.conf.d/20auto-upgrades — конфиг крон-демона APT::Periodic:
+# - Update-Package-Lists "1"      → apt update раз в сутки;
+# - Unattended-Upgrade "1"        → реально ставить найденные обновления;
+# - AutocleanInterval "7"         → раз в 7 дней чистить apt-кэш.
+# Двойные кавычки внутри content: — обязательны, это формат APT::Periodic.
+- name: Включить периодические автоматические обновления (APT::Periodic)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: '0644'
+    owner: root
+    group: root
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+
+# ─── Шаги 6-7: проверка sshd через assert ────────────────────────────────────
+# СОЗНАТЕЛЬНО НЕ ENFORCE. Роль не правит /etc/ssh/sshd_config, чтобы исключить
+# класс ошибок «playbook автоматически переписал sshd_config и я потерял
+# доступ». Вместо правки — проверка: текущее состояние ДОЛЖНО уже быть таким,
+# каким мы его хотим. Ubuntu cloud-образы у нормальных провайдеров приходят
+# именно так. Если провайдер выдал нестандартный образ — playbook упадёт, и
+# админ принимает решение вручную.
+
+# Шаг 6: прочитать эффективный sshd-конфиг.
+# `sshd -T` печатает то, что sshd реально прочитал, со всеми include'ами и
+# defaults. register: сохраняет результат в переменную (объект со .stdout,
+# .stderr, .rc и т.п.).
+# changed_when: false — read-only команда, не должна показываться как changed.
+# check_mode: false — выполнить даже в dry-run (`--check`), иначе следующий
+# assert не получит данных.
+- name: Прочитать эффективный sshd-конфиг
+  ansible.builtin.command: sshd -T
+  register: common_sshd_effective_config
+  changed_when: false
+  check_mode: false
+
+# Шаг 7: убедиться, что sshd-конфиг безопасный.
+# Модуль assert не делает ничего, кроме проверки условия. Если хотя бы одно
+# из условий `that:` ложно — playbook падает с fail_msg. success_msg
+# показывается в выводе при успехе.
+- name: Утверждение — sshd принимает только ключевую аутентификацию
+  ansible.builtin.assert:
+    that:
+      # Условие 1: пароли отключены.
+      - "'passwordauthentication no' in common_sshd_effective_config.stdout"
+      # Условие 2: root либо вообще не может логиниться, либо может только по
+      # ключу (prohibit-password = «можно ключом, нельзя паролем»).
+      - >-
+          'permitrootlogin prohibit-password' in common_sshd_effective_config.stdout
+          or 'permitrootlogin no' in common_sshd_effective_config.stdout
+    fail_msg: >-
+      sshd принимает пароли или разрешает root-логин по паролю.
+      Это противоречит требованию bootstrap — провайдер VPS должен
+      поставлять чистую Ubuntu с ключ-only доступом. Поправь
+      /etc/ssh/sshd_config вручную (PasswordAuthentication no,
+      PermitRootLogin prohibit-password) и перезапусти playbook.
+    success_msg: sshd hardened (key-only, root prohibit-password).

@@ -293,3 +293,15 @@ Dokploy           # self-hosted PaaS для деплоя Docker-образов (
 # --- CI / релизы ---
 releaserc         # имя конфига semantic-release (.releaserc.json) — индустриальный нейминг
 cycjimmy          # автор github.com/cycjimmy/semantic-release-action (используется в release.yml)
+
+# --- Инфраструктура (bootstrap/) ---
+geerlingguy       # автор ansible-role-{swap,docker} (galaxy.ansible.com/geerlingguy)
+limactl           # CLI Lima (lima-vm.io) — лёгкая Linux-VM для macOS, см. bootstrap/README.md
+Himalia           # тарифный план VPS на weasel.cloud (boot-сервер проекта)
+swapon            # утилита Linux для управления swap, используется в bootstrap/tests/smoke.yml
+noheadings        # флаг swapon --noheadings (см. там же)
+timedatectl       # systemd-утилита Linux для управления временем/timezone
+nocows            # параметр ansible.cfg [defaults] — отключает ASCII-«коровку» вывода cowsay
+doas              # утилита OpenBSD для повышения привилегий (альтернатива sudo)
+pbrun             # CyberArk Privilege Manager — корпоративный аналог sudo
+htpasswd          # утилита Apache для управления файлами basic-auth (.htpasswd)

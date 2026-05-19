@@ -1,0 +1,55 @@
+---
+# =============================================================================
+# playbooks/bootstrap.yml — главный playbook каркаса.
+# =============================================================================
+#
+# ЧТО ЭТО.
+# Playbook в Ansible — это «сценарий»: один или несколько play-блоков, в
+# каждом — целевая группа хостов и список ролей/task'ов. Здесь единственный
+# play: «привести VPS из группы prod к состоянию, готовому к установке
+# Dokploy».
+#
+# КАК СВЯЗАН С ДРУГИМИ ФАЙЛАМИ.
+# - hosts: prod         → группа из ../inventory/hosts.yml.
+# - become: true        → Ansible повышает привилегии через sudo (см.
+#                         become_method в ../ansible.cfg).
+# - roles:              → перечисленные ниже роли:
+#   • common            — наша, лежит в ../roles/common/. Базовая системная
+#                         настройка узла.
+#   • geerlingguy.swap  — внешняя, тянется через ../requirements.yml в
+#                         ../.galaxy/. Создаёт swap-файл.
+#   • geerlingguy.docker— внешняя, оттуда же. Ставит Docker Engine.
+# - Параметры внешних ролей (swap_*, docker_*) — в
+#   ../inventory/group_vars/all.yml.
+# - Запускается через `task bootstrap:run`, проверяется через
+#   `task bootstrap:check` (--check, dry-run) и `task bootstrap:syntax-check`.
+
+- name: Bootstrap чистого Ubuntu VPS до состояния, готового к установке Dokploy
+  # Целевая группа хостов из inventory. Сейчас в группе только prod-vps,
+  # но если завтра появится staging-vps — этот же playbook раскатится на оба.
+  hosts: prod
+
+  # Все таски выполняются через sudo (метод задан в ansible.cfg → become_method).
+  # Альтернатива — указывать become на каждом таске отдельно; для bootstrap-
+  # playbook'а проще включить глобально, потому что почти все действия
+  # системные.
+  become: true
+
+  # Перед прогоном собрать факты о хосте: OS, версия ядра, RAM, hostname и т.д.
+  # Они доступны как переменные `ansible_facts.*`. Сторонние роли
+  # (geerlingguy.docker, geerlingguy.swap) используют их, чтобы понять —
+  # Ubuntu это или RedHat, какой версии apt-репозиторий подключать.
+  gather_facts: true
+
+  # Список ролей. Применяются СТРОГО ПО ПОРЯДКУ сверху вниз. Порядок не
+  # случайный:
+  # 1) common — apt update, базовые пакеты, timezone, security-обновления.
+  #    Должен идти первым: без apt update у внешних ролей упадёт установка.
+  # 2) swap   — Docker под нагрузкой может вылетать в OOM на VPS с 4 ГБ RAM
+  #    без swap'а. Поднимаем swap ДО установки Docker'а, чтобы первая же
+  #    Docker-нагрузка имела куда расти.
+  # 3) docker — собственно Docker Engine. Нужен Dokploy'ю (следующий PR).
+  roles:
+    - role: common
+    - role: geerlingguy.swap
+    - role: geerlingguy.docker
