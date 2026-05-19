@@ -1,16 +1,43 @@
 ---
-# Все переменные роли common обязаны быть префиксированы `common_` —
-# конвенция ansible-lint var-naming[no-role-prefix]. Это даёт глобально
-# уникальные имена и сразу видно, какая роль владеет переменной.
+# =============================================================================
+# roles/common/defaults/main.yml — значения переменных роли common по умолчанию.
+# =============================================================================
+#
+# ЧТО ЭТО.
+# В каждой Ansible-роли каталог defaults/ хранит переменные с самым НИЗКИМ
+# приоритетом. Это значит: любое значение в group_vars/, host_vars/, или в
+# CLI (`ansible-playbook -e common_timezone=UTC`) перебивает то, что здесь.
+# Идея — внутри роли пишем разумные дефолты, а снаружи (в inventory) их
+# можно перебить под конкретное окружение.
+#
+# КАК СВЯЗАН С ДРУГИМИ ФАЙЛАМИ.
+# - Переменные ниже читает roles/common/tasks/main.yml — там идут
+#   подстановки `{{ common_timezone }}` и `{{ common_apt_packages }}`.
+# - Если когда-то понадобится свой timezone для конкретного VPS, его можно
+#   задать в inventory/host_vars/<host>.yml — это перебьёт значение отсюда.
+#
+# ПОЧЕМУ ПРЕФИКС common_*.
+# Правило ansible-lint `var-naming[no-role-prefix]` требует, чтобы переменные
+# роли начинались с её имени. Это даёт глобально уникальные имена: если в
+# будущем появится роль monitoring со своей `timezone` — конфликта не будет.
 
-# Timezone узла. Default — Europe/Berlin (провайдер weasel.cloud Himalia DE).
-# Override через host_vars/<host>.yml, если VPS живёт в другом регионе.
+# Timezone узла. Default — Europe/Berlin под текущего провайдера VPS
+# (weasel.cloud Himalia DE). Override через host_vars/<host>.yml,
+# если VPS живёт в другом регионе.
 common_timezone: Europe/Berlin
 
-# Базовый набор пакетов на любой Ubuntu-узел. Минимум: HTTP-клиент, git
-# (для on-host клона при необходимости), удобства SSH-сессии (htop, vim),
-# инфраструктура для добавления сторонних apt-репозиториев (ca-certificates,
-# gnupg, software-properties-common).
+# Базовый набор пакетов на любой Ubuntu-узел. Принцип отбора:
+# - curl                   — HTTP-клиент для скачивания установщиков
+#                            (например, Dokploy installer тянется curl'ом).
+# - git                    — для on-host клонов при отладке.
+# - htop                   — удобный top для интерактивного SSH-сеанса.
+# - vim                    — редактор, чтобы было чем править конфиги вручную.
+# - ca-certificates        — корневые сертификаты для TLS (без них https
+#                            ломается).
+# - gnupg                  — нужен apt для проверки подписей сторонних
+#                            репозиториев (Docker, Dokploy и т.п.).
+# - software-properties-common — даёт add-apt-repository и связанные утилиты,
+#                            нужны для добавления сторонних apt-репозиториев.
 common_apt_packages:
   - curl
   - git

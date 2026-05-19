@@ -302,3 +302,6 @@ swapon            # утилита Linux для управления swap, ис�
 noheadings        # флаг swapon --noheadings (см. там же)
 timedatectl       # systemd-утилита Linux для управления временем/timezone
 nocows            # параметр ansible.cfg [defaults] — отключает ASCII-«коровку» вывода cowsay
+doas              # утилита OpenBSD для повышения привилегий (альтернатива sudo)
+pbrun             # CyberArk Privilege Manager — корпоративный аналог sudo
+htpasswd          # утилита Apache для управления файлами basic-auth (.htpasswd)

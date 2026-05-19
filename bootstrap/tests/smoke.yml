@@ -1,30 +1,65 @@
 ---
-# Smoke-проверки состояния узла после bootstrap-playbook'а. Запускается
-# отдельно (после bootstrap.yml), не через handlers — это независимый
-# контракт «узел готов к Dokploy».
+# =============================================================================
+# tests/smoke.yml — smoke-проверки состояния узла после bootstrap.
+# =============================================================================
+#
+# ЧТО ЭТО.
+# Это отдельный Ansible-playbook, который НИЧЕГО НЕ МЕНЯЕТ на VPS, а только
+# проверяет, что предыдущий прогон `task bootstrap:run` действительно привёл
+# узел в нужное состояние. Это «контракт» каркаса bootstrap: какие инварианты
+# должны быть истинны после установки. По сути — интеграционный тест.
+#
+# ПОЧЕМУ ОТДЕЛЬНЫЙ PLAYBOOK, А НЕ HANDLERS / VERIFY-БЛОК.
+# Чтобы можно было запускать независимо: bootstrap:smoke не зависит от
+# bootstrap:run, можно гонять в любой момент для аудита.
+#
+# КАК СВЯЗАН С ДРУГИМИ ФАЙЛАМИ.
+# - hosts: prod   → группа из ../inventory/hosts.yml.
+# - проверяет результат работы ../playbooks/bootstrap.yml и его ролей.
+# - запускается через `task bootstrap:smoke` (см. ../../Taskfile.yml).
 
 - name: Smoke — bootstrap состояние узла
   hosts: prod
+  # become: true нужен, потому что часть проверок требует root
+  # (sshd -T, например).
   become: true
+  # gather_facts: false — фактов нам тут не нужно (это только проверки).
+  # Без них playbook стартует быстрее.
   gather_facts: false
 
   tasks:
+    # ─── Проверка 1: swap активен ────────────────────────────────────────────
+    # swapon --show=NAME --noheadings печатает имена активных swap-файлов.
+    # Пустой вывод = swap'а нет → failed_when срабатывает.
+    # changed_when: false — это read-only команда, не отмечать как changed.
     - name: Проверить, что swap-файл активен
       ansible.builtin.command: swapon --show=NAME --noheadings
       register: swap_check
       changed_when: false
       failed_when: swap_check.stdout | trim == ''
 
+    # ─── Проверка 2: docker info работает ────────────────────────────────────
+    # `docker info` падает с ненулевым exit-кодом, если docker-демон не
+    # запущен или сокет недоступен. Ansible сам ловит ненулевой exit как
+    # failure, поэтому failed_when явно не нужен.
     - name: Проверить, что docker info возвращает 0
       ansible.builtin.command: docker info
       changed_when: false
 
+    # ─── Проверка 3: unattended-upgrades active ─────────────────────────────
+    # Использую модуль ansible.builtin.systemd_service вместо `command:
+    # systemctl is-active ...` — так требует ansible-lint (правило
+    # command-instead-of-module). Модуль возвращает структурированный статус,
+    # ActiveState — самый достоверный признак «сервис работает».
     - name: Проверить, что unattended-upgrades systemd-unit активен
       ansible.builtin.systemd_service:
         name: unattended-upgrades
       register: unattended_status
       failed_when: unattended_status.status.ActiveState != 'active'
 
+    # ─── Проверка 4: timezone правильный ────────────────────────────────────
+    # Сначала прочитать (timedatectl show -p Timezone --value печатает
+    # просто строку «Europe/Berlin»), потом утвердить (assert).
     - name: Прочитать текущий timezone
       ansible.builtin.command: timedatectl show -p Timezone --value
       register: timezone_check
@@ -33,11 +68,17 @@
     - name: Утверждение — timezone выставлен в заявленное значение
       ansible.builtin.assert:
         that:
+          # | trim убирает trailing \n из stdout. common_timezone не задан в
+          # smoke-playbook'е (он не подключает роль common), поэтому default
+          # подстраховывает на случай, если переменная вообще не определена.
           - timezone_check.stdout | trim == (common_timezone | default('Europe/Berlin'))
         fail_msg: >-
-          Текущий timezone "{{ timezone_check.stdout | trim }}" не совпадает с ожидаемым
-          "{{ common_timezone | default('Europe/Berlin') }}".
+          Текущий timezone "{{ timezone_check.stdout | trim }}" не совпадает с
+          ожидаемым "{{ common_timezone | default('Europe/Berlin') }}".
 
+    # ─── Проверки 5-6: sshd hardened ────────────────────────────────────────
+    # Дублируем assert из роли common, но в виде отдельного независимого
+    # теста — чтобы smoke-playbook был самодостаточным проверочным сценарием.
     - name: Прочитать эффективный sshd-конфиг
       ansible.builtin.command: sshd -T
       register: sshd_smoke

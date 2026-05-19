@@ -1,14 +1,37 @@
----
-# Конфиг ansible-lint для bootstrap/. По умолчанию ansible-lint ищет playbook'и
-# в корне cwd; у нас они в playbooks/ + tests/. Явно перечисляем входы, чтобы
-# линт реально что-то проверял (default-поведение даёт «0 files processed»).
+# =============================================================================
+# .ansible-lint — конфигурация ansible-lint для bootstrap-каркаса.
+# =============================================================================
+#
+# ЧТО ЭТО.
+# ansible-lint — статический анализатор Ansible-кода: ловит опечатки в именах
+# модулей, не-идиоматичные паттерны, проблемы безопасности, нарушения naming-
+# конвенций. Запускается через `task bootstrap:lint`. ansible-lint умеет читать
+# профили — наборы правил по строгости (min / basic / moderate / safety / shared
+# / production). У нас — `production`, самый строгий.
+#
+# КАК СВЯЗАН С ДРУГИМИ ФАЙЛАМИ.
+# - Читается автоматически из cwd, когда `ansible-lint .` запускается из
+#   bootstrap/ (см. ../Taskfile.yml → bootstrap:lint).
+# - Профиль `production` диктует правила, которые мы соблюдаем в playbooks/,
+#   roles/, tests/ — например, `var-naming[no-role-prefix]` заставляет
+#   именовать переменные роли как common_*, а `command-instead-of-module` —
+#   использовать ansible.builtin.systemd_service вместо `command: systemctl ...`.
+# - Подключён в CI как отдельный target матрицы (см. ../.github/workflows/repo-checks.yml).
+
+# Какие пути не анализировать. .galaxy/ — это сборочный артефакт с внешними
+# ролями (geerlingguy.swap и т.п.), у них своя гигиена кода, нам их линтовать
+# смысла нет.
 exclude_paths:
   - .galaxy/
 
-# profile: production — самый строгий встроенный профиль (включает name[casing],
-# yaml[*], no-changed-when и т.п.). Тот же профиль, который ansible-lint
-# репортит как «достигнутый» по дефолту.
+# Профиль строгости.
+# `production` включает всё: правила безопасности, naming-конвенции
+# (var-naming, name[casing], name[template]), запрет на shell/command там,
+# где есть нормальный модуль, требование `name:` у каждого task'а, проверку
+# что переменные в jinja-выражениях обёрнуты в кавычки в YAML-значениях, и т.д.
+# Документация профилей: https://ansible.readthedocs.io/projects/lint/profiles/
 profile: production
 
-# Прогон с verbosity=0 — без trace, только понятные сообщения.
+# Verbosity вывода. 0 — без trace'ов, только сообщения. Поднять до 1-3
+# если ловишь странную ошибку в правиле и хочешь понять, что лимитер делает.
 verbosity: 0

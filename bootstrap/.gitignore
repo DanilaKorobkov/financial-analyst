@@ -1,16 +1,37 @@
-# Реальные host_vars (с IP боевого VPS и путём к ключу) в репо не коммитим.
-# В репо живёт только .example. Соответствующее правило для тестовых
-# Lima-VM (fa-bootstrap.yml и подобных) — там же.
+# =============================================================================
+# bootstrap/.gitignore — что НЕ коммитим в git внутри каркаса.
+# =============================================================================
+#
+# ЧТО ЭТО.
+# Локальный .gitignore именно для bootstrap-каркаса. Корневой .gitignore репо
+# тоже содержит правила для bootstrap/.galaxy/ и bootstrap/.ansible/ — этот
+# файл дублирует их на случай, если кто-то будет запускать git-команды из
+# bootstrap/ как из самостоятельного каталога. Оба файла источники истины.
+#
+# КАК СВЯЗАН С ДРУГИМИ ФАЙЛАМИ.
+# - Реальный inventory/host_vars/prod-vps.yml (с IP боевого VPS и путём к
+#   приватному ключу) попадает под первое правило ниже — в репо не коммитится.
+#   Шаблон inventory/host_vars/prod-vps.yml.example — единственное исключение.
+# - .galaxy/ — артефакт `task bootstrap:deps` (см. ../Taskfile.yml), туда
+#   ansible-galaxy ставит geerlingguy.swap, geerlingguy.docker, community.general,
+#   ansible.posix. В репо они не нужны — версии пиннятся в requirements.yml.
+# - .ansible/ — кэш ansible-lint (клоны ролей для анализа), создаётся при
+#   `task bootstrap:lint`. Чистый артефакт инструмента.
+
+# Реальные host_vars (IP, user, путь к SSH-ключу) в репо не уходят.
+# В репо живёт только .example.
 inventory/host_vars/*.yml
 !inventory/host_vars/*.yml.example
 
-# Сюда ansible-galaxy ставит внешние роли (geerlingguy.swap, geerlingguy.docker)
-# по requirements.yml — сборочный артефакт, не часть исходников.
+# Сборочный артефакт `task bootstrap:deps`: внешние роли (geerlingguy.swap,
+# geerlingguy.docker) и коллекции (community.general, ansible.posix).
+# Версии — единственный источник правды — лежат в requirements.yml.
 .galaxy/
 
-# ansible-lint клонирует роли из requirements.yml в локальный кэш .ansible/
-# для анализа — этот каталог создаётся автоматически при запуске линта.
+# Кэш ansible-lint: при анализе linter тянет в .ansible/ копии ролей из
+# requirements.yml и анализирует их. Только локальный артефакт инструмента.
 .ansible/
 
-# retry-файлы Ansible после провалившегося прогона.
+# retry-файлы Ansible после провалившегося прогона. Не используем
+# (retry_files_enabled=False в ansible.cfg), но на всякий случай.
 *.retry
